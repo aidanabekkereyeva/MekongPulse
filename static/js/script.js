@@ -44,6 +44,41 @@ const graphTypeOptions = [
     number_of_stations_allow: 1,
     auto_add_categories: false,
     description: "Inspect monthly totals across a selected year range."
+  },
+  {
+    name: "Flow Duration Curve",
+    number_of_categories_allow: 1,
+    number_of_stations_allow: 1,
+    auto_add_categories: false,
+    description: "Show how often values are exceeded over the selected period."
+  },
+  {
+    name: "Monthly Distribution Box Plot",
+    number_of_categories_allow: 1,
+    number_of_stations_allow: 1,
+    auto_add_categories: false,
+    description: "Display the statistical spread of values for each month."
+  },
+  {
+    name: "Multi-Station Temporal Heatmap",
+    number_of_categories_allow: 1,
+    number_of_stations_allow: "All",
+    auto_add_categories: false,
+    description: "Visualize how values change across stations and over time."
+  },
+  {
+    name: "Correlation Scatter Plot",
+    number_of_categories_allow: 2,
+    number_of_stations_allow: 1,
+    auto_add_categories: false,
+    description: "Explore the relationship between exactly two categories at one station."
+  },
+  {
+    name: "Anomaly Detection Chart",
+    number_of_categories_allow: 1,
+    number_of_stations_allow: 1,
+    auto_add_categories: false,
+    description: "Highlight statistical outliers and anomalies in the data series."
   }
 ];
 
