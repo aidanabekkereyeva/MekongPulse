@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+<Document>
+<Placemark>
+  <name>KH_014901_[Kratie]</name>
+  <description>Kratie</description>
+  <Point>
+    <coordinates>106.017616271973,12.4814100265503,0</coordinates>
+  </Point>
+</Placemark>
+</Document>
+</kml>

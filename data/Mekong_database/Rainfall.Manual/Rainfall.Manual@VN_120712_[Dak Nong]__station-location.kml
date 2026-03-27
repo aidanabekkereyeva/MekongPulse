@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+<Document>
+<Placemark>
+  <name>VN_120712_[Dak Nong]</name>
+  <description>Dak Nong</description>
+  <Point>
+    <coordinates>107.687777777778,12.0008333333333,0</coordinates>
+  </Point>
+</Placemark>
+</Document>
+</kml>

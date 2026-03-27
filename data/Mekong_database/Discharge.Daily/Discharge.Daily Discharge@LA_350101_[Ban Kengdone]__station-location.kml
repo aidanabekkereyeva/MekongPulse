@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+<Document>
+<Placemark>
+  <name>LA_350101_[Ban Kengdone]</name>
+  <description>Ban Kengdone</description>
+  <Point>
+    <coordinates>105.312866210938,16.1872692108154,0</coordinates>
+  </Point>
+</Placemark>
+</Document>
+</kml>

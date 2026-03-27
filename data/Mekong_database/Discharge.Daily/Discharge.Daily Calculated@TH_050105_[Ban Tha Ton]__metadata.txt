@@ -1,0 +1,20 @@
+# Time series identifier: Discharge.Daily Calculated@TH_050105_[Ban Tha Ton]
+# Location identifier: TH_050105_[Ban Tha Ton]
+# UTC offset: (UTC+07:00)
+# Value units: m^3/s
+# Value parameter: Discharge
+# Value label: Daily Calculated
+#
+# Location identifier: TH_050105_[Ban Tha Ton]
+# Location name: Ban Tha Ton
+# Country: Thailand
+# River: Nam Mae Kok
+# Latitude: 20.06116311
+# Longitude: 99.35976227
+#
+# Disclaimer: The Mekong River Commission make no warranties about this data and disclaim all responsibility and liability for all expenses, losses, damages and costs which may be incurred as a result of the data being inaccurate or incomplete in any way and for any reason. The data contained herein do not imply the expression of any opinion whatsoever on the part of the Mekong River Commission concerning the legal status of any country, territory, city or area or of its authorities, or concerning the delineation of its frontiers or boundaries.
+#
+# Export options: Corrected signal from 1969-04-01T00:00:00Z to 2005-12-31T00:00:00Z
+#
+# Generated at 2023-12-07T22:24:26+07
+#

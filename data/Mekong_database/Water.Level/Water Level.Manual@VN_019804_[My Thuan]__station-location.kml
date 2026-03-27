@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+<Document>
+<Placemark>
+  <name>VN_019804_[My Thuan]</name>
+  <description>My Thuan</description>
+  <Point>
+    <coordinates>105.926322937012,10.2753200531006,0</coordinates>
+  </Point>
+</Placemark>
+</Document>
+</kml>

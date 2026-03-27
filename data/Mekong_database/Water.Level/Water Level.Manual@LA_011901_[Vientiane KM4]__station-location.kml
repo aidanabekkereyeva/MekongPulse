@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+<Document>
+<Placemark>
+  <name>LA_011901_[Vientiane KM4]</name>
+  <description>Vientiane KM4</description>
+  <Point>
+    <coordinates>102.615562438965,17.930980682373,0</coordinates>
+  </Point>
+</Placemark>
+</Document>
+</kml>

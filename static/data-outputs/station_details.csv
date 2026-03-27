@@ -1,0 +1,63 @@
+Station_Name,Station_Code,Country,Latitude,Longitude,Available_Categories
+Khong Chiam,013801,Thailand,15.322,105.493,"Water Discharge Daily, Rainfall Manual, Sediment Concentration, Sediment Concentration (DSMP), Total Suspended Solids, Water Level"
+Ban Huai Khayuong,381206,Thailand,15.007,105.634,"Water Discharge Daily, Water Level"
+Mukdahan,013402,Thailand,16.583,104.733,"Water Discharge Daily, Rainfall Manual, Sediment Concentration, Sediment Concentration (DSMP), Water Level"
+Ban Pak Kanhoung,230101,Lao PDR,18.419,102.546,"Water Discharge Daily, Water Level"
+Kompong Cham,019802,Cambodia,11.911,105.384,"Water Discharge Daily, Rainfall Manual, Total Suspended Solids, Water Level"
+Ban Kamphun,440101,Cambodia,13.536,106.052,"Water Discharge Daily, Water Level"
+Ban Pak Huai,140101,Thailand,17.704,101.412,"Water Discharge Daily, Water Level"
+Can Tho,039803,Viet Nam,10.053,105.787,"Water Discharge Daily, Rainfall Manual, Water Level"
+Vientiane KM4,011901,Lao PDR,17.931,102.616,"Water Discharge Daily, Rainfall Manual, Total Suspended Solids, Water Level"
+Ban Don,451305,Viet Nam,12.898,107.783,"Water Discharge Daily, Rainfall Manual, Water Level"
+Ban Chot,370122,Thailand,16.102,102.573,"Water Discharge Daily, Water Level"
+Chiang Saen,010501,Thailand,20.274,100.089,"Water Discharge Daily, Rainfall Manual, Sediment Concentration, Sediment Concentration (DSMP), Total Suspended Solids, Water Level"
+Pakse,013901,Lao PDR,15.1,105.813,"Water Discharge Daily, Rainfall Manual, Sediment Concentration, Sediment Concentration (DSMP), Total Suspended Solids, Water Level"
+Cau 14 (Buon Bur),451301,Viet Nam,12.612,107.929,"Water Discharge Daily, Water Level"
+Vam Nao,980601,Viet Nam,10.579,105.363,"Water Discharge Daily, Rainfall Manual, Water Level"
+Kontum,440201,Viet Nam,14.347,108.034,"Water Discharge Daily, Rainfall Manual, Water Level"
+Yasothom,370104,Thailand,15.784,105.138,"Water Discharge Daily, Water Level"
+Ban Kengdone,350101,Lao PDR,16.187,105.313,"Water Discharge Daily, Water Level"
+Ban Tad Ton,371203,Thailand,15.944,102.026,"Water Discharge Daily, Water Level"
+Stung Treng,014501,Cambodia,13.533,105.95,"Water Discharge Daily, Rainfall Manual, Sediment Concentration (DSMP), Total Suspended Solids, Water Level"
+My Thuan,019804,Viet Nam,10.275,105.926,"Water Discharge Daily, Rainfall Manual, Water Level"
+Lumphat,450101,Cambodia,13.501,106.971,"Water Discharge Daily, Rainfall Manual, Water Level"
+Kratie,014901,Cambodia,12.481,106.018,"Water Discharge Daily, Rainfall Manual, Sediment Concentration (DSMP), Total Suspended Solids, Water Level"
+Chiang Khan,011903,Thailand,17.9,101.67,"Water Discharge Daily, Rainfall Manual, Water Level"
+Ban Nong Kiang,371101,Thailand,16.135,101.664,"Water Discharge Daily, Water Level"
+Chantangoy,430103,Cambodia,13.566,106.053,"Water Discharge Daily, Water Level"
+Ban Na Luang,230110,Lao PDR,18.914,102.774,"Water Discharge Daily, Water Level"
+Chaktomuk,033401,Cambodia,11.563,104.935,"Water Discharge Daily, Water Level"
+Duc Xuyen,450701,Viet Nam,12.297,107.976,"Water Discharge Daily, Water Level"
+Ban Huai Yano Mai,040201,Thailand,20.113,99.782,"Water Discharge Daily, Water Level"
+Nong Khai,012001,Thailand,17.881,102.732,"Water Discharge Daily, Rainfall Manual, Sediment Concentration, Sediment Concentration (DSMP), Water Level"
+Battambang,550102,Cambodia,13.092,103.2,"Water Discharge Daily, Water Level"
+Ban Tha Mai Liam,050201,Thailand,20.021,99.355,"Water Discharge Daily, Water Level"
+Chroy Chang Var,019801,Cambodia,11.587,104.938,"Water Discharge Daily, Water Level"
+Nakhon Phanom,013101,Thailand,17.425,104.774,"Water Discharge Daily, Rainfall Manual, Sediment Concentration, Sediment Concentration (DSMP), Total Suspended Solids, Water Level"
+Ban Tha Ton,050105,Thailand,20.061,99.36,"Water Discharge Daily, Water Level"
+Phung Hiep,090509,Viet Nam,9.8,105.15,"Rainfall Manual, Water Level"
+Tan Hiep,100519,Viet Nam,10.083,105.25,"Rainfall Manual, Water Level"
+My Tho,100605,Viet Nam,10.35,106.4,"Rainfall Manual, Water Level"
+Luang Prabang,190202,Lao PDR,19.88,102.13,"Rainfall Manual, Sediment Concentration, Total Suspended Solids, Water Level"
+Batri,100612,Viet Nam,9.967,106.6,Rainfall Manual
+Ben Luc,100613,Viet Nam,10.633,106.467,Rainfall Manual
+Cho Moi,100514,Viet Nam,10.417,105.55,"Rainfall Manual, Water Level"
+Phnom Penh Port,110411,Cambodia,11.6,104.83,"Rainfall Manual, Total Suspended Solids, Water Level"
+Dai Ngai,090602,Viet Nam,9.8,106.017,"Rainfall Manual, Water Level"
+Buon Me Thuoc,120801,Viet Nam,12.667,108.05,Rainfall Manual
+Pleiku,140703,Viet Nam,13.967,108.017,Rainfall Manual
+Buon Ho,120805,Viet Nam,12.917,108.267,Rainfall Manual
+Vi Thanh,090504,Viet Nam,9.767,105.45,"Rainfall Manual, Water Level"
+Dak To,140715,Viet Nam,14.704,107.848,Rainfall Manual
+Tan Chau,100513,Viet Nam,10.801,105.248,"Rainfall Manual, Water Level"
+Chau Doc,100505,Viet Nam,10.7,105.1,"Rainfall Manual, Water Level"
+Cai Lay,100609,Viet Nam,10.417,106.05,"Rainfall Manual, Water Level"
+Yasothon,150402,Thailand,15.8,104.15,Rainfall Manual
+Dak Nong,120712,Viet Nam,12.001,107.688,Rainfall Manual
+Cai Be,100614,Viet Nam,10.333,106.033,Rainfall Manual
+Ca Mau,090503,Viet Nam,9.017,105.08,Rainfall Manual
+Cho Lach,980505,Viet Nam,10.272,106.126,Water Level
+Giang Son,450502,Viet Nam,12.51,108.183,Water Level
+Jinghong,092600,China,22.016,100.802,Water Level
+Vam Kenh,985203,Viet Nam,10.274,106.737,Water Level
+Dinh An,985401,Viet Nam,9.531,106.368,Water Level

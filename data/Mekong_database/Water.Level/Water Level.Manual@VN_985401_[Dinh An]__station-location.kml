@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+<Document>
+<Placemark>
+  <name>VN_985401_[Dinh An]</name>
+  <description>Dinh An</description>
+  <Point>
+    <coordinates>106.367782592773,9.53083038330078,0</coordinates>
+  </Point>
+</Placemark>
+</Document>
+</kml>

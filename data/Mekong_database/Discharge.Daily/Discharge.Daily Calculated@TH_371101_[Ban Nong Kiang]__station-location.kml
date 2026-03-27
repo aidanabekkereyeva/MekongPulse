@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+<Document>
+<Placemark>
+  <name>TH_371101_[Ban Nong Kiang]</name>
+  <description>Ban Nong Kiang</description>
+  <Point>
+    <coordinates>101.6635215,16.13456982,0</coordinates>
+  </Point>
+</Placemark>
+</Document>
+</kml>

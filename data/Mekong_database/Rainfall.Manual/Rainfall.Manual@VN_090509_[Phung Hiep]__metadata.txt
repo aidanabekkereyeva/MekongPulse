@@ -1,0 +1,20 @@
+# Time series identifier: Rainfall.Manual@VN_090509_[Phung Hiep]
+# Location identifier: VN_090509_[Phung Hiep]
+# UTC offset: (UTC+07:00)
+# Value units: mm
+# Value parameter: Rainfall
+# Value label: Manual
+#
+# Location identifier: VN_090509_[Phung Hiep]
+# Location name: Phung Hiep
+# Country: Viet Nam
+# River: N/A
+# Latitude: 9.8
+# Longitude: 105.15
+#
+# Disclaimer: The Mekong River Commission make no warranties about this data and disclaim all responsibility and liability for all expenses, losses, damages and costs which may be incurred as a result of the data being inaccurate or incomplete in any way and for any reason. The data contained herein do not imply the expression of any opinion whatsoever on the part of the Mekong River Commission concerning the legal status of any country, territory, city or area or of its authorities, or concerning the delineation of its frontiers or boundaries.
+#
+# Export options: Corrected signal from 1980-01-01T00:00:00Z to 2012-12-31T00:00:00Z
+#
+# Generated at 2023-12-07T22:23:29+07
+#

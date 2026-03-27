@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+<Document>
+<Placemark>
+  <name>VN_090504_[Vi Thanh]</name>
+  <description>Vi Thanh</description>
+  <Point>
+    <coordinates>105.45,9.76666666666667,0</coordinates>
+  </Point>
+</Placemark>
+</Document>
+</kml>

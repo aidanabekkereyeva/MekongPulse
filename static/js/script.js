@@ -1,0 +1,1054 @@
+const STATION_DETAILS_CSV_LINK = "../static/data-outputs/station_details.csv";
+const CATEGORY_DETAILS_CSV_LINK = "../static/data-outputs/category_details.csv";
+const ALL_CATEGORIES = "All Categories";
+
+const graphTypeOptions = [
+  {
+    name: "Single Category, Single Station Timeline",
+    number_of_categories_allow: 1,
+    number_of_stations_allow: 1,
+    auto_add_categories: false,
+    description: "Track one category at one station over time."
+  },
+  {
+    name: "Multiple Categories, Single Station Timeline",
+    number_of_categories_allow: "All",
+    number_of_stations_allow: 1,
+    auto_add_categories: true,
+    description: "Compare multiple categories at a single station."
+  },
+  {
+    name: "Single Category Across Multiple Stations Comparison",
+    number_of_categories_allow: 1,
+    number_of_stations_allow: "All",
+    auto_add_categories: false,
+    description: "Compare one category across several stations."
+  },
+  {
+    name: "Multiple Categories Across Multiple Stations Comparison",
+    number_of_categories_allow: "All",
+    number_of_stations_allow: "All",
+    auto_add_categories: true,
+    description: "Create a broader multi-station and multi-category comparison."
+  },
+  {
+    name: "Year-over-Year Comparison",
+    number_of_categories_allow: 1,
+    number_of_stations_allow: 1,
+    auto_add_categories: false,
+    description: "Review how a category changes between years."
+  },
+  {
+    name: "Annual Monthly Totals Overview",
+    number_of_categories_allow: 1,
+    number_of_stations_allow: 1,
+    auto_add_categories: false,
+    description: "Inspect monthly totals across a selected year range."
+  }
+];
+
+// ------------------------------
+// STATE
+// ------------------------------
+let map;
+let stationMarkers = [];
+let stationDetailsMap = {};
+let categoryDetailsMap = {};
+let stationNameList = [];
+let categoryNameList = [];
+let selectedCategories = [];
+let selectedStationEntries = [];
+let selectedVisualizations = [];
+let selectedGraphOption = null;
+let hasAutoAddCategories = false;
+let currentFocusedStation = null;
+
+// ------------------------------
+// ELEMENTS
+// ------------------------------
+const graphOptionsDropdown = document.getElementById("options-select");
+const categoryDropdown = document.getElementById("categories-select");
+const stationDropdown = document.getElementById("stations-select");
+
+const addCategoryBtn = document.getElementById("add-category-btn");
+const addStationBtn = document.getElementById("add-station-btn");
+const addToDashboardBtn = document.getElementById("add-to-dashboard-btn");
+const startVisualizationBtn = document.getElementById("start-visualization-btn");
+
+const selectedCategoriesContainer = document.querySelector(".selected-categories");
+const selectedStationsContainer = document.querySelector(".selected-stations");
+const visualizationDetailsContainer = document.getElementById("visualization-details");
+
+const graphContainer = document.getElementById("graph-container");
+const categorySelectionDiv = document.getElementById("category-selection-div");
+const stationDropdownWrapper = document.getElementById("station-dropdown");
+
+const featuredStationName = document.getElementById("featured-station-name");
+const featuredStationCountry = document.getElementById("featured-station-country");
+const featuredStationCoords = document.getElementById("featured-station-coords");
+const featuredStationCategories = document.getElementById("featured-station-categories");
+
+const statTotalStations = document.getElementById("stat-total-stations");
+const statTotalCategories = document.getElementById("stat-total-categories");
+const statTotalCountries = document.getElementById("stat-total-countries");
+const statDateRange = document.getElementById("stat-date-range");
+
+const selectedGraphPreview = document.getElementById("selected-graph-preview");
+const selectedCategoriesPreview = document.getElementById("selected-categories-preview");
+const selectedStationsPreview = document.getElementById("selected-stations-preview");
+
+const insightStation = document.getElementById("insight-station");
+const insightCategory = document.getElementById("insight-category");
+const insightDateRange = document.getElementById("insight-date-range");
+const insightMean = document.getElementById("insight-mean");
+const insightMin = document.getElementById("insight-min");
+const insightMax = document.getElementById("insight-max");
+
+const coverageStation = document.getElementById("coverage-station");
+const coverageCategory = document.getElementById("coverage-category");
+const coverageFirstYear = document.getElementById("coverage-first-year");
+const coverageLastYear = document.getElementById("coverage-last-year");
+const coverageRecordCount = document.getElementById("coverage-record-count");
+const coverageNote = document.getElementById("coverage-note");
+const rankingTableBody = document.getElementById("ranking-table-body");
+
+const oneCategoryOnlyAlert = document.getElementById("one-category-only-alert");
+const oneStationOnlyAlert = document.getElementById("one-station-only-alert");
+const selectCategoryAndStationAlert = document.getElementById("select-category-and-station-alert");
+
+const fullScreenModal = document.getElementById("fullScreenModal");
+const closeModalBtn = document.querySelector(".modal .close");
+
+const overviewSection = document.querySelector(".user-guide");
+const stationOverviewSection = document.querySelector(".station-overview");
+const builderSection = document.querySelector(".custom-visualization-setup");
+const dashboardSection = document.querySelector(".visualization-dashboard");
+const aboutSection = document.querySelector(".about-us");
+
+// ------------------------------
+// HELPERS
+// ------------------------------
+function showAlert(element) {
+  if (!element) return;
+  element.style.display = "block";
+  setTimeout(() => {
+    element.style.display = "none";
+  }, 2500);
+}
+
+function getPlaceholderOption(label = "Select an option...") {
+  const option = document.createElement("option");
+  option.value = "";
+  option.textContent = label;
+  option.disabled = true;
+  option.selected = true;
+  return option;
+}
+
+function formatDateToDDMMYYYY(dateString) {
+  if (!dateString || !dateString.includes("-")) return dateString || "--";
+  const [year, month, day] = dateString.split("-");
+  return `${day}-${month}-${year}`;
+}
+
+function formatDateToYYYYMMDD(dateString) {
+  if (!dateString || !dateString.includes("-")) return dateString || "";
+  const [day, month, year] = dateString.split("-");
+  return `${year}-${month}-${day}`;
+}
+
+function getSelectedGraphConfig() {
+  return graphTypeOptions.find(option => option.name === selectedGraphOption);
+}
+
+function setSectionVisible(section) {
+  [overviewSection, stationOverviewSection, builderSection, dashboardSection, aboutSection].forEach(sec => {
+    if (!sec) return;
+    sec.classList.add("hidden");
+  });
+
+  if (section) {
+    section.classList.remove("hidden");
+    section.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+}
+
+function updateBuilderSummary() {
+  selectedGraphPreview.textContent = selectedGraphOption || "No graph selected yet";
+  selectedCategoriesPreview.textContent = String(selectedCategories.length);
+
+  const uniqueStations = new Set(selectedStationEntries.map(entry => entry.station_name));
+  selectedStationsPreview.textContent = String(uniqueStations.size);
+}
+
+function updateInsightAndCoverage(summary) {
+  if (!summary) return;
+
+  insightStation.textContent = summary.station ?? "--";
+  insightCategory.textContent = summary.category ?? "--";
+  insightDateRange.textContent = summary.date_range ?? "--";
+  insightMean.textContent = summary.mean ?? "--";
+  insightMin.textContent = summary.min ?? "--";
+  insightMax.textContent = summary.max ?? "--";
+
+  coverageStation.textContent = summary.station ?? "--";
+  coverageCategory.textContent = summary.category ?? "--";
+  coverageFirstYear.textContent = summary.first_year ?? "--";
+  coverageLastYear.textContent = summary.last_year ?? "--";
+  coverageRecordCount.textContent = summary.record_count ?? "--";
+  coverageNote.textContent = summary.coverage_note ?? "--";
+}
+
+function updateRankingTable(ranking) {
+  if (!rankingTableBody) return;
+
+  rankingTableBody.innerHTML = "";
+
+  if (!ranking || !ranking.length) {
+    rankingTableBody.innerHTML = `
+      <tr>
+        <td colspan="5">No ranking data available.</td>
+      </tr>
+    `;
+    return;
+  }
+
+  ranking.forEach((row, index) => {
+    const tr = document.createElement("tr");
+
+    tr.innerHTML = `
+      <td>${index + 1}</td>
+      <td>${row.station}</td>
+      <td>${row.average_value}</td>
+      <td>${row.maximum_value}</td>
+      <td>${row.record_count}</td>
+    `;
+
+    rankingTableBody.appendChild(tr);
+  });
+}
+
+function resetSelectedCategoriesAndStations() {
+  selectedCategories = [];
+  selectedStationEntries = [];
+  selectedCategoriesContainer.innerHTML = "";
+  selectedStationsContainer.innerHTML = "";
+  updateBuilderSummary();
+}
+
+function resetVisualizationSetup() {
+  resetSelectedCategoriesAndStations();
+  selectedGraphOption = null;
+  hasAutoAddCategories = false;
+
+  graphOptionsDropdown.selectedIndex = 0;
+  categoryDropdown.innerHTML = "";
+  stationDropdown.innerHTML = "";
+
+  showCategoryOptionsOnUI();
+  showStationOptionsOnUI(ALL_CATEGORIES);
+
+  categoryDropdown.disabled = true;
+  stationDropdown.disabled = true;
+  categorySelectionDiv.style.display = "block";
+
+  updateBuilderSummary();
+}
+
+function getAllCountries() {
+  return [...new Set(Object.values(stationDetailsMap).map(station => station.country).filter(Boolean))];
+}
+
+function getCoverageRange() {
+  const allDates = [];
+
+  Object.values(categoryDetailsMap).forEach(categoryRows => {
+    categoryRows.forEach(row => {
+      if (row.start_date) allDates.push(row.start_date);
+      if (row.end_date) allDates.push(row.end_date);
+    });
+  });
+
+  if (!allDates.length) return "--";
+
+  const sorted = [...allDates].sort();
+  const firstYear = sorted[0]?.slice(0, 4) || "--";
+  const lastYear = sorted[sorted.length - 1]?.slice(0, 4) || "--";
+  return `${firstYear} - ${lastYear}`;
+}
+
+function updateOverviewStats() {
+  statTotalStations.textContent = stationNameList.length || "--";
+  statTotalCategories.textContent = categoryNameList.length || "--";
+  statTotalCountries.textContent = getAllCountries().length || "--";
+  statDateRange.textContent = getCoverageRange();
+}
+
+function updateFeaturedStationPanel(stationName) {
+  const station = stationDetailsMap[stationName];
+  if (!station) return;
+
+  currentFocusedStation = stationName;
+  featuredStationName.textContent = station.station_name || "--";
+  featuredStationCountry.textContent = station.country || "--";
+  featuredStationCoords.textContent = `${station.latitude}, ${station.longitude}`;
+  featuredStationCategories.textContent = station.available_categories || "--";
+}
+
+function getCategoryDateRange(categoryName, stationName) {
+  const rows = categoryDetailsMap[categoryName] || [];
+
+  const cleanCategory = (categoryName || "").trim();
+  const cleanStation = (stationName || "").trim();
+
+  return (
+    rows.find(
+      row =>
+        (row.category_name || "").trim() === cleanCategory &&
+        (row.station_name || "").trim() === cleanStation
+    ) || null
+  );
+}
+
+function addAllCategoriesForStation(stationName) {
+  const available = [];
+
+  Object.keys(categoryDetailsMap).forEach(categoryName => {
+    const hasStation = categoryDetailsMap[categoryName].some(row => row.station_name === stationName);
+    if (hasStation) available.push(categoryName);
+  });
+
+  selectedCategories = available;
+  renderSelectedCategories();
+}
+
+function renderSelectedCategories() {
+  selectedCategoriesContainer.innerHTML = "";
+
+  selectedCategories.forEach(category => {
+    const item = document.createElement("div");
+    item.className = "selected-category-element";
+
+    const label = document.createElement("span");
+    label.textContent = category;
+
+    const removeBtn = document.createElement("button");
+    removeBtn.textContent = "×";
+    removeBtn.type = "button";
+    removeBtn.style.marginLeft = "8px";
+    removeBtn.style.background = "transparent";
+    removeBtn.style.color = "inherit";
+    removeBtn.style.fontWeight = "700";
+
+    removeBtn.addEventListener("click", () => {
+      selectedCategories = selectedCategories.filter(c => c !== category);
+
+      selectedStationEntries = selectedStationEntries.filter(entry => entry.category_name !== category);
+      renderSelectedCategories();
+      renderSelectedStations();
+
+      if (selectedCategories.length === 0 && !hasAutoAddCategories) {
+        stationDropdown.disabled = true;
+        showStationOptionsOnUI(ALL_CATEGORIES);
+        showStationsOnMapUI(ALL_CATEGORIES);
+      } else {
+        showStationOptionsOnUI("Current Categories Selected");
+        showStationsOnMapUI("Current Categories Selected");
+      }
+
+      updateBuilderSummary();
+    });
+
+    item.appendChild(label);
+    item.appendChild(removeBtn);
+    selectedCategoriesContainer.appendChild(item);
+  });
+
+  updateBuilderSummary();
+}
+
+function renderSelectedStations() {
+  selectedStationsContainer.innerHTML = "";
+
+  selectedStationEntries.forEach((entry, index) => {
+    const item = document.createElement("div");
+    item.className = "selected-station-element";
+    item.style.display = "flex";
+    item.style.justifyContent = "space-between";
+    item.style.alignItems = "center";
+    item.style.width = "100%";
+    item.style.borderRadius = "12px";
+    item.style.padding = "12px 14px";
+
+    const textWrap = document.createElement("div");
+
+    const line1 = document.createElement("p");
+    line1.className = "station-name";
+    line1.style.marginBottom = "6px";
+    line1.innerHTML = `<strong>${entry.station_name}</strong> - ${entry.category_name}`;
+
+    const line2 = document.createElement("p");
+    line2.className = "station-date";
+    line2.style.margin = "0";
+    line2.textContent = `${entry.start_date} -> ${entry.end_date}`;
+
+    textWrap.appendChild(line1);
+    textWrap.appendChild(line2);
+
+    const actions = document.createElement("div");
+    actions.style.display = "flex";
+    actions.style.gap = "8px";
+
+    const editBtn = document.createElement("button");
+    editBtn.type = "button";
+    editBtn.textContent = "Edit dates";
+    editBtn.className = "secondary-btn";
+    editBtn.style.padding = "8px 10px";
+
+    editBtn.addEventListener("click", () => {
+      const newStart = prompt("Enter new start date (DD-MM-YYYY):", entry.start_date);
+      const newEnd = prompt("Enter new end date (DD-MM-YYYY):", entry.end_date);
+
+      if (newStart && newEnd) {
+        selectedStationEntries[index].start_date = newStart;
+        selectedStationEntries[index].end_date = newEnd;
+        renderSelectedStations();
+      }
+    });
+
+    const deleteBtn = document.createElement("button");
+    deleteBtn.type = "button";
+    deleteBtn.textContent = "Remove";
+    deleteBtn.className = "secondary-btn";
+    deleteBtn.style.padding = "8px 10px";
+
+    deleteBtn.addEventListener("click", () => {
+      selectedStationEntries.splice(index, 1);
+      renderSelectedStations();
+      updateBuilderSummary();
+    });
+
+    actions.appendChild(editBtn);
+    actions.appendChild(deleteBtn);
+
+    item.appendChild(textWrap);
+    item.appendChild(actions);
+    selectedStationsContainer.appendChild(item);
+  });
+
+  updateBuilderSummary();
+}
+
+function showGraphOptionsOnUI() {
+  graphOptionsDropdown.innerHTML = "";
+  graphOptionsDropdown.appendChild(getPlaceholderOption("Select a visualization type"));
+
+  graphTypeOptions.forEach(optionType => {
+    const option = document.createElement("option");
+    option.textContent = optionType.name;
+    option.value = optionType.name;
+    graphOptionsDropdown.appendChild(option);
+  });
+}
+
+function showCategoryOptionsOnUI() {
+  categoryDropdown.innerHTML = "";
+  categoryDropdown.appendChild(getPlaceholderOption("Select a category"));
+
+  categoryNameList.forEach(categoryName => {
+    const option = document.createElement("option");
+    option.textContent = categoryName;
+    option.value = categoryName;
+    categoryDropdown.appendChild(option);
+  });
+}
+
+function showStationOptionsOnUI(mode) {
+  stationDropdown.innerHTML = "";
+  stationDropdown.appendChild(getPlaceholderOption("Select a station"));
+
+  const addedStations = new Set();
+
+  if (mode === ALL_CATEGORIES) {
+    Object.values(categoryDetailsMap).forEach(categoryRows => {
+      categoryRows.forEach(row => {
+        if (!addedStations.has(row.station_name)) {
+          const option = document.createElement("option");
+          option.textContent = row.station_name;
+          option.value = row.station_name;
+          stationDropdown.appendChild(option);
+          addedStations.add(row.station_name);
+        }
+      });
+    });
+    return;
+  }
+
+  if (mode === "Current Categories Selected") {
+    selectedCategories.forEach(categoryName => {
+      (categoryDetailsMap[categoryName] || []).forEach(row => {
+        if (!addedStations.has(row.station_name)) {
+          const option = document.createElement("option");
+          option.textContent = row.station_name;
+          option.value = row.station_name;
+          stationDropdown.appendChild(option);
+          addedStations.add(row.station_name);
+        }
+      });
+    });
+  }
+}
+
+function updateVisualizationQueueUI() {
+  visualizationDetailsContainer.innerHTML = "";
+
+  if (!selectedVisualizations.length) {
+    const empty = document.createElement("div");
+    empty.className = "summary-box";
+    empty.innerHTML = `
+      <p class="card-label">Saved visualizations</p>
+      <p>No configurations saved yet.</p>
+    `;
+    visualizationDetailsContainer.appendChild(empty);
+    return;
+  }
+
+  const title = document.createElement("p");
+  title.className = "menu-title";
+  title.textContent = "Queued Visualizations for Dashboard";
+  visualizationDetailsContainer.appendChild(title);
+
+  selectedVisualizations.forEach((visualization, index) => {
+    const wrapper = document.createElement("div");
+    wrapper.className = "summary-box";
+    wrapper.style.width = "100%";
+    wrapper.style.borderRadius = "12px";
+    wrapper.style.marginBottom = "12px";
+
+    const header = document.createElement("div");
+    header.style.display = "flex";
+    header.style.justifyContent = "space-between";
+    header.style.alignItems = "center";
+    header.style.gap = "12px";
+    header.style.marginBottom = "10px";
+
+    const heading = document.createElement("h4");
+    heading.style.margin = "0";
+    heading.textContent = visualization.graph_type;
+
+    const removeBtn = document.createElement("button");
+    removeBtn.type = "button";
+    removeBtn.className = "secondary-btn";
+    removeBtn.style.padding = "8px 10px";
+    removeBtn.textContent = "Delete";
+
+    removeBtn.addEventListener("click", () => {
+      selectedVisualizations.splice(index, 1);
+      updateVisualizationQueueUI();
+    });
+
+    header.appendChild(heading);
+    header.appendChild(removeBtn);
+    wrapper.appendChild(header);
+
+    visualization.data.forEach(detail => {
+      const detailP = document.createElement("p");
+      detailP.style.marginBottom = "8px";
+      detailP.textContent = `${detail.station_name} - ${detail.category_name} (${detail.start_date} -> ${detail.end_date})`;
+      wrapper.appendChild(detailP);
+    });
+
+    visualizationDetailsContainer.appendChild(wrapper);
+  });
+}
+
+function buildVisualizationFromCurrentSelections() {
+  return {
+    graph_type: selectedGraphOption,
+    data: selectedStationEntries.map(entry => ({
+      category_name: entry.category_name,
+      station_name: entry.station_name,
+      start_date: entry.start_date,
+      end_date: entry.end_date
+    }))
+  };
+}
+
+function renderCharts(charts) {
+  graphContainer.innerHTML = "";
+
+  if (!charts || !charts.length) {
+    graphContainer.innerHTML = `<p>No charts were returned for this configuration.</p>`;
+    return;
+  }
+
+  charts.forEach((chartJson, index) => {
+    const card = document.createElement("div");
+    card.className = "info-panel";
+    card.style.width = "100%";
+    card.style.marginBottom = "24px";
+    card.style.background = "#ffffff";
+    card.style.display = "block";
+    card.style.padding = "20px";
+    card.style.overflowX = "auto";
+
+    const header = document.createElement("div");
+    header.style.display = "flex";
+    header.style.justifyContent = "space-between";
+    header.style.alignItems = "center";
+    header.style.marginBottom = "12px";
+    header.style.gap = "12px";
+
+    const title = document.createElement("h3");
+    title.style.margin = "0";
+    title.textContent = `Visualization ${index + 1}`;
+
+    const actions = document.createElement("div");
+    actions.style.display = "flex";
+    actions.style.gap = "8px";
+
+    const fullBtn = document.createElement("button");
+    fullBtn.type = "button";
+    fullBtn.className = "secondary-btn";
+    fullBtn.textContent = "Open detailed view";
+    fullBtn.addEventListener("click", () => {
+      showLargeGraph(chartJson);
+    });
+
+    actions.appendChild(fullBtn);
+    header.appendChild(title);
+    header.appendChild(actions);
+
+    const graphDiv = document.createElement("div");
+    graphDiv.id = `graph-${index}`;
+    graphDiv.style.width = "100%";
+    graphDiv.style.minWidth = "1000px";
+    graphDiv.style.height = "540px";
+
+    card.appendChild(header);
+    card.appendChild(graphDiv);
+    card.style.display = "block";
+    graphContainer.appendChild(card);
+
+    Plotly.newPlot(graphDiv.id, JSON.parse(chartJson), {}, { responsive: true });
+  });
+}
+
+function showLargeGraph(chartJson) {
+  fullScreenModal.style.display = "block";
+  Plotly.newPlot("fullScreenGraph", JSON.parse(chartJson), {}, { responsive: true });
+}
+
+function triggerStartVisualization() {
+  if (!selectedVisualizations.length) {
+    alert("Please save at least one visualization configuration first.");
+    return;
+  }
+
+  setSectionVisible(dashboardSection);
+  graphContainer.innerHTML = `<img id="loading-gif" src="../static/images/loading-data.gif" alt="Loading..." style="width: 80px; display: block;" />`;
+
+  fetch("/generate_visualization", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(selectedVisualizations)
+  })
+    .then(response => response.json())
+    .then(data => {
+  renderCharts(data.charts || []);
+  updateInsightAndCoverage(data.summary || null);
+  updateRankingTable(data.ranking || []);
+})
+    .catch(error => {
+      console.error("Error generating visualizations:", error);
+      graphContainer.innerHTML = `<p>There was an error generating the visualization.</p>`;
+    });
+}
+
+// ------------------------------
+// CSV LOADERS
+// ------------------------------
+function loadCSVStationDetails() {
+  return new Promise((resolve, reject) => {
+    Papa.parse(STATION_DETAILS_CSV_LINK, {
+      download: true,
+      header: true,
+      complete: function(results) {
+        stationDetailsMap = {};
+        stationNameList = [];
+
+        results.data
+          .filter(row => row.Station_Name && row.Station_Code && row.Country && row.Latitude && row.Longitude)
+          .forEach(row => {
+            stationDetailsMap[row.Station_Name] = {
+              station_name: row.Station_Name,
+              station_code: row.Station_Code,
+              country: row.Country,
+              latitude: parseFloat(row.Latitude),
+              longitude: parseFloat(row.Longitude),
+              available_categories: row.Available_Categories
+            };
+
+            if (!stationNameList.includes(row.Station_Name)) {
+              stationNameList.push(row.Station_Name);
+            }
+          });
+
+        resolve();
+      },
+      error: reject
+    });
+  });
+}
+
+function loadCSVCategoryDetails() {
+  return new Promise((resolve, reject) => {
+    Papa.parse(CATEGORY_DETAILS_CSV_LINK, {
+      download: true,
+      header: true,
+      complete: function(results) {
+        categoryDetailsMap = {};
+        categoryNameList = [];
+
+        results.data
+          .filter(row => row.Category_Name && row.Station_Name && row.Start_Date && row.End_Date)
+          .forEach(row => {
+            if (!categoryDetailsMap[row.Category_Name]) {
+              categoryDetailsMap[row.Category_Name] = [];
+            }
+
+            categoryDetailsMap[row.Category_Name].push({
+              category_name: row.Category_Name,
+              station_name: row.Station_Name,
+              start_date: row.Start_Date,
+              end_date: row.End_Date
+            });
+
+            if (!categoryNameList.includes(row.Category_Name)) {
+              categoryNameList.push(row.Category_Name);
+            }
+          });
+
+        resolve();
+      },
+      error: reject
+    });
+  });
+}
+
+// ------------------------------
+// MAP
+// ------------------------------
+function showStationsOnMapUI(mode) {
+  if (!map) return;
+
+  stationMarkers.forEach(marker => map.removeLayer(marker));
+  stationMarkers = [];
+
+  const addedStations = new Set();
+
+  const addMarkerForStation = (stationName) => {
+    const station = stationDetailsMap[stationName];
+    if (!station || isNaN(station.latitude) || isNaN(station.longitude)) return;
+    if (addedStations.has(stationName)) return;
+
+    const popupContent = `
+      <div style="min-width: 210px;">
+        <strong>${station.station_name}</strong><br>
+        Country: ${station.country}<br>
+        Coordinates: ${station.latitude}, ${station.longitude}<br>
+        Categories: ${station.available_categories || "--"}<br><br>
+        <button onclick="window.focusStationFromMap('${station.station_name.replace(/'/g, "\\'")}')" style="padding: 6px 10px; border: none; border-radius: 6px; background: #2f6da3; color: white; cursor: pointer;">
+          View station details
+        </button>
+      </div>
+    `;
+
+    const marker = L.marker([station.latitude, station.longitude]).bindPopup(popupContent).addTo(map);
+    marker.on("click", () => {
+      updateFeaturedStationPanel(station.station_name);
+    });
+
+    stationMarkers.push(marker);
+    addedStations.add(stationName);
+  };
+
+  if (mode === ALL_CATEGORIES) {
+    Object.values(categoryDetailsMap).forEach(rows => {
+      rows.forEach(row => addMarkerForStation(row.station_name));
+    });
+    return;
+  }
+
+  if (mode === "Current Categories Selected") {
+    selectedCategories.forEach(categoryName => {
+      (categoryDetailsMap[categoryName] || []).forEach(row => addMarkerForStation(row.station_name));
+    });
+  }
+}
+
+window.focusStationFromMap = function(stationName) {
+  updateFeaturedStationPanel(stationName);
+  setSectionVisible(stationOverviewSection);
+};
+
+function initializeMap() {
+  map = L.map("map", {
+    minZoom: 3,
+    maxZoom: 19
+  }).setView([15.87, 100.99], 5);
+
+  const bounds = L.latLngBounds(
+    L.latLng(-10, 40),
+    L.latLng(50, 150)
+  );
+
+  map.setMaxBounds(bounds);
+  map.on("drag", function() {
+    map.panInsideBounds(bounds, { animate: false });
+  });
+
+  L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
+    attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+    subdomains: "abcd",
+    maxZoom: 19
+  }).addTo(map);
+
+  fetch("/mekong_geojson")
+    .then(response => response.json())
+    .then(data => {
+      const geojsonStyle = {
+        color: "#4f81a8",
+        weight: 1.5,
+        fillColor: "#bdd7ea",
+        fillOpacity: 0.45
+      };
+
+      L.geoJSON(data, {
+        style: geojsonStyle,
+        onEachFeature: function(feature, layer) {
+          if (feature.properties && feature.properties.name) {
+            layer.bindTooltip(feature.properties.name);
+          }
+        }
+      }).addTo(map);
+    })
+    .catch(error => console.error("Error loading GeoJSON:", error));
+}
+
+// ------------------------------
+// EVENTS
+// ------------------------------
+function bindSectionTriggers(selector, section) {
+  document.querySelectorAll(selector).forEach(element => {
+    element.addEventListener("click", () => {
+      setSectionVisible(section);
+    });
+  });
+}
+
+function setupNavigation() {
+  bindSectionTriggers(".user-guide-icon", overviewSection);
+  bindSectionTriggers(".station-overview-icon", stationOverviewSection);
+  bindSectionTriggers(".custom-visualization-setup-icon", builderSection);
+  bindSectionTriggers(".visualization-dashboard-icon", dashboardSection);
+  bindSectionTriggers(".about-us-icon", aboutSection);
+}
+
+function setupBuilderEvents() {
+  categoryDropdown.disabled = true;
+  stationDropdown.disabled = true;
+  startVisualizationBtn.style.display = "inline-block";
+
+  graphOptionsDropdown.addEventListener("change", function() {
+    selectedGraphOption = graphOptionsDropdown.value;
+    updateBuilderSummary();
+
+    const graphConfig = getSelectedGraphConfig();
+    if (!graphConfig) return;
+
+    hasAutoAddCategories = graphConfig.auto_add_categories;
+
+    resetSelectedCategoriesAndStations();
+
+    if (hasAutoAddCategories) {
+      categorySelectionDiv.style.display = "none";
+      categoryDropdown.disabled = true;
+      stationDropdown.disabled = false;
+      showStationOptionsOnUI(ALL_CATEGORIES);
+      showStationsOnMapUI(ALL_CATEGORIES);
+    } else {
+      categorySelectionDiv.style.display = "block";
+      categoryDropdown.disabled = false;
+      stationDropdown.disabled = true;
+      showCategoryOptionsOnUI();
+      showStationOptionsOnUI(ALL_CATEGORIES);
+      showStationsOnMapUI(ALL_CATEGORIES);
+    }
+  });
+
+  addCategoryBtn.addEventListener("click", function() {
+    const currentCategory = categoryDropdown.value;
+    const graphConfig = getSelectedGraphConfig();
+
+    if (!graphConfig || !currentCategory) return;
+
+    if (
+      graphConfig.number_of_categories_allow !== "All" &&
+      selectedCategories.length >= graphConfig.number_of_categories_allow
+    ) {
+      showAlert(oneCategoryOnlyAlert);
+      return;
+    }
+
+    if (!selectedCategories.includes(currentCategory)) {
+      selectedCategories.push(currentCategory);
+      renderSelectedCategories();
+      stationDropdown.disabled = false;
+      showStationOptionsOnUI("Current Categories Selected");
+      showStationsOnMapUI("Current Categories Selected");
+    }
+  });
+
+addStationBtn.addEventListener("click", function() {
+  const currentStation = (stationDropdown.value || "").trim();
+  const graphConfig = getSelectedGraphConfig();
+
+  if (!graphConfig) {
+    alert("Please choose a visualization type first.");
+    return;
+  }
+
+  if (!currentStation) {
+    alert("Please choose a station first.");
+    return;
+  }
+
+  if (hasAutoAddCategories) {
+    addAllCategoriesForStation(currentStation);
+  }
+
+  const uniqueStationCount = new Set(
+    selectedStationEntries.map(entry => entry.station_name)
+  ).size;
+
+  const stationAlreadyExists = selectedStationEntries.some(
+    entry => entry.station_name === currentStation
+  );
+
+  if (
+    graphConfig.number_of_stations_allow !== "All" &&
+    uniqueStationCount >= graphConfig.number_of_stations_allow &&
+    !stationAlreadyExists
+  ) {
+    showAlert(oneStationOnlyAlert);
+    return;
+  }
+
+  const categoriesToUse = [...selectedCategories];
+
+  if (!categoriesToUse.length) {
+    alert("Please add at least one category first.");
+    return;
+  }
+
+  let addedAnything = false;
+
+  categoriesToUse.forEach(categoryName => {
+    const detail = getCategoryDateRange(categoryName, currentStation);
+
+    if (!detail) {
+      console.log("No matching data found for:", categoryName, currentStation);
+      return;
+    }
+
+    const duplicate = selectedStationEntries.some(
+      entry =>
+        entry.station_name === currentStation &&
+        entry.category_name === categoryName
+    );
+
+    if (!duplicate) {
+      selectedStationEntries.push({
+        station_name: currentStation,
+        category_name: categoryName,
+        start_date: formatDateToDDMMYYYY(detail.start_date),
+        end_date: formatDateToDDMMYYYY(detail.end_date)
+      });
+
+      addedAnything = true;
+    }
+  });
+
+  if (!addedAnything) {
+    alert("This station could not be added for the selected category.");
+    return;
+  }
+
+  updateFeaturedStationPanel(currentStation);
+  renderSelectedStations();
+  updateBuilderSummary();
+});
+
+  addToDashboardBtn.addEventListener("click", function() {
+    if (!selectedGraphOption || !selectedStationEntries.length || !selectedCategories.length) {
+      showAlert(selectCategoryAndStationAlert);
+      return;
+    }
+
+    const newVisualization = buildVisualizationFromCurrentSelections();
+    selectedVisualizations.push(newVisualization);
+    updateVisualizationQueueUI();
+    resetVisualizationSetup();
+    setSectionVisible(builderSection);
+  });
+
+  startVisualizationBtn.addEventListener("click", function() {
+    triggerStartVisualization();
+  });
+}
+
+function setupModalEvents() {
+  closeModalBtn?.addEventListener("click", () => {
+    fullScreenModal.style.display = "none";
+    Plotly.purge("fullScreenGraph");
+  });
+
+  window.addEventListener("click", (event) => {
+    if (event.target === fullScreenModal) {
+      fullScreenModal.style.display = "none";
+      Plotly.purge("fullScreenGraph");
+    }
+  });
+}
+
+// ------------------------------
+// INIT
+// ------------------------------
+document.addEventListener("DOMContentLoaded", async function() {
+  try {
+    await Promise.all([loadCSVStationDetails(), loadCSVCategoryDetails()]);
+
+    initializeMap();
+    showGraphOptionsOnUI();
+    showCategoryOptionsOnUI();
+    showStationOptionsOnUI(ALL_CATEGORIES);
+    showStationsOnMapUI(ALL_CATEGORIES);
+
+    updateOverviewStats();
+    updateBuilderSummary();
+    updateVisualizationQueueUI();
+
+    if (stationNameList.length) {
+      updateFeaturedStationPanel(stationNameList[0]);
+    }
+
+    setupNavigation();
+    setupBuilderEvents();
+    setupModalEvents();
+  } catch (error) {
+    console.error("Initialization error:", error);
+  }
+});

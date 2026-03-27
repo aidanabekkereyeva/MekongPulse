@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+<Document>
+<Placemark>
+  <name>VN_980505_[Cho Lach]</name>
+  <description>Cho Lach</description>
+  <Point>
+    <coordinates>106.1260294,10.27212559,0</coordinates>
+  </Point>
+</Placemark>
+</Document>
+</kml>

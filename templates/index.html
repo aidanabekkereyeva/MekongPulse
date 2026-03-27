@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RiverScope Mekong</title>
+
+  <link rel="stylesheet" href="../static/css/style.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+<body>
+  <div class="page-layout">
+    <aside id="sidebar" class="sidebar expanded">
+      <div class="sidebar-top">
+        <div class="logo-box">RS</div>
+        <div>
+          <h1 class="site-title">RiverScope Mekong</h1>
+          <p class="site-subtitle">Interactive Hydrological Analytics Dashboard</p>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-item user-guide-icon">Overview</div>
+        <div class="nav-item station-overview-icon">Station Explorer</div>
+        <div class="nav-item custom-visualization-setup-icon">Analysis Builder</div>
+        <div class="nav-item visualization-dashboard-icon">Visualization Dashboard</div>
+        <div class="nav-item about-us-icon">About Project</div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <p>
+          Explore Mekong basin stations, configure custom visualizations, and present data insights in a clearer and more structured way.
+        </p>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <section class="hero-section">
+        <div class="hero-text-card">
+          <p class="section-label">Final Project Platform</p>
+          <h2>River data exploration made clearer, cleaner, and easier to present.</h2>
+          <p>
+  RiverScope Mekong is not only a visualization dashboard, but also a lightweight analytical support platform for station-based hydrological exploration. It supports station discovery, custom visualization setup, and presentation-ready analytical views across Mekong basin monitoring stations.
+</p>
+          <div class="hero-buttons">
+            <button class="primary-btn custom-visualization-setup-icon">Start Analysis</button>
+            <button class="secondary-btn station-overview-icon">Explore Stations</button>
+            <button class="secondary-btn visualization-dashboard-icon">Open Dashboard</button>
+          </div>
+        </div>
+
+        <div class="hero-summary-card">
+          <h3>Platform Highlights</h3>
+          <ul>
+            <li>Interactive station map and exploration workflow</li>
+            <li>Multiple visualization and comparison modes</li>
+            <li>Clear historical trend analysis structure</li>
+            <li>Presentation-friendly dashboard layout</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="overview-grid">
+        <div class="info-card">
+          <p class="card-label">Monitoring stations</p>
+          <h3 id="stat-total-stations">--</h3>
+        </div>
+        <div class="info-card">
+          <p class="card-label">Data categories</p>
+          <h3 id="stat-total-categories">--</h3>
+        </div>
+        <div class="info-card">
+          <p class="card-label">Countries covered</p>
+          <h3 id="stat-total-countries">--</h3>
+        </div>
+        <div class="info-card">
+          <p class="card-label">Coverage period</p>
+          <h3 id="stat-date-range">--</h3>
+        </div>
+      </section>
+
+      <section class="map-panel">
+        <div class="panel-heading">
+          <div>
+            <p class="section-label">Geographical View</p>
+            <h2>Station Map</h2>
+          </div>
+        </div>
+        <div id="map-view">
+          <div id="map"></div>
+        </div>
+      </section>
+
+      <section class="panel station-overview hidden">
+        <div class="panel-heading">
+          <div>
+            <p class="section-label">Station Intelligence</p>
+            <h2>Station Explorer</h2>
+          </div>
+        </div>
+
+        <div class="two-column-grid">
+          <div class="info-panel">
+            <h3>Featured Station</h3>
+            <p><strong>Name:</strong> <span id="featured-station-name">Select a station from the map</span></p>
+            <p><strong>Country:</strong> <span id="featured-station-country">--</span></p>
+            <p><strong>Coordinates:</strong> <span id="featured-station-coords">--</span></p>
+            <p><strong>Available categories:</strong> <span id="featured-station-categories">--</span></p>
+          </div>
+
+          <div class="info-panel">
+            <h3>How to Use This Section</h3>
+            <p>
+              Use the map to inspect available stations, review the key station details, and then move to the analysis builder to create visualizations for your selected categories and stations.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel user-guide hidden">
+        <div class="panel-heading">
+          <div>
+            <p class="section-label">Overview</p>
+            <h2>Platform Overview</h2>
+          </div>
+        </div>
+
+        <div class="three-column-grid">
+          <div class="info-panel">
+            <h3>Purpose</h3>
+           <p>
+  RiverScope Mekong is not only a visualization dashboard, but also a lightweight analytical support platform for station-based hydrological exploration.
+</p>
+          </div>
+
+          <div class="info-panel">
+            <h3>Workflow</h3>
+            <ol>
+              <li>Explore available stations</li>
+              <li>Select a visualization type</li>
+              <li>Choose categories and stations</li>
+              <li>Generate analytical graphs</li>
+            </ol>
+          </div>
+
+          <div class="info-panel">
+            <h3>Presentation Value</h3>
+            <p>
+              The platform is structured to communicate both technical capability and practical analytical value, making it suitable for demonstrations, research explanation, and comparative visual analysis.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel custom-visualization-setup hidden">
+        <div class="panel-heading">
+          <div>
+            <p class="section-label">Configuration</p>
+            <h2>Analysis Builder</h2>
+          </div>
+        </div>
+
+        <div class="form-card">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="menu-title" for="options-select">Visualization Type</label>
+              <select id="options-select" class="dropdown"></select>
+            </div>
+          </div>
+
+          <div class="form-row" id="category-selection-div">
+            <div class="form-group">
+              <label class="menu-title" for="categories-select">Categories</label>
+             <div class="control-row">
+  <select id="categories-select" class="dropdown"></select>
+  <button type="button" id="add-category-btn" class="action-add-btn">Add Category</button>
+</div>
+<p class="helper-text">Choose a category, then click “Add Category”.</p>
+              <div class="selected-categories"></div>
+              <p class="warning-alert" id="one-category-only-alert">Only one category is allowed for this visualization type.</p>
+            </div>
+          </div>
+
+          <div class="form-row" id="station-dropdown">
+            <div class="form-group">
+              <label class="menu-title" for="stations-select">Stations</label>
+              <div class="control-row">
+  <select id="stations-select" class="dropdown"></select>
+  <button type="button" id="add-station-btn" class="action-add-btn">Add Station</button>
+</div>
+<p class="helper-text">Choose a station, then click “Add Station”.</p>
+              <div class="selected-stations"></div>
+              <p class="warning-alert" id="one-station-only-alert">Only one station is allowed for this visualization type.</p>
+            </div>
+          </div>
+
+          <div class="builder-summary">
+            <div class="summary-box">
+              <p class="card-label">Selected graph</p>
+              <p id="selected-graph-preview">No graph selected yet</p>
+            </div>
+            <div class="summary-box">
+              <p class="card-label">Selected categories</p>
+              <p id="selected-categories-preview">0</p>
+            </div>
+            <div class="summary-box">
+              <p class="card-label">Selected stations</p>
+              <p id="selected-stations-preview">0</p>
+            </div>
+          </div>
+
+          <div id="visualization-details" class="visualization-details"></div>
+
+          <div class="action-row">
+           <button id="add-to-dashboard-btn" class="primary-btn">Save This Visualization</button>
+            <button id="start-visualization-btn" class="secondary-btn strong-secondary">Generate Visualization</button>
+          </div>
+
+          <p class="warning-alert" id="select-category-and-station-alert">Please select both category and station before continuing.</p>
+        </div>
+      </section>
+
+      <section class="panel visualization-dashboard hidden">
+        <div class="panel-heading">
+          <div>
+            <p class="section-label">Output</p>
+            <h2>Visualization Dashboard</h2>
+          </div>
+        </div>
+
+        <div class="info-panel dashboard-note">
+          <p>
+            Generated visualizations appear below. Use this section in your presentation to demonstrate how the platform supports comparison, station-level exploration, and historical data interpretation.
+          </p>
+        </div>
+
+        <div class="dashboard-insight-grid">
+  <div class="info-panel">
+    <h3>Current Summary</h3>
+    <p class="panel-note">This summary reflects the most recently generated visualization.</p>
+    <div class="insight-list">
+      <p><strong>Selected station:</strong> <span id="insight-station">--</span></p>
+      <p><strong>Selected category:</strong> <span id="insight-category">--</span></p>
+      <p><strong>Date range:</strong> <span id="insight-date-range">--</span></p>
+      <p><strong>Mean value:</strong> <span id="insight-mean">--</span></p>
+      <p><strong>Minimum value:</strong> <span id="insight-min">--</span></p>
+      <p><strong>Maximum value:</strong> <span id="insight-max">--</span></p>
+    </div>
+  </div>
+
+  <div class="info-panel">
+    <h3>Current Data Coverage</h3>
+    <p class="panel-note">Coverage values are based on the most recently generated visualization.</p>
+    <div class="insight-list">
+      <p><strong>Station:</strong> <span id="coverage-station">--</span></p>
+      <p><strong>Category:</strong> <span id="coverage-category">--</span></p>
+      <p><strong>First year:</strong> <span id="coverage-first-year">--</span></p>
+      <p><strong>Last year:</strong> <span id="coverage-last-year">--</span></p>
+      <p><strong>Records in selection:</strong> <span id="coverage-record-count">--</span></p>
+      <p><strong>Coverage note:</strong> <span id="coverage-note">Awaiting visualization selection</span></p>
+    </div>
+  </div>
+</div>
+
+<div class="info-panel ranking-panel">
+  <h3>Station Ranking Panel</h3>
+  <p class="panel-note">Top stations ranked by average value for the most recently summarized category.</p>
+
+  <div class="ranking-table-wrap">
+    <table class="ranking-table">
+      <thead>
+        <tr>
+          <th>Rank</th>
+          <th>Station</th>
+          <th>Average Value</th>
+          <th>Maximum Value</th>
+          <th>Records</th>
+        </tr>
+      </thead>
+      <tbody id="ranking-table-body">
+        <tr>
+          <td colspan="5">Generate a visualization to load ranking results.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+        <div id="graph-container">
+          <img id="loading-gif" src="../static/images/loading-data.gif" alt="Loading..." />
+          <canvas id="data-graph"></canvas>
+        </div>
+
+        <div id="fullScreenModal" class="modal">
+          <div class="modal-content">
+            <span class="close">&times;</span>
+            <div id="fullScreenGraph"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel use-cases-section">
+  <div class="panel-heading">
+    <div>
+      <p class="section-label">Use Cases</p>
+      <h2>Example Analytical Scenarios</h2>
+    </div>
+  </div>
+
+  <div class="three-column-grid">
+    <div class="info-panel use-case-card">
+      <h3>Station Comparison</h3>
+      <p>
+        Compare how the same category behaves across multiple monitoring stations to identify differences in hydrological patterns across the basin.
+      </p>
+    </div>
+
+    <div class="info-panel use-case-card">
+      <h3>Historical Trend Analysis</h3>
+      <p>
+        Explore long-term changes in rainfall, discharge, sediment, or water-level records to better understand temporal environmental variation.
+      </p>
+    </div>
+
+    <div class="info-panel use-case-card">
+      <h3>Presentation and Research Support</h3>
+      <p>
+        Use the platform to build presentation-ready graphs, summarize station behaviour, and support data-driven explanation during academic demonstrations.
+      </p>
+    </div>
+  </div>
+</section>
+
+      <section class="panel about-us hidden">
+        <div class="panel-heading">
+          <div>
+            <p class="section-label">About</p>
+            <h2>About the Project</h2>
+          </div>
+        </div>
+
+        <div class="three-column-grid">
+          <div class="info-panel">
+            <h3>Project Aim</h3>
+            <p>
+              RiverScope Mekong was redesigned to provide a more structured and visually appealing way to explore river-related historical data across multiple stations in the Mekong basin.
+            </p>
+          </div>
+
+          <div class="info-panel">
+            <h3>Main Strengths</h3>
+            <ul>
+              <li>Interactive station map</li>
+              <li>Configurable analysis workflow</li>
+              <li>Clear dashboard output</li>
+              <li>Improved presentation quality</li>
+            </ul>
+          </div>
+
+          <div class="info-panel">
+            <h3>Video Demonstration Angle</h3>
+            <p>
+              Present the system as an analytical dashboard for station-based environmental exploration, rather than only a graph generator. This makes the project sound more complete and purposeful.
+            </p>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="../static/js/script.js"></script>
+</body>
+</html>

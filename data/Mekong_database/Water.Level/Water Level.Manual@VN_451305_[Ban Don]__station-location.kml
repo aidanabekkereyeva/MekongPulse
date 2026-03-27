@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+<Document>
+<Placemark>
+  <name>VN_451305_[Ban Don]</name>
+  <description>Ban Don</description>
+  <Point>
+    <coordinates>107.783126831055,12.897910118103,0</coordinates>
+  </Point>
+</Placemark>
+</Document>
+</kml>

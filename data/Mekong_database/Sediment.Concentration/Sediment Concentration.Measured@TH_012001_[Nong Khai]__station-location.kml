@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+<Document>
+<Placemark>
+  <name>TH_012001_[Nong Khai]</name>
+  <description>Nong Khai</description>
+  <Point>
+    <coordinates>102.732200622559,17.8814392089844,0</coordinates>
+  </Point>
+</Placemark>
+</Document>
+</kml>

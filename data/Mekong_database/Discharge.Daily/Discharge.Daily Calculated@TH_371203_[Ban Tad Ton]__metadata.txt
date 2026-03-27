@@ -1,0 +1,20 @@
+# Time series identifier: Discharge.Daily Calculated@TH_371203_[Ban Tad Ton]
+# Location identifier: TH_371203_[Ban Tad Ton]
+# UTC offset: (UTC+07:00)
+# Value units: m^3/s
+# Value parameter: Discharge
+# Value label: Daily Calculated
+#
+# Location identifier: TH_371203_[Ban Tad Ton]
+# Location name: Ban Tad Ton
+# Country: Thailand
+# River: Huai Pa Thao
+# Latitude: 15.94359283
+# Longitude: 102.0264762
+#
+# Disclaimer: The Mekong River Commission make no warranties about this data and disclaim all responsibility and liability for all expenses, losses, damages and costs which may be incurred as a result of the data being inaccurate or incomplete in any way and for any reason. The data contained herein do not imply the expression of any opinion whatsoever on the part of the Mekong River Commission concerning the legal status of any country, territory, city or area or of its authorities, or concerning the delineation of its frontiers or boundaries.
+#
+# Export options: Corrected signal from 1976-05-03T00:00:00Z to 2003-12-28T00:00:00Z
+#
+# Generated at 2023-12-07T22:24:59+07
+#

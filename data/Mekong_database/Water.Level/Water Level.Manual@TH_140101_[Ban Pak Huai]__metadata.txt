@@ -1,0 +1,20 @@
+# Time series identifier: Water Level.Manual@TH_140101_[Ban Pak Huai]
+# Location identifier: TH_140101_[Ban Pak Huai]
+# UTC offset: (UTC+07:00)
+# Value units: m
+# Value parameter: Water Level
+# Value label: Manual
+#
+# Location identifier: TH_140101_[Ban Pak Huai]
+# Location name: Ban Pak Huai
+# Country: Thailand
+# River: Nam Heung
+# Latitude: 17.70442284
+# Longitude: 101.4115267
+#
+# Disclaimer: The Mekong River Commission make no warranties about this data and disclaim all responsibility and liability for all expenses, losses, damages and costs which may be incurred as a result of the data being inaccurate or incomplete in any way and for any reason. The data contained herein do not imply the expression of any opinion whatsoever on the part of the Mekong River Commission concerning the legal status of any country, territory, city or area or of its authorities, or concerning the delineation of its frontiers or boundaries.
+#
+# Export options: Corrected signal from 1967-04-01T00:00:00Z to 2007-12-31T00:00:00Z
+#
+# Generated at 2023-12-07T22:24:39+07
+#

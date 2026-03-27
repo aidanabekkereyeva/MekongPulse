@@ -1,0 +1,20 @@
+# Time series identifier: Total Suspended Solids.Measured@TH_010501_[Chiang Saen]
+# Location identifier: TH_010501_[Chiang Saen]
+# UTC offset: (UTC+07:00)
+# Value units: mg/l
+# Value parameter: Total Suspended Solids
+# Value label: Measured
+#
+# Location identifier: TH_010501_[Chiang Saen]
+# Location name: Chiang Saen
+# Country: Thailand
+# River: Mekong
+# Latitude: 20.2741203308105
+# Longitude: 100.08854675293
+#
+# Disclaimer: The Mekong River Commission make no warranties about this data and disclaim all responsibility and liability for all expenses, losses, damages and costs which may be incurred as a result of the data being inaccurate or incomplete in any way and for any reason. The data contained herein do not imply the expression of any opinion whatsoever on the part of the Mekong River Commission concerning the legal status of any country, territory, city or area or of its authorities, or concerning the delineation of its frontiers or boundaries.
+#
+# Export options: Corrected signal from 1985-04-14T17:00:00Z to 2021-12-14T17:00:00Z
+#
+# Generated at 2023-12-07T22:23:31+07
+#

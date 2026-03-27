@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+<Document>
+<Placemark>
+  <name>LA_011201_[Luang Prabang]</name>
+  <description>Luang Prabang</description>
+  <Point>
+    <coordinates>102.134178161621,19.8927993774414,0</coordinates>
+  </Point>
+</Placemark>
+</Document>
+</kml>

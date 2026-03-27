@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+<Document>
+<Placemark>
+  <name>TH_013402_[Mukdahan]</name>
+  <description>Mukdahan</description>
+  <Point>
+    <coordinates>104.733177185059,16.582799911499,0</coordinates>
+  </Point>
+</Placemark>
+</Document>
+</kml>

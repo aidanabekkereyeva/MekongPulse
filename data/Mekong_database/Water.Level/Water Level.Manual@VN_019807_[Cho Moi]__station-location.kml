@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+<Document>
+<Placemark>
+  <name>VN_019807_[Cho Moi]</name>
+  <description>Cho Moi</description>
+  <Point>
+    <coordinates>105.4561108,10.54709584,0</coordinates>
+  </Point>
+</Placemark>
+</Document>
+</kml>

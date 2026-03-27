@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+<Document>
+<Placemark>
+  <name>KH_014501_[Stung Treng]</name>
+  <description>Stung Treng</description>
+  <Point>
+    <coordinates>105.950187683105,13.5325002670288,0</coordinates>
+  </Point>
+</Placemark>
+</Document>
+</kml>
