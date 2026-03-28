@@ -9,6 +9,9 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
+  <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
   <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 </head>
 <body>
@@ -29,6 +32,7 @@
         <div class="nav-item station-overview-icon">Station Explorer</div>
         <div class="nav-item custom-visualization-setup-icon">Analysis Builder</div>
         <div class="nav-item visualization-dashboard-icon">Visualization Dashboard</div>
+        <div class="nav-item prediction-icon">Prediction</div>
         <div class="nav-item about-us-icon">About Project</div>
       </nav>
 
@@ -40,17 +44,60 @@
     </aside>
 
     <main class="main-content">
+
+      <!-- ===== FULL-VIEWPORT MAP HERO ===== -->
+      <section class="map-hero-section">
+        <div class="map-controls-bar">
+          <div class="map-stat-chips">
+            <div class="map-stat-chip">
+              <span id="stat-total-stations" class="chip-value">--</span>
+              <span class="chip-label">Stations</span>
+            </div>
+            <div class="map-stat-chip">
+              <span id="stat-total-countries" class="chip-value">--</span>
+              <span class="chip-label">Countries</span>
+            </div>
+            <div class="map-stat-chip">
+              <span id="stat-total-categories" class="chip-value">--</span>
+              <span class="chip-label">Categories</span>
+            </div>
+            <div class="map-stat-chip chip-wide">
+              <span id="stat-date-range" class="chip-value">--</span>
+              <span class="chip-label">Coverage period</span>
+            </div>
+          </div>
+          <div class="map-controls-right">
+            <select id="map-country-filter" class="map-filter-select">
+              <option value="">All Countries</option>
+            </select>
+            <button id="map-fit-btn" class="map-ctrl-btn">Fit All Stations</button>
+          </div>
+        </div>
+        <div id="map-view">
+          <div id="map"></div>
+          <div id="map-legend" class="map-legend"></div>
+          <div class="map-scroll-hint">
+            <span>Scroll to explore</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== HERO TEXT (below map) ===== -->
       <section class="hero-section">
         <div class="hero-text-card">
           <p class="section-label">Final Project Platform</p>
           <h2>River data exploration made clearer, cleaner, and easier to present.</h2>
           <p>
-  Mekong Pulse is not only a visualization dashboard, but also a lightweight analytical support platform for station-based hydrological exploration. It supports station discovery, custom visualization setup, and presentation-ready analytical views across Mekong basin monitoring stations.
-</p>
+            Mekong Pulse is not only a visualization dashboard, but also a lightweight analytical support platform for station-based hydrological exploration. It supports station discovery, custom visualization setup, and presentation-ready analytical views across Mekong basin monitoring stations.
+          </p>
           <div class="hero-buttons">
             <button class="primary-btn custom-visualization-setup-icon">Start Analysis</button>
             <button class="secondary-btn station-overview-icon">Explore Stations</button>
             <button class="secondary-btn visualization-dashboard-icon">Open Dashboard</button>
+            <button class="secondary-btn prediction-icon">Prediction</button>
           </div>
         </div>
 
@@ -62,37 +109,6 @@
             <li>Clear historical trend analysis structure</li>
             <li>Presentation-friendly dashboard layout</li>
           </ul>
-        </div>
-      </section>
-
-      <section class="overview-grid">
-        <div class="info-card">
-          <p class="card-label">Monitoring stations</p>
-          <h3 id="stat-total-stations">--</h3>
-        </div>
-        <div class="info-card">
-          <p class="card-label">Data categories</p>
-          <h3 id="stat-total-categories">--</h3>
-        </div>
-        <div class="info-card">
-          <p class="card-label">Countries covered</p>
-          <h3 id="stat-total-countries">--</h3>
-        </div>
-        <div class="info-card">
-          <p class="card-label">Coverage period</p>
-          <h3 id="stat-date-range">--</h3>
-        </div>
-      </section>
-
-      <section class="map-panel">
-        <div class="panel-heading">
-          <div>
-            <p class="section-label">Geographical View</p>
-            <h2>Station Map</h2>
-          </div>
-        </div>
-        <div id="map-view">
-          <div id="map"></div>
         </div>
       </section>
 
@@ -334,6 +350,21 @@
     </div>
   </div>
 </section>
+
+      <section class="panel prediction hidden">
+        <div class="panel-heading">
+          <div>
+            <p class="section-label">Forecasting</p>
+            <h2>Prediction</h2>
+          </div>
+        </div>
+        <div class="info-panel" style="max-width:600px;">
+          <h3>Coming Soon</h3>
+          <p>
+            The prediction module will provide station-level forecasting for water level, discharge, and rainfall using historical trends and statistical models. Configure your station and category to generate forward-looking projections.
+          </p>
+        </div>
+      </section>
 
       <section class="panel about-us hidden">
         <div class="panel-heading">

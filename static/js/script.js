@@ -83,10 +83,26 @@ const graphTypeOptions = [
 ];
 
 // ------------------------------
+// COUNTRY COLOURS
+// ------------------------------
+const COUNTRY_COLORS = {
+  'China':    '#c0392b',
+  'Myanmar':  '#16a085',
+  'Laos':     '#d68910',
+  'Thailand': '#2874a6',
+  'Cambodia': '#e67e22',
+  'Vietnam':  '#27ae60',
+};
+const DEFAULT_MARKER_COLOR = '#6b7fa0';
+
+// ------------------------------
 // STATE
 // ------------------------------
 let map;
+let markerClusterGroup = null;
 let stationMarkers = [];
+let activeCountryFilter = '';
+let currentMapMode = 'All Categories';
 let stationDetailsMap = {};
 let categoryDetailsMap = {};
 let stationNameList = [];
@@ -159,6 +175,7 @@ const stationOverviewSection = document.querySelector(".station-overview");
 const builderSection = document.querySelector(".custom-visualization-setup");
 const dashboardSection = document.querySelector(".visualization-dashboard");
 const aboutSection = document.querySelector(".about-us");
+const predictionSection = document.querySelector(".prediction");
 
 // ------------------------------
 // HELPERS
@@ -197,7 +214,7 @@ function getSelectedGraphConfig() {
 }
 
 function setSectionVisible(section) {
-  [overviewSection, stationOverviewSection, builderSection, dashboardSection, aboutSection].forEach(sec => {
+  [overviewSection, stationOverviewSection, builderSection, dashboardSection, aboutSection, predictionSection].forEach(sec => {
     if (!sec) return;
     sec.classList.add("hidden");
   });
@@ -774,12 +791,68 @@ function loadCSVCategoryDetails() {
 }
 
 // ------------------------------
+// MAP HELPERS
+// ------------------------------
+function getCountryColor(country) {
+  return COUNTRY_COLORS[country] || DEFAULT_MARKER_COLOR;
+}
+
+function createStationIcon(country) {
+  const color = getCountryColor(country);
+  return L.divIcon({
+    className: '',
+    html: `<div class="station-marker-dot" style="width:14px;height:14px;background:${color};"></div>`,
+    iconSize: [14, 14],
+    iconAnchor: [7, 7],
+    popupAnchor: [0, -11]
+  });
+}
+
+function buildMapLegend() {
+  const legend = document.getElementById('map-legend');
+  const filterSelect = document.getElementById('map-country-filter');
+  if (!legend) return;
+
+  const entries = Object.entries(COUNTRY_COLORS);
+
+  legend.innerHTML = `
+    <h4>Countries</h4>
+    ${entries.map(([country, color]) => `
+      <div class="legend-item">
+        <div class="legend-dot" style="background:${color}"></div>
+        <span>${country}</span>
+      </div>
+    `).join('')}
+    <div class="legend-item">
+      <div class="legend-dot" style="background:${DEFAULT_MARKER_COLOR}"></div>
+      <span>Other</span>
+    </div>
+  `;
+
+  if (filterSelect) {
+    entries.forEach(([country]) => {
+      const opt = document.createElement('option');
+      opt.value = country;
+      opt.textContent = country;
+      filterSelect.appendChild(opt);
+    });
+  }
+}
+
+function fitMapToStations() {
+  if (!map || !stationMarkers.length) return;
+  const latlngs = stationMarkers.map(m => m.getLatLng());
+  map.fitBounds(L.latLngBounds(latlngs), { padding: [50, 50], maxZoom: 10 });
+}
+
+// ------------------------------
 // MAP
 // ------------------------------
 function showStationsOnMapUI(mode) {
-  if (!map) return;
+  if (!map || !markerClusterGroup) return;
 
-  stationMarkers.forEach(marker => map.removeLayer(marker));
+  currentMapMode = mode;
+  markerClusterGroup.clearLayers();
   stationMarkers = [];
 
   const addedStations = new Set();
@@ -788,24 +861,42 @@ function showStationsOnMapUI(mode) {
     const station = stationDetailsMap[stationName];
     if (!station || isNaN(station.latitude) || isNaN(station.longitude)) return;
     if (addedStations.has(stationName)) return;
+    if (activeCountryFilter && station.country !== activeCountryFilter) return;
 
-    const popupContent = `
-      <div style="min-width: 210px;">
-        <strong>${station.station_name}</strong><br>
-        Country: ${station.country}<br>
-        Coordinates: ${station.latitude}, ${station.longitude}<br>
-        Categories: ${station.available_categories || "--"}<br><br>
-        <button onclick="window.focusStationFromMap('${station.station_name.replace(/'/g, "\\'")}')" style="padding: 6px 10px; border: none; border-radius: 6px; background: #2f6da3; color: white; cursor: pointer;">
-          View station details
-        </button>
+    const color = getCountryColor(station.country);
+    const cats = (station.available_categories || '').split(', ').filter(Boolean);
+    const badges = cats.map(c =>
+      `<span style="display:inline-block;padding:2px 8px;background:#eef3f8;border-radius:999px;font-size:0.78rem;margin:2px 2px 0 0;color:#223142;">${c}</span>`
+    ).join('');
+
+    const popupHtml = `
+      <div class="map-popup">
+        <div class="map-popup-header" style="background:${color};">
+          <strong>${station.station_name}</strong>
+          <span>${station.country}</span>
+        </div>
+        <div class="map-popup-body">
+          <p><strong>Coordinates:</strong> ${station.latitude.toFixed(4)}, ${station.longitude.toFixed(4)}</p>
+          <p style="margin-bottom:4px;"><strong>Categories:</strong></p>
+          <div style="margin-top:2px;">${badges || '--'}</div>
+        </div>
+        <div class="map-popup-footer">
+          <button class="map-popup-btn" onclick="window.focusStationFromMap('${station.station_name.replace(/'/g, "\\'")}')">
+            View station details
+          </button>
+        </div>
       </div>
     `;
 
-    const marker = L.marker([station.latitude, station.longitude]).bindPopup(popupContent).addTo(map);
+    const icon = createStationIcon(station.country);
+    const marker = L.marker([station.latitude, station.longitude], { icon })
+      .bindPopup(popupHtml, { maxWidth: 280 });
+
     marker.on("click", () => {
       updateFeaturedStationPanel(station.station_name);
     });
 
+    markerClusterGroup.addLayer(marker);
     stationMarkers.push(marker);
     addedStations.add(stationName);
   };
@@ -831,46 +922,71 @@ window.focusStationFromMap = function(stationName) {
 
 function initializeMap() {
   map = L.map("map", {
-    minZoom: 3,
-    maxZoom: 19
+    minZoom: 4,
+    maxZoom: 18,
+    zoomControl: false
   }).setView([15.87, 100.99], 5);
 
-  const bounds = L.latLngBounds(
-    L.latLng(-10, 40),
-    L.latLng(50, 150)
-  );
+  L.control.zoom({ position: 'bottomright' }).addTo(map);
 
+  const bounds = L.latLngBounds(L.latLng(-10, 40), L.latLng(50, 155));
   map.setMaxBounds(bounds);
   map.on("drag", function() {
     map.panInsideBounds(bounds, { animate: false });
   });
 
   L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
-    attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/">CARTO</a>',
     subdomains: "abcd",
-    maxZoom: 19
+    maxZoom: 18
   }).addTo(map);
 
+  // Marker cluster group
+  markerClusterGroup = L.markerClusterGroup({
+    maxClusterRadius: 48,
+    spiderfyOnMaxZoom: true,
+    showCoverageOnHover: false,
+    iconCreateFunction: function(cluster) {
+      return L.divIcon({
+        className: '',
+        html: `<div class="cluster-icon">${cluster.getChildCount()}</div>`,
+        iconSize: [36, 36],
+        iconAnchor: [18, 18]
+      });
+    }
+  });
+  map.addLayer(markerClusterGroup);
+
+  // GeoJSON basin overlay
   fetch("/mekong_geojson")
     .then(response => response.json())
     .then(data => {
-      const geojsonStyle = {
-        color: "#4f81a8",
-        weight: 1.5,
-        fillColor: "#bdd7ea",
-        fillOpacity: 0.45
-      };
-
       L.geoJSON(data, {
-        style: geojsonStyle,
+        style: {
+          color: "#3a78b5",
+          weight: 1.5,
+          fillColor: "#b8d4ea",
+          fillOpacity: 0.32
+        },
         onEachFeature: function(feature, layer) {
           if (feature.properties && feature.properties.name) {
-            layer.bindTooltip(feature.properties.name);
+            layer.bindTooltip(feature.properties.name, { sticky: true });
           }
         }
       }).addTo(map);
     })
     .catch(error => console.error("Error loading GeoJSON:", error));
+
+  // Build legend and populate country filter
+  buildMapLegend();
+
+  // Wire controls
+  document.getElementById("map-fit-btn")?.addEventListener("click", fitMapToStations);
+
+  document.getElementById("map-country-filter")?.addEventListener("change", function() {
+    activeCountryFilter = this.value;
+    showStationsOnMapUI(currentMapMode);
+  });
 }
 
 // ------------------------------
@@ -889,6 +1005,7 @@ function setupNavigation() {
   bindSectionTriggers(".station-overview-icon", stationOverviewSection);
   bindSectionTriggers(".custom-visualization-setup-icon", builderSection);
   bindSectionTriggers(".visualization-dashboard-icon", dashboardSection);
+  bindSectionTriggers(".prediction-icon", predictionSection);
   bindSectionTriggers(".about-us-icon", aboutSection);
 }
 
