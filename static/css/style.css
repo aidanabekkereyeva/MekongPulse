@@ -89,12 +89,17 @@ button {
   width: 50px;
   height: 50px;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.14);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  flex-shrink: 0;
+}
+
+.logo-img {
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
+  display: block;
 }
 
 .site-title {
@@ -236,6 +241,13 @@ button {
 
 .strong-secondary {
   background: #e9f0f7;
+}
+
+.save-viz-btn {
+  padding: 8px 14px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  opacity: 0.8;
 }
 
 /* Overview cards */

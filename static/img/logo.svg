@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" width="80" height="80">
+  <defs>
+    <!-- Main background gradient: deep ocean blue to teal -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f4c81"/>
+      <stop offset="100%" style="stop-color:#0e7a6e"/>
+    </linearGradient>
+
+    <!-- Pulse line glow -->
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="1.8" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Clip to rounded square -->
+    <clipPath id="roundedClip">
+      <rect width="80" height="80" rx="18"/>
+    </clipPath>
+  </defs>
+
+  <!-- Background -->
+  <rect width="80" height="80" rx="18" fill="url(#bgGrad)"/>
+
+  <!-- Subtle inner glow at top -->
+  <ellipse cx="40" cy="12" rx="34" ry="16" fill="rgba(255,255,255,0.06)"/>
+
+  <!-- River flow: three layered smooth waves at the bottom -->
+  <path d="M0 62 Q13 54 26 62 Q40 70 53 62 Q66 54 80 62 L80 80 L0 80 Z"
+        fill="rgba(255,255,255,0.07)" clip-path="url(#roundedClip)"/>
+  <path d="M0 67 Q13 59 26 67 Q40 75 53 67 Q66 59 80 67 L80 80 L0 80 Z"
+        fill="rgba(255,255,255,0.07)" clip-path="url(#roundedClip)"/>
+
+  <!-- Droplet shape (water icon, center) -->
+  <path d="M40 15 C40 15 26 32 26 44 C26 52.8 32.3 59 40 59 C47.7 59 54 52.8 54 44 C54 32 40 15 40 15 Z"
+        fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.55)" stroke-width="1.5"/>
+
+  <!-- Pulse / signal line through the droplet -->
+  <polyline
+    points="28,44 33,44 36.5,35 40,53 43.5,38 47,44 52,44"
+    fill="none"
+    stroke="white"
+    stroke-width="2.2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    filter="url(#glow)"/>
+
+  <!-- Bright dot at the peak of the pulse -->
+  <circle cx="36.5" cy="35" r="2.8" fill="#7dd3fc" filter="url(#glow)"/>
+</svg>
