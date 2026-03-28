@@ -996,10 +996,17 @@ function initializeMap() {
 // ------------------------------
 // EVENTS
 // ------------------------------
+function setActiveNav(selector) {
+  document.querySelectorAll('.sidebar-nav .nav-item').forEach(el => el.classList.remove('active'));
+  const navEl = document.querySelector('.sidebar-nav ' + selector);
+  if (navEl) navEl.classList.add('active');
+}
+
 function bindSectionTriggers(selector, section) {
   document.querySelectorAll(selector).forEach(element => {
     element.addEventListener("click", () => {
       setSectionVisible(section);
+      setActiveNav(selector);
     });
   });
 }
