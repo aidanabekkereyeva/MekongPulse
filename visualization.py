@@ -10,6 +10,8 @@ import plotly.graph_objs as go
 from plotly.subplots import make_subplots
 
 from data_loader import DataRepository, SeriesRequest
+import numpy as np
+from statsmodels.tsa.holtwinters import ExponentialSmoothing
 
 # Set by app.py at startup
 repo: Optional[DataRepository] = None
@@ -651,3 +653,139 @@ def generate_visualizations_with_summary(graph_type: str, selected_data: list) -
     ranking = build_station_ranking_for_category(summary["category"]) if summary["category"] != "--" else []
 
     return {"charts": charts, "summary": summary, "ranking": ranking}
+
+
+# ------------------------------
+# HOLT-WINTERS PREDICTION
+# ------------------------------
+
+def generate_holt_winters_prediction(
+    category_name: str,
+    station_name: str,
+    start_date: str,
+    end_date: str,
+    forecast_months: int = 12,
+) -> dict:
+    """Fit a Holt-Winters model on monthly-resampled historical data and forecast ahead."""
+    df = get_feature_series_df(category_name, station_name, start_date, end_date)
+    if df is None or df.empty:
+        raise ValueError(f"No data found for {station_name} / {category_name}")
+
+    unit_label = get_category_units(category_name)
+
+    series = (
+        df.set_index("Timestamp")["Value"]
+        .resample("MS")
+        .mean()
+        .interpolate(method="linear")
+        .dropna()
+    )
+
+    if len(series) < 12:
+        raise ValueError("At least 12 months of data are required for forecasting.")
+
+    use_seasonal = len(series) >= 24
+
+    model = ExponentialSmoothing(
+        series,
+        trend="add",
+        seasonal="add" if use_seasonal else None,
+        seasonal_periods=12 if use_seasonal else None,
+        initialization_method="estimated",
+    )
+    fitted = model.fit(optimized=True, remove_bias=True)
+
+    forecast = fitted.forecast(forecast_months)
+    residuals = series - fitted.fittedvalues
+    sigma = float(residuals.std())
+    ci_offset = pd.Series(
+        [1.96 * sigma * float(np.sqrt(h)) for h in range(1, forecast_months + 1)],
+        index=forecast.index,
+    )
+    ci_upper = forecast + ci_offset
+    ci_lower = (forecast - ci_offset).clip(lower=0.0)
+
+    fig = go.Figure()
+
+    fig.add_trace(go.Scatter(
+        x=list(ci_upper.index) + list(ci_lower.index[::-1]),
+        y=list(ci_upper.values) + list(ci_lower.values[::-1]),
+        fill="toself",
+        fillcolor="rgba(231,107,64,0.15)",
+        line=dict(color="rgba(0,0,0,0)"),
+        name="95% Confidence Interval",
+        hoverinfo="skip",
+    ))
+
+    fig.add_trace(go.Scatter(
+        x=series.index, y=series.values,
+        mode="lines", name="Historical (monthly avg)",
+        line=dict(color="#2874a6", width=2),
+    ))
+
+    fig.add_trace(go.Scatter(
+        x=fitted.fittedvalues.index, y=fitted.fittedvalues.values,
+        mode="lines", name="Model fit",
+        line=dict(color="#27ae60", width=1.5, dash="dot"),
+    ))
+
+    fig.add_trace(go.Scatter(
+        x=forecast.index, y=forecast.values,
+        mode="lines+markers",
+        name=f"Forecast ({forecast_months} months)",
+        line=dict(color="#e74c3c", width=2.5),
+        marker=dict(size=5),
+    ))
+
+    split_x = series.index[-1]
+    fig.add_shape(
+        type="line",
+        x0=split_x, x1=split_x,
+        y0=0, y1=1,
+        yref="paper",
+        line=dict(color="#888888", width=1.5, dash="dash"),
+    )
+    fig.add_annotation(
+        x=split_x, y=1, yref="paper",
+        text="Forecast start",
+        showarrow=False,
+        xanchor="left",
+        font=dict(size=11, color="#888888"),
+    )
+
+    apply_clean_layout(
+        fig,
+        title=f"Holt-Winters Forecast — {station_display(station_name)} · {category_name}",
+        yaxis_title=unit_label,
+        xaxis_title="Date",
+    )
+
+    params = fitted.params if isinstance(fitted.params, dict) else dict(fitted.params)
+    rmse = float(np.sqrt(float(np.mean(residuals ** 2))))
+
+    def _p(key):
+        v = params.get(key)
+        try:
+            return round(float(v), 4) if v is not None else 0.0
+        except (TypeError, ValueError):
+            return 0.0
+
+    model_info = {
+        "station": station_display(station_name),
+        "category": category_name,
+        "historical_months": int(len(series)),
+        "model_type": "Holt-Winters (additive trend + seasonal)" if use_seasonal else "Holt-Winters (additive trend only)",
+        "forecast_months": int(forecast_months),
+        "alpha": _p("smoothing_level"),
+        "beta": _p("smoothing_trend"),
+        "gamma": _p("smoothing_seasonal") if use_seasonal else None,
+        "aic": round(float(fitted.aic), 2),
+        "rmse": round(rmse, 4),
+        "last_historical": series.index[-1].strftime("%Y-%m"),
+        "forecast_end": forecast.index[-1].strftime("%Y-%m"),
+    }
+
+    return {
+        "chart": json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder),
+        "model_info": model_info,
+    }

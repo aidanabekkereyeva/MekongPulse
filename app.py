@@ -120,5 +120,23 @@ def generate_visualization():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/generate_prediction', methods=['POST'])
+def generate_prediction():
+    import traceback
+    try:
+        data = request.json
+        result = visualization.generate_holt_winters_prediction(
+            category_name=data['category_name'],
+            station_name=data['station_name'],
+            start_date=data['start_date'],
+            end_date=data['end_date'],
+            forecast_months=int(data.get('forecast_months', 12)),
+        )
+        return jsonify(result)
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
 if __name__ == '__main__':
     app.run(debug=True)

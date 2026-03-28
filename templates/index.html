@@ -36,10 +36,15 @@
         <div class="nav-item about-us-icon">About Project</div>
       </nav>
 
-      <div class="sidebar-footer">
-        <p>
-          Explore Mekong basin stations, configure custom visualizations, and present data insights in a clearer and more structured way.
-        </p>
+      <div class="sidebar-bottom">
+        <button id="theme-toggle-btn" class="theme-toggle-btn">
+          <svg class="theme-icon theme-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          <svg class="theme-icon theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+          <span class="theme-toggle-label">Dark Mode</span>
+        </button>
+        <div class="sidebar-footer">
+          <p>Explore Mekong basin stations, configure custom visualizations, and present data insights in a clearer and more structured way.</p>
+        </div>
       </div>
     </aside>
 
@@ -355,14 +360,55 @@
         <div class="panel-heading">
           <div>
             <p class="section-label">Forecasting</p>
-            <h2>Prediction</h2>
+            <h2>Holt-Winters Prediction</h2>
           </div>
         </div>
-        <div class="info-panel" style="max-width:600px;">
-          <h3>Coming Soon</h3>
-          <p>
-            The prediction module will provide station-level forecasting for water level, discharge, and rainfall using historical trends and statistical models. Configure your station and category to generate forward-looking projections.
-          </p>
+
+        <div class="form-card">
+          <div class="two-column-grid">
+            <div class="form-group">
+              <label class="menu-title" for="pred-station-select">Station</label>
+              <select id="pred-station-select" class="dropdown"><option value="">Select a station...</option></select>
+            </div>
+            <div class="form-group">
+              <label class="menu-title" for="pred-category-select">Category</label>
+              <select id="pred-category-select" class="dropdown"><option value="">Select a category...</option></select>
+            </div>
+          </div>
+
+          <div class="two-column-grid" style="margin-top:18px;">
+            <div class="form-group">
+              <label class="menu-title" for="pred-start-date">Historical data from</label>
+              <input type="text" id="pred-start-date" class="dropdown" placeholder="DD-MM-YYYY" />
+            </div>
+            <div class="form-group">
+              <label class="menu-title" for="pred-end-date">Historical data to</label>
+              <input type="text" id="pred-end-date" class="dropdown" placeholder="DD-MM-YYYY" />
+            </div>
+          </div>
+
+          <div class="form-row" style="margin-top:18px;">
+            <div class="form-group" style="max-width:280px;">
+              <label class="menu-title" for="pred-horizon-select">Forecast horizon</label>
+              <select id="pred-horizon-select" class="dropdown">
+                <option value="6">6 months ahead</option>
+                <option value="12" selected>12 months ahead</option>
+                <option value="24">24 months ahead</option>
+                <option value="36">36 months ahead</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="action-row">
+            <button id="pred-generate-btn" class="primary-btn">Generate Forecast</button>
+          </div>
+          <p class="warning-alert" id="pred-alert">Please fill in all fields before generating a forecast.</p>
+        </div>
+
+        <div id="pred-model-info" class="pred-model-info hidden"></div>
+
+        <div id="pred-chart-container" class="pred-chart-container hidden">
+          <div id="pred-chart" style="width:100%;height:520px;"></div>
         </div>
       </section>
 

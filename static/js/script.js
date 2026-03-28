@@ -1,6 +1,8 @@
 const STATION_DETAILS_CSV_LINK = "../static/data-outputs/station_details.csv";
 const CATEGORY_DETAILS_CSV_LINK = "../static/data-outputs/category_details.csv";
 const ALL_CATEGORIES = "All Categories";
+const TILE_LIGHT = "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
+const TILE_DARK  = "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
 
 const graphTypeOptions = [
   {
@@ -100,6 +102,7 @@ const DEFAULT_MARKER_COLOR = '#6b7fa0';
 // ------------------------------
 let map;
 let markerClusterGroup = null;
+let currentTileLayer = null;
 let stationMarkers = [];
 let activeCountryFilter = '';
 let currentMapMode = 'All Categories';
@@ -935,7 +938,8 @@ function initializeMap() {
     map.panInsideBounds(bounds, { animate: false });
   });
 
-  L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
+  const initDark = localStorage.getItem('theme') === 'dark';
+  currentTileLayer = L.tileLayer(initDark ? TILE_DARK : TILE_LIGHT, {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/">CARTO</a>',
     subdomains: "abcd",
     maxZoom: 18
@@ -1177,6 +1181,129 @@ function setupModalEvents() {
 }
 
 // ------------------------------
+// DARK MODE
+// ------------------------------
+function applyTheme(dark) {
+  document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+  localStorage.setItem('theme', dark ? 'dark' : 'light');
+
+  const btn = document.getElementById('theme-toggle-btn');
+  if (btn) {
+    btn.querySelector('.theme-icon-moon').style.display = dark ? 'none' : 'block';
+    btn.querySelector('.theme-icon-sun').style.display  = dark ? 'block' : 'none';
+    btn.querySelector('.theme-toggle-label').textContent = dark ? 'Light Mode' : 'Dark Mode';
+  }
+
+  if (map && currentTileLayer) {
+    map.removeLayer(currentTileLayer);
+    currentTileLayer = L.tileLayer(dark ? TILE_DARK : TILE_LIGHT, {
+      attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+      subdomains: 'abcd',
+      maxZoom: 18
+    }).addTo(map);
+    currentTileLayer.bringToBack();
+  }
+}
+
+function setupThemeToggle() {
+  document.getElementById('theme-toggle-btn')?.addEventListener('click', () => {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    applyTheme(!isDark);
+  });
+  if (localStorage.getItem('theme') === 'dark') applyTheme(true);
+}
+
+// ------------------------------
+// PREDICTION
+// ------------------------------
+function populatePredictionDropdowns() {
+  const predStation  = document.getElementById('pred-station-select');
+  const predCategory = document.getElementById('pred-category-select');
+  if (!predStation || !predCategory) return;
+
+  predStation.innerHTML = '<option value="">Select a station...</option>';
+  stationNameList.forEach(name => {
+    const opt = document.createElement('option');
+    opt.value = name; opt.textContent = name;
+    predStation.appendChild(opt);
+  });
+
+  predCategory.innerHTML = '<option value="">Select a category...</option>';
+  categoryNameList.forEach(name => {
+    const opt = document.createElement('option');
+    opt.value = name; opt.textContent = name;
+    predCategory.appendChild(opt);
+  });
+}
+
+function autofillPredDateRange() {
+  const station  = document.getElementById('pred-station-select')?.value;
+  const category = document.getElementById('pred-category-select')?.value;
+  if (!station || !category) return;
+  const detail = getCategoryDateRange(category, station);
+  if (detail) {
+    document.getElementById('pred-start-date').value = formatDateToDDMMYYYY(detail.start_date);
+    document.getElementById('pred-end-date').value   = formatDateToDDMMYYYY(detail.end_date);
+  }
+}
+
+function setupPredictionEvents() {
+  document.getElementById('pred-station-select')?.addEventListener('change', autofillPredDateRange);
+  document.getElementById('pred-category-select')?.addEventListener('change', autofillPredDateRange);
+
+  document.getElementById('pred-generate-btn')?.addEventListener('click', function() {
+    const station        = document.getElementById('pred-station-select')?.value;
+    const category       = document.getElementById('pred-category-select')?.value;
+    const startDate      = document.getElementById('pred-start-date')?.value;
+    const endDate        = document.getElementById('pred-end-date')?.value;
+    const forecastMonths = parseInt(document.getElementById('pred-horizon-select')?.value || '12');
+
+    if (!station || !category || !startDate || !endDate) {
+      showAlert(document.getElementById('pred-alert'));
+      return;
+    }
+
+    const btn = document.getElementById('pred-generate-btn');
+    btn.disabled = true;
+    btn.textContent = 'Generating…';
+    document.getElementById('pred-model-info')?.classList.add('hidden');
+    document.getElementById('pred-chart-container')?.classList.add('hidden');
+
+    fetch('/generate_prediction', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ station_name: station, category_name: category, start_date: startDate, end_date: endDate, forecast_months: forecastMonths })
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.error) { alert('Forecast error: ' + data.error); return; }
+
+      const info = data.model_info;
+      const gammaRow = info.gamma !== null
+        ? `<div class="pred-info-card"><span class="pred-info-label">γ (seasonal)</span><span class="pred-info-value">${info.gamma}</span></div>`
+        : '';
+
+      document.getElementById('pred-model-info').innerHTML = `
+        <div class="pred-info-grid">
+          <div class="pred-info-card"><span class="pred-info-label">Model</span><span class="pred-info-value">${info.model_type}</span></div>
+          <div class="pred-info-card"><span class="pred-info-label">Historical data</span><span class="pred-info-value">${info.historical_months} months</span></div>
+          <div class="pred-info-card"><span class="pred-info-label">Forecast period</span><span class="pred-info-value">${info.last_historical} → ${info.forecast_end}</span></div>
+          <div class="pred-info-card"><span class="pred-info-label">AIC</span><span class="pred-info-value">${info.aic}</span></div>
+          <div class="pred-info-card"><span class="pred-info-label">RMSE</span><span class="pred-info-value">${info.rmse}</span></div>
+          <div class="pred-info-card"><span class="pred-info-label">α (level)</span><span class="pred-info-value">${info.alpha}</span></div>
+          <div class="pred-info-card"><span class="pred-info-label">β (trend)</span><span class="pred-info-value">${info.beta}</span></div>
+          ${gammaRow}
+        </div>`;
+      document.getElementById('pred-model-info').classList.remove('hidden');
+      document.getElementById('pred-chart-container').classList.remove('hidden');
+      Plotly.newPlot('pred-chart', JSON.parse(data.chart), {}, { responsive: true });
+    })
+    .catch(err => alert('Error: ' + err.message))
+    .finally(() => { btn.disabled = false; btn.textContent = 'Generate Forecast'; });
+  });
+}
+
+// ------------------------------
 // INIT
 // ------------------------------
 document.addEventListener("DOMContentLoaded", async function() {
@@ -1200,6 +1327,9 @@ document.addEventListener("DOMContentLoaded", async function() {
     setupNavigation();
     setupBuilderEvents();
     setupModalEvents();
+    populatePredictionDropdowns();
+    setupPredictionEvents();
+    setupThemeToggle();
   } catch (error) {
     console.error("Initialization error:", error);
   }
