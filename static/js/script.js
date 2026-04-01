@@ -1054,7 +1054,9 @@ function showLargeGraph(chartJson) {
 
 function triggerStartVisualization() {
   if (!selectedVisualizations.length) {
-    alert("Please save at least one visualization configuration first.");
+    showAlert(document.getElementById("no-saved-viz-alert"));
+    setSectionVisible(builderSection);
+    setActiveNav(".custom-visualization-setup-icon");
     return;
   }
 
@@ -1456,12 +1458,12 @@ addStationBtn.addEventListener("click", function() {
   const graphConfig = getSelectedGraphConfig();
 
   if (!graphConfig) {
-    alert("Please choose a visualization type first.");
+    showAlert(document.getElementById("no-graph-type-alert"));
     return;
   }
 
   if (!currentStation) {
-    alert("Please choose a station first.");
+    showAlert(document.getElementById("no-station-alert"));
     return;
   }
 
@@ -1489,7 +1491,7 @@ addStationBtn.addEventListener("click", function() {
   const categoriesToUse = [...selectedCategories];
 
   if (!categoriesToUse.length) {
-    alert("Please add at least one category first.");
+    showAlert(document.getElementById("no-category-alert"));
     return;
   }
 
@@ -1522,7 +1524,7 @@ addStationBtn.addEventListener("click", function() {
   });
 
   if (!addedAnything) {
-    alert("This station could not be added for the selected category.");
+    showAlert(document.getElementById("station-no-data-alert"));
     return;
   }
 
@@ -1586,6 +1588,33 @@ function applyTheme(dark) {
     }).addTo(map);
     currentTileLayer.bringToBack();
   }
+}
+
+function setupSidebarToggle() {
+  const sidebar = document.getElementById('sidebar');
+  const toggleBtn = document.getElementById('sidebar-toggle');
+  if (!sidebar || !toggleBtn) return;
+
+  const STORAGE_KEY = 'sidebarCollapsed';
+  if (localStorage.getItem(STORAGE_KEY) === 'true') {
+    sidebar.classList.remove('expanded');
+    sidebar.classList.add('collapsed');
+  }
+
+  toggleBtn.addEventListener('click', () => {
+    const isCollapsed = sidebar.classList.contains('collapsed');
+    if (isCollapsed) {
+      sidebar.classList.remove('collapsed');
+      sidebar.classList.add('expanded');
+      localStorage.setItem(STORAGE_KEY, 'false');
+    } else {
+      sidebar.classList.remove('expanded');
+      sidebar.classList.add('collapsed');
+      localStorage.setItem(STORAGE_KEY, 'true');
+    }
+    // Let Plotly charts reflow after sidebar transition
+    setTimeout(() => window.dispatchEvent(new Event('resize')), 260);
+  });
 }
 
 function setupThemeToggle() {
@@ -1699,7 +1728,11 @@ function setupPredictionEvents() {
     })
     .then(r => r.json())
     .then(data => {
-      if (data.error) { alert('Forecast error: ' + data.error); return; }
+      if (data.error) {
+        const el = document.getElementById('pred-alert');
+        if (el) { el.textContent = 'Forecast error: ' + data.error; showAlert(el); }
+        return;
+      }
 
       const info = data.model_info;
       const gammaRow = info.gamma !== null
@@ -1721,7 +1754,10 @@ function setupPredictionEvents() {
       document.getElementById('pred-chart-container').classList.remove('hidden');
       Plotly.newPlot('pred-chart', JSON.parse(data.chart), {}, { responsive: true });
     })
-    .catch(err => alert('Error: ' + err.message))
+    .catch(err => {
+      const el = document.getElementById('pred-alert');
+      if (el) { el.textContent = 'Error: ' + err.message; showAlert(el); }
+    })
     .finally(() => { btn.disabled = false; btn.textContent = 'Generate Forecast'; });
   });
 }
@@ -1752,6 +1788,7 @@ document.addEventListener("DOMContentLoaded", async function() {
     setupModalEvents();
     populatePredictionDropdowns();
     setupPredictionEvents();
+    setupSidebarToggle();
     setupThemeToggle();
     setupUndoToast();
   } catch (error) {
