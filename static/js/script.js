@@ -704,9 +704,23 @@ function renderCharts(charts) {
       showLargeGraph(chartJson);
     });
 
+    const deleteBtn = document.createElement("button");
+    deleteBtn.type = "button";
+    deleteBtn.className = "chart-delete-btn";
+    deleteBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg> Delete`;
+    deleteBtn.addEventListener("click", () => {
+      const cardTitle = title.textContent;
+      const nextSibling = card.nextElementSibling;
+      card.remove();
+      renumberChartCards();
+      showUndoToast(cardTitle, card, nextSibling);
+    });
+
     actions.appendChild(fullBtn);
+    actions.appendChild(deleteBtn);
     header.appendChild(title);
     header.appendChild(actions);
+    title.className = "chart-card-title";
 
     const graphDiv = document.createElement("div");
     graphDiv.id = `graph-${index}`;
@@ -720,6 +734,59 @@ function renderCharts(charts) {
     graphContainer.appendChild(card);
 
     Plotly.newPlot(graphDiv.id, JSON.parse(chartJson), {}, { responsive: true });
+  });
+}
+
+function renumberChartCards() {
+  graphContainer.querySelectorAll(".chart-card-title").forEach((t, i) => {
+    t.textContent = `Visualization ${i + 1}`;
+  });
+}
+
+let _lastDeleted = null;
+let _undoTimer   = null;
+
+function showUndoToast(label, card, nextSibling) {
+  _lastDeleted = { card, nextSibling };
+
+  const toast    = document.getElementById("undo-toast");
+  const textEl   = document.getElementById("undo-toast-text");
+  const fill     = document.getElementById("undo-progress-fill");
+  if (!toast) return;
+
+  if (textEl) textEl.textContent = `"${label}" deleted`;
+
+  // Restart progress bar animation
+  if (fill) { fill.style.animation = "none"; fill.offsetHeight; fill.style.animation = ""; }
+
+  clearTimeout(_undoTimer);
+  toast.classList.remove("hidden");
+
+  _undoTimer = setTimeout(() => {
+    toast.classList.add("hidden");
+    if (_lastDeleted) {
+      const gd = _lastDeleted.card.querySelector('[id^="graph-"]');
+      if (gd) Plotly.purge(gd.id);
+      _lastDeleted = null;
+    }
+  }, 10000);
+}
+
+function setupUndoToast() {
+  document.getElementById("undo-restore-btn")?.addEventListener("click", () => {
+    if (!_lastDeleted) return;
+    clearTimeout(_undoTimer);
+    document.getElementById("undo-toast")?.classList.add("hidden");
+
+    const { card, nextSibling } = _lastDeleted;
+    if (nextSibling && nextSibling.parentNode === graphContainer) {
+      graphContainer.insertBefore(card, nextSibling);
+    } else {
+      graphContainer.appendChild(card);
+    }
+    renumberChartCards();
+    window.dispatchEvent(new Event("resize")); // re-fit Plotly charts
+    _lastDeleted = null;
   });
 }
 
@@ -1374,6 +1441,7 @@ document.addEventListener("DOMContentLoaded", async function() {
     populatePredictionDropdowns();
     setupPredictionEvents();
     setupThemeToggle();
+    setupUndoToast();
   } catch (error) {
     console.error("Initialization error:", error);
   }
