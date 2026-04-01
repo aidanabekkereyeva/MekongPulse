@@ -268,73 +268,204 @@
       </section>
 
       <section class="panel visualization-dashboard hidden">
-        <div class="panel-heading">
+        <div class="panel-heading db-heading">
           <div>
             <p class="section-label">Output</p>
             <h2>Visualization Dashboard</h2>
           </div>
+          <div id="charts-badge" class="charts-badge hidden">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            <span id="charts-count">0</span> charts generated
+          </div>
         </div>
 
-        <div class="info-panel dashboard-note">
-          <p>
-            Generated visualizations appear below. Use this section in your presentation to demonstrate how the platform supports comparison, station-level exploration, and historical data interpretation.
-          </p>
+        <!-- KPI Cards -->
+        <div class="kpi-row" id="kpi-row">
+          <div class="kpi-card">
+            <div class="kpi-icon-wrap kpi-amber">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+            </div>
+            <div class="kpi-body">
+              <span class="kpi-value" id="kpi-mean">--</span>
+              <span class="kpi-label">Mean Value <span class="info-icon" data-tip="The arithmetic average of all recorded values in the selected time range and stations.">i</span></span>
+            </div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-icon-wrap kpi-green">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+            </div>
+            <div class="kpi-body">
+              <span class="kpi-value" id="kpi-max">--</span>
+              <span class="kpi-label">Maximum <span class="info-icon" data-tip="The single highest recorded value across all selected data points.">i</span></span>
+            </div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-icon-wrap kpi-red">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>
+            </div>
+            <div class="kpi-body">
+              <span class="kpi-value" id="kpi-min">--</span>
+              <span class="kpi-label">Minimum <span class="info-icon" data-tip="The single lowest recorded value across all selected data points.">i</span></span>
+            </div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-icon-wrap kpi-navy">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            </div>
+            <div class="kpi-body">
+              <span class="kpi-value" id="kpi-std">--</span>
+              <span class="kpi-label">Std Deviation <span class="info-icon" data-tip="Measures how spread out values are from the mean. Higher = more variable, irregular data. Lower = more consistent conditions.">i</span></span>
+            </div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-icon-wrap kpi-purple">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            </div>
+            <div class="kpi-body">
+              <span class="kpi-value" id="kpi-records">--</span>
+              <span class="kpi-label">Data Records <span class="info-icon" data-tip="Total number of individual data observations included in this analysis across all selected stations and categories.">i</span></span>
+            </div>
+          </div>
         </div>
 
-        <div class="dashboard-insight-grid">
-  <div class="info-panel">
-    <h3>Current Summary</h3>
-    <p class="panel-note">This summary reflects the most recently generated visualization.</p>
-    <div class="insight-list">
-      <p><strong>Selected station:</strong> <span id="insight-station">--</span></p>
-      <p><strong>Selected category:</strong> <span id="insight-category">--</span></p>
-      <p><strong>Date range:</strong> <span id="insight-date-range">--</span></p>
-      <p><strong>Mean value:</strong> <span id="insight-mean">--</span></p>
-      <p><strong>Minimum value:</strong> <span id="insight-min">--</span></p>
-      <p><strong>Maximum value:</strong> <span id="insight-max">--</span></p>
-    </div>
-  </div>
-
-  <div class="info-panel">
-    <h3>Current Data Coverage</h3>
-    <p class="panel-note">Coverage values are based on the most recently generated visualization.</p>
-    <div class="insight-list">
-      <p><strong>Station:</strong> <span id="coverage-station">--</span></p>
-      <p><strong>Category:</strong> <span id="coverage-category">--</span></p>
-      <p><strong>First year:</strong> <span id="coverage-first-year">--</span></p>
-      <p><strong>Last year:</strong> <span id="coverage-last-year">--</span></p>
-      <p><strong>Records in selection:</strong> <span id="coverage-record-count">--</span></p>
-      <p><strong>Coverage note:</strong> <span id="coverage-note">Awaiting visualization selection</span></p>
-    </div>
-  </div>
-</div>
-
-<div class="info-panel ranking-panel">
-  <h3>Station Ranking Panel</h3>
-  <p class="panel-note">Top stations ranked by average value for the most recently summarized category.</p>
-
-  <div class="ranking-table-wrap">
-    <table class="ranking-table">
-      <thead>
-        <tr>
-          <th>Rank</th>
-          <th>Station</th>
-          <th>Average Value</th>
-          <th>Maximum Value</th>
-          <th>Records</th>
-        </tr>
-      </thead>
-      <tbody id="ranking-table-body">
-        <tr>
-          <td colspan="5">Generate a visualization to load ranking results.</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-</div>
-        <div id="graph-container">
-          <canvas id="data-graph"></canvas>
+        <!-- Data Signal Quality Row -->
+        <div class="dq-row">
+          <div class="dq-card">
+            <div class="dq-top">
+              <span class="dq-label">Coverage Quality <span class="info-icon" data-tip="How much of the expected time range has actual recorded data. Based on record count versus expected monthly observations.">i</span></span>
+              <span class="dq-dot dq-neutral" id="dq-coverage-dot"></span>
+            </div>
+            <span class="dq-value" id="dq-coverage-val">--</span>
+            <span class="dq-sub" id="dq-coverage-sub">Awaiting visualization</span>
+          </div>
+          <div class="dq-card">
+            <div class="dq-top">
+              <span class="dq-label">Trend Signal <span class="info-icon" data-tip="Strength of the directional trend. Measured as % change between the first and second halves of the data period.">i</span></span>
+              <span class="dq-dot dq-neutral" id="dq-trend-dot"></span>
+            </div>
+            <span class="dq-value" id="dq-trend-val">--</span>
+            <span class="dq-sub" id="dq-trend-sub">Awaiting visualization</span>
+          </div>
+          <div class="dq-card">
+            <div class="dq-top">
+              <span class="dq-label">Data Variability <span class="info-icon" data-tip="Coefficient of Variation (CV) = standard deviation ÷ mean × 100. High CV means irregular patterns; low CV means stable, predictable conditions.">i</span></span>
+              <span class="dq-dot dq-neutral" id="dq-variability-dot"></span>
+            </div>
+            <span class="dq-value" id="dq-variability-val">--</span>
+            <span class="dq-sub" id="dq-variability-sub">Awaiting visualization</span>
+          </div>
+          <div class="dq-card">
+            <div class="dq-top">
+              <span class="dq-label">Study Period <span class="info-icon" data-tip="The total number of years spanned by the data, from the earliest to the most recent observation in the selected range.">i</span></span>
+              <span class="dq-dot dq-neutral" id="dq-span-dot"></span>
+            </div>
+            <span class="dq-value" id="dq-span-val">--</span>
+            <span class="dq-sub" id="dq-span-sub">Awaiting visualization</span>
+          </div>
         </div>
+
+        <!-- Insight + Coverage + Trend Grid -->
+        <div class="db-three-grid">
+          <div class="info-panel">
+            <h3>Statistical Summary <span class="info-icon" data-tip="Detailed statistics from the most recently generated visualization. Re-runs each time you press Generate.">i</span></h3>
+            <p class="panel-note">Most recently generated visualization.</p>
+            <div class="stat-rows">
+              <div class="stat-row"><span class="stat-key">Station</span><span class="stat-val" id="insight-station">--</span></div>
+              <div class="stat-row"><span class="stat-key">Category</span><span class="stat-val" id="insight-category">--</span></div>
+              <div class="stat-row"><span class="stat-key">Date range</span><span class="stat-val" id="insight-date-range">--</span></div>
+              <div class="stat-row"><span class="stat-key">Mean</span><span class="stat-val" id="insight-mean">--</span></div>
+              <div class="stat-row"><span class="stat-key">Std deviation</span><span class="stat-val" id="insight-std-row">--</span></div>
+              <div class="stat-row"><span class="stat-key">Min</span><span class="stat-val" id="insight-min">--</span></div>
+              <div class="stat-row"><span class="stat-key">Max</span><span class="stat-val" id="insight-max">--</span></div>
+              <div class="stat-row">
+                <span class="stat-key">Coeff. of variation <span class="info-icon" data-tip="CV = (std deviation ÷ mean) × 100. A low CV (under 20%) indicates stable, predictable data. A high CV (above 50%) suggests irregular or extreme-event-driven patterns.">i</span></span>
+                <span class="stat-val" id="insight-cov">--</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="info-panel">
+            <h3>Data Coverage <span class="info-icon" data-tip="Shows how densely the selected time range is filled with actual observations. 100% means every expected period has a recorded value; lower scores indicate data gaps.">i</span></h3>
+            <p class="panel-note">Temporal coverage for selected range.</p>
+            <div class="stat-rows">
+              <div class="stat-row"><span class="stat-key">Station</span><span class="stat-val" id="coverage-station">--</span></div>
+              <div class="stat-row"><span class="stat-key">Category</span><span class="stat-val" id="coverage-category">--</span></div>
+              <div class="stat-row"><span class="stat-key">First year</span><span class="stat-val" id="coverage-first-year">--</span></div>
+              <div class="stat-row"><span class="stat-key">Last year</span><span class="stat-val" id="coverage-last-year">--</span></div>
+              <div class="stat-row"><span class="stat-key">Records</span><span class="stat-val" id="coverage-record-count">--</span></div>
+            </div>
+            <div class="coverage-bar-wrap">
+              <div class="coverage-bar-header">
+                <span class="coverage-bar-label">Data density</span>
+                <span class="coverage-bar-pct" id="coverage-pct-label">--%</span>
+              </div>
+              <div class="coverage-track">
+                <div class="coverage-fill" id="coverage-bar-fill" style="width:0%"></div>
+              </div>
+              <p class="coverage-note-text" id="coverage-note">Awaiting visualization selection</p>
+            </div>
+          </div>
+
+          <div class="info-panel">
+            <h3>Trend Analysis <span class="info-icon" data-tip="Splits the time range into two equal halves and compares their average values. A large positive or negative % means a meaningful directional change over time.">i</span></h3>
+            <p class="panel-note">First-half vs second-half average comparison.</p>
+            <div class="trend-display" id="trend-display">
+              <div class="trend-arrow-wrap" id="trend-arrow-wrap">
+                <svg class="trend-arrow" id="trend-arrow-svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+              </div>
+              <div class="trend-meta">
+                <span class="trend-pct" id="trend-pct">--%</span>
+                <span class="trend-direction-label" id="trend-direction-label">Awaiting data</span>
+              </div>
+            </div>
+            <div class="stat-rows" style="margin-top:14px;">
+              <div class="stat-row"><span class="stat-key">Direction</span><span class="stat-val" id="trend-direction-text">--</span></div>
+              <div class="stat-row"><span class="stat-key">Change</span><span class="stat-val" id="trend-change-text">--</span></div>
+              <div class="stat-row"><span class="stat-key">Interpretation</span><span class="stat-val" id="trend-interpretation">--</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Key Findings -->
+        <div class="info-panel findings-panel">
+          <h3>Key Findings <span class="info-icon" data-tip="Automatically generated observations based on your most recent visualization. Updates each time you generate new charts.">i</span></h3>
+          <p class="panel-note">Auto-generated from the most recent visualization — trend, coverage, variability, and ranking insights.</p>
+          <ul class="findings-list" id="findings-list">
+            <li class="finding-placeholder">Generate a visualization to see automated key findings here.</li>
+          </ul>
+        </div>
+
+        <!-- Station Ranking -->
+        <div class="info-panel ranking-panel">
+          <div class="ranking-header">
+            <div>
+              <h3>Station Performance Ranking <span class="info-icon" data-tip="Stations sorted by their average recorded value for the selected category. Only stations with data in the selected time range appear here.">i</span></h3>
+              <p class="panel-note">Ranked by average value — bar width reflects performance relative to the top station.</p>
+            </div>
+          </div>
+          <div class="ranking-table-wrap">
+            <table class="ranking-table">
+              <thead>
+                <tr>
+                  <th>Rank</th>
+                  <th>Station</th>
+                  <th>Average Value</th>
+                  <th>Maximum</th>
+                  <th>Records</th>
+                </tr>
+              </thead>
+              <tbody id="ranking-table-body">
+                <tr><td colspan="5">Generate a visualization to load ranking results.</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="ranking-guide">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <p>Bar width shows relative performance — the top-ranked station always fills 100% of its bar. All values represent the average across every record for that station within the selected date range. If only one station was selected, only that station will appear.</p>
+          </div>
+        </div>
+
+        <div id="graph-container"></div>
 
         <div id="fullScreenModal" class="modal">
           <div class="modal-content">

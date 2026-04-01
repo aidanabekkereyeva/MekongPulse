@@ -808,6 +808,20 @@ def build_summary_for_selection(selected_data):
             "coverage_note": "No data available for selected range",
         }
 
+    std_dev = round(float(df["Value"].std()), 2) if len(df) > 1 else 0.0
+
+    mid = len(df) // 2
+    first_half_mean = float(df["Value"].iloc[:mid].mean()) if mid > 0 else 0.0
+    second_half_mean = float(df["Value"].iloc[mid:].mean()) if mid > 0 else 0.0
+    if first_half_mean != 0:
+        trend_pct = round((second_half_mean - first_half_mean) / abs(first_half_mean) * 100, 1)
+    else:
+        trend_pct = 0.0
+    trend_direction = "up" if trend_pct > 1 else ("down" if trend_pct < -1 else "stable")
+
+    date_span_months = max((df["Timestamp"].max() - df["Timestamp"].min()).days / 30.44, 1)
+    coverage_pct = round(min(len(df) / date_span_months * 100, 100), 1)
+
     return {
         "station": station_display(station_name),
         "category": category_name,
@@ -815,6 +829,10 @@ def build_summary_for_selection(selected_data):
         "mean": round(df["Value"].mean(), 2),
         "min": round(df["Value"].min(), 2),
         "max": round(df["Value"].max(), 2),
+        "std_dev": std_dev,
+        "trend_pct": abs(trend_pct),
+        "trend_direction": trend_direction,
+        "coverage_pct": coverage_pct,
         "first_year": int(df["Timestamp"].dt.year.min()),
         "last_year": int(df["Timestamp"].dt.year.max()),
         "record_count": int(len(df)),

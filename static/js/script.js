@@ -273,19 +273,205 @@ function updateBuilderSummary() {
 function updateInsightAndCoverage(summary) {
   if (!summary) return;
 
-  insightStation.textContent = summary.station ?? "--";
-  insightCategory.textContent = summary.category ?? "--";
-  insightDateRange.textContent = summary.date_range ?? "--";
-  insightMean.textContent = summary.mean ?? "--";
-  insightMin.textContent = summary.min ?? "--";
-  insightMax.textContent = summary.max ?? "--";
+  // KPI cards
+  const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val ?? "--"; };
+  set("kpi-mean",    summary.mean    ?? "--");
+  set("kpi-max",     summary.max     ?? "--");
+  set("kpi-min",     summary.min     ?? "--");
+  set("kpi-std",     summary.std_dev ?? "--");
+  set("kpi-records", summary.record_count ?? "--");
 
-  coverageStation.textContent = summary.station ?? "--";
-  coverageCategory.textContent = summary.category ?? "--";
-  coverageFirstYear.textContent = summary.first_year ?? "--";
-  coverageLastYear.textContent = summary.last_year ?? "--";
+  // Stat rows
+  insightStation.textContent    = summary.station    ?? "--";
+  insightCategory.textContent   = summary.category   ?? "--";
+  insightDateRange.textContent  = summary.date_range ?? "--";
+  insightMean.textContent       = summary.mean       ?? "--";
+  insightMin.textContent        = summary.min        ?? "--";
+  insightMax.textContent        = summary.max        ?? "--";
+  set("insight-std-row", summary.std_dev ?? "--");
+
+  // Coverage
+  coverageStation.textContent     = summary.station      ?? "--";
+  coverageCategory.textContent    = summary.category     ?? "--";
+  coverageFirstYear.textContent   = summary.first_year   ?? "--";
+  coverageLastYear.textContent    = summary.last_year    ?? "--";
   coverageRecordCount.textContent = summary.record_count ?? "--";
-  coverageNote.textContent = summary.coverage_note ?? "--";
+  coverageNote.textContent        = summary.coverage_note ?? "--";
+
+  const pct = summary.coverage_pct ?? 0;
+  set("coverage-pct-label", pct + "%");
+  const fill = document.getElementById("coverage-bar-fill");
+  if (fill) fill.style.width = Math.min(pct, 100) + "%";
+
+  // Coefficient of variation
+  const covEl = document.getElementById("insight-cov");
+  if (covEl) {
+    const _m = parseFloat(summary.mean);
+    const _s = parseFloat(summary.std_dev);
+    if (!isNaN(_m) && !isNaN(_s) && _m !== 0) {
+      covEl.textContent = ((_s / _m) * 100).toFixed(1) + "%";
+    } else {
+      covEl.textContent = "--";
+    }
+  }
+
+  // Data quality row
+  updateDataQualityRow(summary);
+
+  // Trend panel
+  const dir   = summary.trend_direction ?? "stable";
+  const tPct  = summary.trend_pct ?? 0;
+  const arrowSvg  = document.getElementById("trend-arrow-svg");
+  const trendWrap = document.getElementById("trend-arrow-wrap");
+  set("trend-pct", tPct + "%");
+
+  if (dir === "up") {
+    if (arrowSvg)  arrowSvg.innerHTML  = `<line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/>`;
+    if (trendWrap) trendWrap.className = "trend-arrow-wrap trend-up";
+    set("trend-direction-label", "Upward trend");
+    set("trend-direction-text",  "Increasing ↑");
+    set("trend-change-text",     "+" + tPct + "% vs first half");
+    set("trend-interpretation",  "Values rising in recent period");
+  } else if (dir === "down") {
+    if (arrowSvg)  arrowSvg.innerHTML  = `<line x1="12" y1="5" x2="12" y2="19"/><polyline points="5 12 12 19 19 12"/>`;
+    if (trendWrap) trendWrap.className = "trend-arrow-wrap trend-down";
+    set("trend-direction-label", "Downward trend");
+    set("trend-direction-text",  "Decreasing ↓");
+    set("trend-change-text",     "-" + tPct + "% vs first half");
+    set("trend-interpretation",  "Values declining in recent period");
+  } else {
+    if (arrowSvg)  arrowSvg.innerHTML  = `<line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>`;
+    if (trendWrap) trendWrap.className = "trend-arrow-wrap trend-stable";
+    set("trend-direction-label", "Stable");
+    set("trend-direction-text",  "Stable →");
+    set("trend-change-text",     tPct + "% variation");
+    set("trend-interpretation",  "No significant trend detected");
+  }
+}
+
+function generateKeyFindings(summary, ranking) {
+  const items = [];
+  if (!summary) return null;
+
+  // Trend finding
+  const dir  = summary.trend_direction || "stable";
+  const tPct = summary.trend_pct || 0;
+  if (dir === "up") {
+    items.push(`Values at <strong>${summary.station}</strong> show an <strong>upward trend of +${tPct}%</strong> when comparing the first and second halves of the study period — conditions are worsening/intensifying over time.`);
+  } else if (dir === "down") {
+    items.push(`Values at <strong>${summary.station}</strong> show a <strong>downward trend of −${tPct}%</strong> when comparing the first and second halves of the study period — conditions are reducing over time.`);
+  } else {
+    items.push(`Values at <strong>${summary.station}</strong> remain <strong>relatively stable</strong> across the study period — less than 1% change detected between the first and second half.`);
+  }
+
+  // Coverage finding
+  const cov = summary.coverage_pct || 0;
+  if (cov >= 80) {
+    items.push(`Data coverage is <strong>high at ${cov}%</strong> — the record is dense and reliable with minimal gaps. Results can be interpreted with confidence.`);
+  } else if (cov >= 50) {
+    items.push(`Data coverage is <strong>moderate at ${cov}%</strong>. Some gaps exist in the record — trends are indicative but should be interpreted with some caution.`);
+  } else {
+    items.push(`Data coverage is <strong>low at ${cov}%</strong>. Significant gaps are present in the record — interpret findings with caution and avoid strong conclusions.`);
+  }
+
+  // Variability finding using CV
+  const _fMean = parseFloat(summary.mean);
+  const _fStd  = parseFloat(summary.std_dev);
+  if (!isNaN(_fMean) && !isNaN(_fStd) && _fMean !== 0) {
+    const cvPct = ((_fStd / _fMean) * 100).toFixed(1);
+    if (cvPct > 50) {
+      items.push(`<strong>High variability detected</strong> — coefficient of variation is <strong>${cvPct}%</strong>, suggesting irregular seasonal patterns or the presence of extreme events in the record.`);
+    } else if (cvPct > 20) {
+      items.push(`<strong>Moderate variability</strong> — coefficient of variation is <strong>${cvPct}%</strong>, consistent with typical seasonal hydrological fluctuations across the basin.`);
+    } else {
+      items.push(`<strong>Low variability</strong> — coefficient of variation is <strong>${cvPct}%</strong>, indicating stable and relatively consistent conditions throughout the study period.`);
+    }
+  }
+
+  // Ranking finding
+  if (ranking && ranking.length > 1) {
+    const top    = ranking[0];
+    const bottom = ranking[ranking.length - 1];
+    items.push(`Station <strong>${top.station}</strong> ranks highest with a mean of <strong>${top.average_value}</strong> (${top.record_count} records). Station <strong>${bottom.station}</strong> records the lowest average at <strong>${bottom.average_value}</strong>.`);
+  } else if (ranking && ranking.length === 1) {
+    items.push(`Only one station is ranked — <strong>${ranking[0].station}</strong> with an average of <strong>${ranking[0].average_value}</strong> across ${ranking[0].record_count} records. Add more stations to compare.`);
+  }
+
+  return items;
+}
+
+function updateDataQualityRow(summary) {
+  if (!summary) return;
+
+  // Coverage quality
+  const pct    = summary.coverage_pct || 0;
+  const covVal = document.getElementById("dq-coverage-val");
+  const covSub = document.getElementById("dq-coverage-sub");
+  const covDot = document.getElementById("dq-coverage-dot");
+  if (covVal) covVal.textContent = pct + "%";
+  if (pct >= 80) {
+    if (covSub) covSub.textContent = "Excellent — high data density";
+    if (covDot) covDot.className = "dq-dot dq-good";
+  } else if (pct >= 50) {
+    if (covSub) covSub.textContent = "Moderate — some gaps present";
+    if (covDot) covDot.className = "dq-dot dq-fair";
+  } else {
+    if (covSub) covSub.textContent = "Sparse — interpret with caution";
+    if (covDot) covDot.className = "dq-dot dq-poor";
+  }
+
+  // Trend signal
+  const tPct    = summary.trend_pct || 0;
+  const dir     = summary.trend_direction || "stable";
+  const trendVal = document.getElementById("dq-trend-val");
+  const trendSub = document.getElementById("dq-trend-sub");
+  const trendDot = document.getElementById("dq-trend-dot");
+  const sign = dir === "up" ? "+" : dir === "down" ? "−" : "";
+  if (trendVal) trendVal.textContent = sign + tPct + "%";
+  if (tPct > 20) {
+    if (trendSub) trendSub.textContent = "Strong " + (dir === "up" ? "upward" : dir === "down" ? "downward" : "stable") + " signal";
+    if (trendDot) trendDot.className = dir === "stable" ? "dq-dot dq-fair" : "dq-dot dq-good";
+  } else if (tPct > 5) {
+    if (trendSub) trendSub.textContent = "Moderate signal detected";
+    if (trendDot) trendDot.className = "dq-dot dq-fair";
+  } else {
+    if (trendSub) trendSub.textContent = "Weak or no trend";
+    if (trendDot) trendDot.className = "dq-dot dq-neutral";
+  }
+
+  // Variability (CV)
+  const varVal = document.getElementById("dq-variability-val");
+  const varSub = document.getElementById("dq-variability-sub");
+  const varDot = document.getElementById("dq-variability-dot");
+  const meanNum = parseFloat(summary.mean);
+  const stdNum  = parseFloat(summary.std_dev);
+  if (!isNaN(meanNum) && !isNaN(stdNum) && meanNum !== 0) {
+    const cvPct = ((stdNum / meanNum) * 100).toFixed(1);
+    if (varVal) varVal.textContent = "CV " + cvPct + "%";
+    if (parseFloat(cvPct) > 50) {
+      if (varSub) varSub.textContent = "High — irregular patterns";
+      if (varDot) varDot.className = "dq-dot dq-poor";
+    } else if (parseFloat(cvPct) > 20) {
+      if (varSub) varSub.textContent = "Moderate — seasonal variation";
+      if (varDot) varDot.className = "dq-dot dq-fair";
+    } else {
+      if (varSub) varSub.textContent = "Low — stable conditions";
+      if (varDot) varDot.className = "dq-dot dq-good";
+    }
+  }
+
+  // Study period / time span
+  const spanVal = document.getElementById("dq-span-val");
+  const spanSub = document.getElementById("dq-span-sub");
+  const spanDot = document.getElementById("dq-span-dot");
+  const fyNum = parseInt(summary.first_year);
+  const lyNum = parseInt(summary.last_year);
+  if (!isNaN(fyNum) && !isNaN(lyNum)) {
+    const span = lyNum - fyNum;
+    if (spanVal) spanVal.textContent = span + (span === 1 ? " year" : " years");
+    if (spanSub) spanSub.textContent = summary.first_year + " – " + summary.last_year;
+    if (spanDot) spanDot.className = span >= 10 ? "dq-dot dq-good" : span >= 5 ? "dq-dot dq-fair" : "dq-dot dq-poor";
+  }
 }
 
 function updateRankingTable(ranking) {
@@ -302,17 +488,23 @@ function updateRankingTable(ranking) {
     return;
   }
 
-  ranking.forEach((row, index) => {
-    const tr = document.createElement("tr");
+  const maxAvg = Math.max(...ranking.map(r => r.average_value));
 
+  ranking.forEach((row, index) => {
+    const pct = maxAvg > 0 ? ((row.average_value / maxAvg) * 100).toFixed(1) : 0;
+    const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${index + 1}</td>
+      <td><span class="rank-badge">${index + 1}</span></td>
       <td>${row.station}</td>
-      <td>${row.average_value}</td>
+      <td>
+        <div class="ranking-bar-cell">
+          <div class="ranking-bar-fill" style="width:${pct}%"></div>
+          <span class="ranking-bar-value">${row.average_value}</span>
+        </div>
+      </td>
       <td>${row.maximum_value}</td>
       <td>${row.record_count}</td>
     `;
-
     rankingTableBody.appendChild(tr);
   });
 }
@@ -714,6 +906,17 @@ function buildVisualizationFromCurrentSelections() {
 function renderCharts(charts) {
   graphContainer.innerHTML = "";
 
+  const badge = document.getElementById("charts-badge");
+  const countEl = document.getElementById("charts-count");
+  if (badge && countEl) {
+    if (charts && charts.length) {
+      countEl.textContent = charts.length;
+      badge.classList.remove("hidden");
+    } else {
+      badge.classList.add("hidden");
+    }
+  }
+
   if (!charts || !charts.length) {
     graphContainer.innerHTML = `<p>No charts were returned for this configuration.</p>`;
     return;
@@ -861,9 +1064,24 @@ function triggerStartVisualization() {
   })
     .then(response => response.json())
     .then(data => {
-  renderCharts(data.charts || []);
-  updateInsightAndCoverage(data.summary || null);
-  updateRankingTable(data.ranking || []);
+  const charts  = data.charts  || [];
+  const summary = data.summary || null;
+  const ranking = data.ranking || [];
+
+  renderCharts(charts);
+  updateInsightAndCoverage(summary);
+  updateRankingTable(ranking);
+
+  // Key findings (needs both summary + ranking)
+  const findingsList = document.getElementById("findings-list");
+  if (findingsList) {
+    const findings = generateKeyFindings(summary, ranking);
+    if (findings && findings.length) {
+      findingsList.innerHTML = findings.map(f => `<li class="finding-item">${f}</li>`).join("");
+    } else {
+      findingsList.innerHTML = `<li class="finding-placeholder">No findings could be generated for this selection.</li>`;
+    }
+  }
 })
     .catch(error => {
       console.error("Error generating visualizations:", error);
