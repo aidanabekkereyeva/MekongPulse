@@ -1008,10 +1008,6 @@ input.dropdown {
   max-width: 100%;
 }
 
-#loading-gif {
-  width: 80px;
-  display: none;
-}
 
 /* ===== DASHBOARD INSIGHTS ===== */
 .dashboard-insight-grid {

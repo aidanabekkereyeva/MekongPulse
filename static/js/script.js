@@ -735,7 +735,7 @@ function triggerStartVisualization() {
   }
 
   setSectionVisible(dashboardSection);
-  graphContainer.innerHTML = `<img id="loading-gif" src="../static/images/loading-data.gif" alt="Loading..." style="width: 80px; display: block;" />`;
+  graphContainer.innerHTML = "";
 
   fetch("/generate_visualization", {
     method: "POST",
