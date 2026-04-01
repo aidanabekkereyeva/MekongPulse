@@ -708,6 +708,62 @@ button {
   background: #f0f4f8;
 }
 
+.queue-edit-btn,
+.queue-delete-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+  white-space: nowrap;
+}
+
+.queue-edit-btn {
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+  border: 1px solid #f0c896;
+}
+
+.queue-edit-btn:hover {
+  background: #fce5c8;
+  border-color: #e8b070;
+}
+
+.queue-delete-btn {
+  background: #fff0f0;
+  color: #c0392b;
+  border: 1px solid #f5c6c6;
+}
+
+.queue-delete-btn:hover {
+  background: #fde0e0;
+  border-color: #e8a0a0;
+}
+
+[data-theme="dark"] .queue-edit-btn {
+  background: rgba(212, 134, 58, 0.12);
+  color: var(--accent);
+  border-color: rgba(212, 134, 58, 0.3);
+}
+
+[data-theme="dark"] .queue-edit-btn:hover {
+  background: rgba(212, 134, 58, 0.22);
+}
+
+[data-theme="dark"] .queue-delete-btn {
+  background: rgba(192, 57, 43, 0.12);
+  color: #e87a7a;
+  border-color: rgba(192, 57, 43, 0.3);
+}
+
+[data-theme="dark"] .queue-delete-btn:hover {
+  background: rgba(192, 57, 43, 0.22);
+}
+
 .chart-delete-btn {
   display: inline-flex;
   align-items: center;

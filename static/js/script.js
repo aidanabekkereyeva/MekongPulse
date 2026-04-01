@@ -625,19 +625,34 @@ function updateVisualizationQueueUI() {
     heading.style.margin = "0";
     heading.textContent = visualization.graph_type;
 
+    const btnGroup = document.createElement("div");
+    btnGroup.style.display = "flex";
+    btnGroup.style.gap = "8px";
+    btnGroup.style.flexShrink = "0";
+
+    const editBtn = document.createElement("button");
+    editBtn.type = "button";
+    editBtn.className = "queue-edit-btn";
+    editBtn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Edit`;
+
+    editBtn.addEventListener("click", () => {
+      loadVisualizationIntoBuilder(visualization, index);
+    });
+
     const removeBtn = document.createElement("button");
     removeBtn.type = "button";
-    removeBtn.className = "secondary-btn";
-    removeBtn.style.padding = "8px 10px";
-    removeBtn.textContent = "Delete";
+    removeBtn.className = "queue-delete-btn";
+    removeBtn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg> Delete`;
 
     removeBtn.addEventListener("click", () => {
       selectedVisualizations.splice(index, 1);
       updateVisualizationQueueUI();
     });
 
+    btnGroup.appendChild(editBtn);
+    btnGroup.appendChild(removeBtn);
     header.appendChild(heading);
-    header.appendChild(removeBtn);
+    header.appendChild(btnGroup);
     wrapper.appendChild(header);
 
     visualization.data.forEach(detail => {
@@ -649,6 +664,39 @@ function updateVisualizationQueueUI() {
 
     visualizationDetailsContainer.appendChild(wrapper);
   });
+}
+
+function loadVisualizationIntoBuilder(visualization, index) {
+  // Remove from queue so it can be re-saved after editing
+  selectedVisualizations.splice(index, 1);
+  updateVisualizationQueueUI();
+
+  // Restore graph type
+  selectedGraphOption = visualization.graph_type;
+  for (const option of graphOptionsDropdown.options) {
+    if (option.value === visualization.graph_type) {
+      option.selected = true;
+      break;
+    }
+  }
+
+  // Restore categories and station entries
+  selectedCategories    = [...new Set(visualization.data.map(d => d.category_name))];
+  selectedStationEntries = visualization.data.map(d => ({ ...d }));
+
+  // Sync auto-add setting and category row visibility
+  const graphConfig = getSelectedGraphConfig();
+  hasAutoAddCategories = graphConfig ? graphConfig.auto_add_categories : false;
+  categorySelectionDiv.style.display = hasAutoAddCategories ? "none" : "block";
+  stationDropdown.disabled = false;
+  categoryDropdown.disabled = hasAutoAddCategories;
+
+  renderSelectedCategories();
+  renderSelectedStations();
+  updateBuilderSummary();
+
+  setSectionVisible(builderSection);
+  setActiveNav(".custom-visualization-setup-icon");
 }
 
 function buildVisualizationFromCurrentSelections() {
