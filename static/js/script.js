@@ -89,11 +89,10 @@ const graphTypeOptions = [
 // ------------------------------
 const COUNTRY_COLORS = {
   'China':    '#c0392b',
-  'Myanmar':  '#16a085',
-  'Laos':     '#d68910',
+  'Lao PDR':  '#d68910',
   'Thailand': '#2874a6',
   'Cambodia': '#e67e22',
-  'Vietnam':  '#27ae60',
+  'Viet Nam': '#27ae60',
 };
 const DEFAULT_MARKER_COLOR = '#6b7fa0';
 
@@ -804,10 +803,10 @@ function createStationIcon(country) {
   const color = getCountryColor(country);
   return L.divIcon({
     className: '',
-    html: `<div class="station-marker-dot" style="width:14px;height:14px;background:${color};"></div>`,
-    iconSize: [14, 14],
-    iconAnchor: [7, 7],
-    popupAnchor: [0, -11]
+    html: `<div class="station-marker-dot" style="width:18px;height:18px;background:${color};"></div>`,
+    iconSize: [18, 18],
+    iconAnchor: [9, 9],
+    popupAnchor: [0, -13]
   });
 }
 
@@ -818,18 +817,21 @@ function buildMapLegend() {
 
   const entries = Object.entries(COUNTRY_COLORS);
 
+  // Count stations per country
+  const countByCountry = {};
+  Object.values(stationDetailsMap).forEach(s => {
+    countByCountry[s.country] = (countByCountry[s.country] || 0) + 1;
+  });
+
   legend.innerHTML = `
     <h4>Countries</h4>
     ${entries.map(([country, color]) => `
       <div class="legend-item">
         <div class="legend-dot" style="background:${color}"></div>
         <span>${country}</span>
+        <span class="legend-count">${countByCountry[country] || 0}</span>
       </div>
     `).join('')}
-    <div class="legend-item">
-      <div class="legend-dot" style="background:${DEFAULT_MARKER_COLOR}"></div>
-      <span>Other</span>
-    </div>
   `;
 
   if (filterSelect) {
@@ -893,7 +895,13 @@ function showStationsOnMapUI(mode) {
 
     const icon = createStationIcon(station.country);
     const marker = L.marker([station.latitude, station.longitude], { icon })
-      .bindPopup(popupHtml, { maxWidth: 280 });
+      .bindPopup(popupHtml, { maxWidth: 280 })
+      .bindTooltip(station.station_name, {
+        permanent: false,
+        direction: 'top',
+        offset: [0, -12],
+        className: 'station-tooltip'
+      });
 
     marker.on("click", () => {
       updateFeaturedStationPanel(station.station_name);
@@ -945,20 +953,8 @@ function initializeMap() {
     maxZoom: 18
   }).addTo(map);
 
-  // Marker cluster group
-  markerClusterGroup = L.markerClusterGroup({
-    maxClusterRadius: 48,
-    spiderfyOnMaxZoom: true,
-    showCoverageOnHover: false,
-    iconCreateFunction: function(cluster) {
-      return L.divIcon({
-        className: '',
-        html: `<div class="cluster-icon">${cluster.getChildCount()}</div>`,
-        iconSize: [36, 36],
-        iconAnchor: [18, 18]
-      });
-    }
-  });
+  // Plain layer group — no clustering, all stations visible at once
+  markerClusterGroup = L.layerGroup();
   map.addLayer(markerClusterGroup);
 
   // GeoJSON basin overlay
