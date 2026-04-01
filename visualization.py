@@ -953,11 +953,23 @@ def generate_holt_winters_prediction(
     ci_upper = forecast + ci_offset
     ci_lower = (forecast - ci_offset).clip(lower=0.0)
 
+    # Bridge point: last historical observation used to connect all traces
+    bridge_date  = series.index[-1]
+    bridge_value = float(series.values[-1])
+
+    # Extend CI band to start at the last historical point (zero width there)
+    ci_upper_bridged = pd.concat([pd.Series([bridge_value], index=[bridge_date]), ci_upper])
+    ci_lower_bridged = pd.concat([pd.Series([bridge_value], index=[bridge_date]), ci_lower])
+
+    # Extend forecast trace to start at the last historical point
+    forecast_x = [bridge_date] + list(forecast.index)
+    forecast_y = [bridge_value] + list(forecast.values)
+
     fig = go.Figure()
 
     fig.add_trace(go.Scatter(
-        x=list(ci_upper.index) + list(ci_lower.index[::-1]),
-        y=list(ci_upper.values) + list(ci_lower.values[::-1]),
+        x=list(ci_upper_bridged.index) + list(ci_lower_bridged.index[::-1]),
+        y=list(ci_upper_bridged.values) + list(ci_lower_bridged.values[::-1]),
         fill="toself",
         fillcolor="rgba(231,107,64,0.15)",
         line=dict(color="rgba(0,0,0,0)"),
@@ -978,7 +990,7 @@ def generate_holt_winters_prediction(
     ))
 
     fig.add_trace(go.Scatter(
-        x=forecast.index, y=forecast.values,
+        x=forecast_x, y=forecast_y,
         mode="lines+markers",
         name=f"Forecast ({forecast_months} months)",
         line=dict(color="#e74c3c", width=2.5),

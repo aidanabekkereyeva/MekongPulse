@@ -563,6 +563,12 @@ function updateOverviewStats() {
   statTotalCategories.textContent = categoryNameList.length || "--";
   statTotalCountries.textContent = getAllCountries().length || "--";
   statDateRange.textContent = getCoverageRange();
+
+  // Sync about-page highlight stats
+  const aboutStations   = document.getElementById("about-stat-stations");
+  const aboutCategories = document.getElementById("about-stat-categories");
+  if (aboutStations)   aboutStations.textContent   = stationNameList.length  || "--";
+  if (aboutCategories) aboutCategories.textContent = categoryNameList.length || "--";
 }
 
 function updateFeaturedStationPanel(stationName) {
@@ -1613,19 +1619,59 @@ function populatePredictionDropdowns() {
   });
 }
 
+function updatePredCategoriesForStation(stationName) {
+  const predCategory = document.getElementById('pred-category-select');
+  if (!predCategory) return;
+
+  const prev = predCategory.value;
+  predCategory.innerHTML = '<option value="">Select a category...</option>';
+
+  const available = stationName
+    ? categoryNameList.filter(name =>
+        (categoryDetailsMap[name] || []).some(row => row.station_name === stationName)
+      )
+    : categoryNameList;
+
+  available.forEach(name => {
+    const opt = document.createElement('option');
+    opt.value = name; opt.textContent = name;
+    predCategory.appendChild(opt);
+  });
+
+  // Restore previous selection only if it's still valid for the new station
+  if (prev && available.includes(prev)) {
+    predCategory.value = prev;
+  }
+}
+
 function autofillPredDateRange() {
   const station  = document.getElementById('pred-station-select')?.value;
   const category = document.getElementById('pred-category-select')?.value;
-  if (!station || !category) return;
+  const startEl  = document.getElementById('pred-start-date');
+  const endEl    = document.getElementById('pred-end-date');
+
+  if (!station || !category) {
+    if (startEl) startEl.value = '';
+    if (endEl)   endEl.value   = '';
+    return;
+  }
+
   const detail = getCategoryDateRange(category, station);
   if (detail) {
-    document.getElementById('pred-start-date').value = formatDateToDDMMYYYY(detail.start_date);
-    document.getElementById('pred-end-date').value   = formatDateToDDMMYYYY(detail.end_date);
+    if (startEl) startEl.value = formatDateToDDMMYYYY(detail.start_date);
+    if (endEl)   endEl.value   = formatDateToDDMMYYYY(detail.end_date);
+  } else {
+    // No data for this combo — clear so user knows something is wrong
+    if (startEl) startEl.value = '';
+    if (endEl)   endEl.value   = '';
   }
 }
 
 function setupPredictionEvents() {
-  document.getElementById('pred-station-select')?.addEventListener('change', autofillPredDateRange);
+  document.getElementById('pred-station-select')?.addEventListener('change', function() {
+    updatePredCategoriesForStation(this.value);
+    autofillPredDateRange();
+  });
   document.getElementById('pred-category-select')?.addEventListener('change', autofillPredDateRange);
 
   document.getElementById('pred-generate-btn')?.addEventListener('click', function() {
