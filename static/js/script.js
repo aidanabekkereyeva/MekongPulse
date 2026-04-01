@@ -81,6 +81,41 @@ const graphTypeOptions = [
     number_of_stations_allow: 1,
     auto_add_categories: false,
     description: "Highlight statistical outliers and anomalies in the data series."
+  },
+  {
+    name: "Rolling Average Trend",
+    number_of_categories_allow: 1,
+    number_of_stations_allow: 1,
+    auto_add_categories: false,
+    description: "Overlay 3-month and 12-month rolling averages on raw data to reveal long-term trends."
+  },
+  {
+    name: "Cumulative Departure from Mean",
+    number_of_categories_allow: 1,
+    number_of_stations_allow: 1,
+    auto_add_categories: false,
+    description: "Show cumulative deviation from the long-term mean — identifies sustained wet or dry periods."
+  },
+  {
+    name: "Monthly Climatology",
+    number_of_categories_allow: 1,
+    number_of_stations_allow: 1,
+    auto_add_categories: false,
+    description: "Display the average seasonal cycle across all years with standard deviation error bars."
+  },
+  {
+    name: "Decade Comparison",
+    number_of_categories_allow: 1,
+    number_of_stations_allow: 1,
+    auto_add_categories: false,
+    description: "Compare value distributions decade by decade to see how conditions have shifted over time."
+  },
+  {
+    name: "Station Ranking Bar Chart",
+    number_of_categories_allow: 1,
+    number_of_stations_allow: "All",
+    auto_add_categories: false,
+    description: "Rank multiple stations by their average value for a selected category."
   }
 ];
 
@@ -803,10 +838,14 @@ function createStationIcon(country) {
   const color = getCountryColor(country);
   return L.divIcon({
     className: '',
-    html: `<div class="station-marker-dot" style="width:18px;height:18px;background:${color};"></div>`,
-    iconSize: [18, 18],
-    iconAnchor: [9, 9],
-    popupAnchor: [0, -13]
+    html: `
+      <div class="marker-wrap">
+        <div class="marker-glow" style="background:${color};"></div>
+        <div class="marker-core" style="background:${color};"></div>
+      </div>`,
+    iconSize: [30, 30],
+    iconAnchor: [15, 15],
+    popupAnchor: [0, -17]
   });
 }
 
@@ -871,7 +910,7 @@ function showStationsOnMapUI(mode) {
     const color = getCountryColor(station.country);
     const cats = (station.available_categories || '').split(', ').filter(Boolean);
     const badges = cats.map(c =>
-      `<span style="display:inline-block;padding:2px 8px;background:#eef3f8;border-radius:999px;font-size:0.78rem;margin:2px 2px 0 0;color:#223142;">${c}</span>`
+      `<span style="display:inline-block;padding:3px 9px;background:${color}1a;border:1px solid ${color}55;border-radius:999px;font-size:0.75rem;font-weight:600;margin:2px 2px 0 0;color:${color};">${c}</span>`
     ).join('');
 
     const popupHtml = `
@@ -963,10 +1002,12 @@ function initializeMap() {
     .then(data => {
       L.geoJSON(data, {
         style: {
-          color: "#3a78b5",
-          weight: 1.5,
-          fillColor: "#b8d4ea",
-          fillOpacity: 0.32
+          color: "#5ba3d4",
+          weight: 2,
+          fillColor: "#1a4f7a",
+          fillOpacity: 0.18,
+          lineCap: "round",
+          lineJoin: "round"
         },
         onEachFeature: function(feature, layer) {
           if (feature.properties && feature.properties.name) {

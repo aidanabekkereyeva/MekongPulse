@@ -555,6 +555,231 @@ def generate_anomaly_detection_visualizations(selected_data):
 
 
 # ------------------------------
+# CHART 12: Rolling Average Trend
+# ------------------------------
+
+def plot_rolling_average_trend(station_name, category_name, start_date, end_date):
+    chart_title = f"Rolling Average Trend — {category_name} at {station_name}"
+    df = get_feature_series_df(category_name, station_name, start_date, end_date)
+    if df is None or df.empty:
+        return create_no_data_chart(chart_title)
+
+    df = df.copy().sort_values("Timestamp")
+    df["Roll3"]  = df["Value"].rolling(window=3,  min_periods=1).mean()
+    df["Roll12"] = df["Value"].rolling(window=12, min_periods=1).mean()
+
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=df["Timestamp"], y=df["Value"], mode="lines", name="Raw data",
+        line=dict(color="rgba(180,200,220,0.55)", width=1),
+        hovertemplate="Date: %{x|%d-%b-%Y}<br>Value: %{y:.2f}<extra></extra>",
+    ))
+    fig.add_trace(go.Scatter(
+        x=df["Timestamp"], y=df["Roll3"], mode="lines", name="3-month rolling avg",
+        line=dict(color="#d4863a", width=2),
+        hovertemplate="Date: %{x|%d-%b-%Y}<br>3-month avg: %{y:.2f}<extra></extra>",
+    ))
+    fig.add_trace(go.Scatter(
+        x=df["Timestamp"], y=df["Roll12"], mode="lines", name="12-month rolling avg",
+        line=dict(color="#1c2340", width=2.5),
+        hovertemplate="Date: %{x|%d-%b-%Y}<br>12-month avg: %{y:.2f}<extra></extra>",
+    ))
+    fig = apply_clean_layout(fig, chart_title, get_category_units(category_name))
+    return fig_to_json(fig)
+
+
+def generate_rolling_average_trend_visualizations(selected_data):
+    return [
+        plot_rolling_average_trend(d["station_name"], d["category_name"], d["start_date"], d["end_date"])
+        for d in selected_data
+    ]
+
+
+# ------------------------------
+# CHART 13: Cumulative Departure
+# ------------------------------
+
+def plot_cumulative_departure(station_name, category_name, start_date, end_date):
+    chart_title = f"Cumulative Departure from Mean — {category_name} at {station_name}"
+    df = get_feature_series_df(category_name, station_name, start_date, end_date)
+    if df is None or df.empty:
+        return create_no_data_chart(chart_title)
+
+    df = df.copy().sort_values("Timestamp")
+    long_mean = df["Value"].mean()
+    df["Departure"]   = df["Value"] - long_mean
+    df["Cumulative"]  = df["Departure"].cumsum()
+
+    colors = np.where(df["Cumulative"] >= 0, "#2e8b6e", "#c0392b")
+
+    fig = go.Figure()
+    fig.add_hline(y=0, line=dict(color="#aaaaaa", width=1, dash="dash"))
+    fig.add_trace(go.Bar(
+        x=df["Timestamp"], y=df["Cumulative"],
+        name="Cumulative departure",
+        marker_color=colors.tolist(),
+        hovertemplate="Date: %{x|%d-%b-%Y}<br>Cumulative departure: %{y:.2f}<extra></extra>",
+    ))
+    fig = apply_clean_layout(fig, chart_title, f"Cumulative departure ({get_category_units(category_name)})")
+    fig.add_annotation(
+        x=0.01, y=0.97, xref="paper", yref="paper",
+        text=f"Long-term mean: {long_mean:.2f}",
+        showarrow=False, font=dict(size=11, color="#666"), xanchor="left",
+    )
+    return fig_to_json(fig)
+
+
+def generate_cumulative_departure_visualizations(selected_data):
+    return [
+        plot_cumulative_departure(d["station_name"], d["category_name"], d["start_date"], d["end_date"])
+        for d in selected_data
+    ]
+
+
+# ------------------------------
+# CHART 14: Monthly Climatology
+# ------------------------------
+
+def plot_monthly_climatology(station_name, category_name, start_date, end_date):
+    chart_title = f"Monthly Climatology — {category_name} at {station_name}"
+    df = get_feature_series_df(category_name, station_name, start_date, end_date)
+    if df is None or df.empty:
+        return create_no_data_chart(chart_title)
+
+    df = df.copy()
+    df["Month"] = df["Timestamp"].dt.month
+    clim = df.groupby("Month")["Value"].agg(["mean", "std"]).reindex(range(1, 13)).fillna(0)
+    month_labels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+
+    fig = go.Figure()
+    fig.add_trace(go.Bar(
+        x=month_labels, y=clim["mean"],
+        error_y=dict(type="data", array=clim["std"].tolist(), visible=True, color="#888", thickness=1.5),
+        name="Monthly mean",
+        marker=dict(
+            color=clim["mean"].tolist(),
+            colorscale=[[0, "#d4e9f7"], [0.5, "#2e8b6e"], [1, "#1c2340"]],
+            showscale=False,
+        ),
+        hovertemplate="Month: %{x}<br>Mean: %{y:.2f}<br>Std Dev: %{error_y.array:.2f}<extra></extra>",
+    ))
+    years = int(df["Timestamp"].dt.year.max()) - int(df["Timestamp"].dt.year.min()) + 1
+    fig = apply_clean_layout(fig, chart_title, get_category_units(category_name), "Month")
+    fig.add_annotation(
+        x=0.01, y=0.97, xref="paper", yref="paper",
+        text=f"Based on {years} years of data — error bars show ±1 std dev",
+        showarrow=False, font=dict(size=11, color="#666"), xanchor="left",
+    )
+    fig.update_layout(showlegend=False)
+    return fig_to_json(fig)
+
+
+def generate_monthly_climatology_visualizations(selected_data):
+    return [
+        plot_monthly_climatology(d["station_name"], d["category_name"], d["start_date"], d["end_date"])
+        for d in selected_data
+    ]
+
+
+# ------------------------------
+# CHART 15: Decade Comparison
+# ------------------------------
+
+def plot_decade_comparison(station_name, category_name, start_date, end_date):
+    chart_title = f"Decade-by-Decade Comparison — {category_name} at {station_name}"
+    df = get_feature_series_df(category_name, station_name, start_date, end_date)
+    if df is None or df.empty:
+        return create_no_data_chart(chart_title)
+
+    df = df.copy()
+    df["Decade"] = (df["Timestamp"].dt.year // 10 * 10).astype(str) + "s"
+    decades = sorted(df["Decade"].unique())
+
+    if len(decades) < 2:
+        return create_no_data_chart(chart_title, "Not enough data — at least two decades required.")
+
+    colors = px.colors.qualitative.Plotly
+    fig = go.Figure()
+    for i, decade in enumerate(decades):
+        decade_data = df[df["Decade"] == decade]["Value"]
+        fig.add_trace(go.Box(
+            y=decade_data, name=decade,
+            marker_color=colors[i % len(colors)],
+            boxmean="sd",
+            hovertemplate=f"Decade: {decade}<br>Value: %{{y:.2f}}<extra></extra>",
+        ))
+
+    fig = apply_clean_layout(fig, chart_title, get_category_units(category_name), "Decade")
+    fig.update_layout(showlegend=False, hovermode="closest")
+    return fig_to_json(fig)
+
+
+def generate_decade_comparison_visualizations(selected_data):
+    return [
+        plot_decade_comparison(d["station_name"], d["category_name"], d["start_date"], d["end_date"])
+        for d in selected_data
+    ]
+
+
+# ------------------------------
+# CHART 16: Station Ranking Bar Chart
+# ------------------------------
+
+def plot_station_ranking_bar(category_name, stations_data):
+    chart_title = f"Station Ranking by Average {category_name}"
+    rows = []
+    for data in stations_data:
+        df = get_feature_series_df(category_name, data["station_name"], data["start_date"], data["end_date"])
+        if df is None or df.empty:
+            continue
+        rows.append({
+            "station": data["station_name"],
+            "mean":    round(float(df["Value"].mean()), 2),
+            "max":     round(float(df["Value"].max()), 2),
+            "min":     round(float(df["Value"].min()), 2),
+        })
+
+    if not rows:
+        return create_no_data_chart(chart_title)
+
+    rows.sort(key=lambda r: r["mean"])
+    stations = [r["station"] for r in rows]
+    means    = [r["mean"]   for r in rows]
+
+    norm = np.array(means)
+    norm = (norm - norm.min()) / (norm.max() - norm.min() + 1e-9)
+    bar_colors = [f"rgba(28,35,64,{0.4 + 0.6 * float(v):.2f})" for v in norm]
+
+    fig = go.Figure()
+    fig.add_trace(go.Bar(
+        y=stations, x=means, orientation="h",
+        name="Average value",
+        marker_color=bar_colors,
+        text=[f"{v:.2f}" for v in means], textposition="outside",
+        hovertemplate="Station: %{y}<br>Average: %{x:.2f}<extra></extra>",
+    ))
+    fig = apply_clean_layout(fig, chart_title, "", get_category_units(category_name))
+    # Override the date tickformat that apply_clean_layout sets — x-axis is numeric here
+    fig.update_xaxes(tickformat="", title=get_category_units(category_name))
+    fig.update_layout(
+        yaxis_title="",
+        hovermode="closest",
+        margin=dict(l=160, r=60, t=80, b=50),
+    )
+    return fig_to_json(fig)
+
+
+def generate_station_ranking_bar_visualizations(selected_data):
+    charts = []
+    grouped = {}
+    for data in selected_data:
+        grouped.setdefault(data["category_name"], []).append(data)
+    for category_name, stations_data in grouped.items():
+        charts.append(plot_station_ranking_bar(category_name, stations_data))
+    return charts
+
+
+# ------------------------------
 # SUMMARY & RANKING
 # ------------------------------
 
@@ -642,6 +867,11 @@ GRAPH_DISPATCH = {
     "Multi-Station Temporal Heatmap": generate_multi_station_heatmap_visualizations,
     "Correlation Scatter Plot": generate_correlation_scatter_visualizations,
     "Anomaly Detection Chart": generate_anomaly_detection_visualizations,
+    "Rolling Average Trend": generate_rolling_average_trend_visualizations,
+    "Cumulative Departure from Mean": generate_cumulative_departure_visualizations,
+    "Monthly Climatology": generate_monthly_climatology_visualizations,
+    "Decade Comparison": generate_decade_comparison_visualizations,
+    "Station Ranking Bar Chart": generate_station_ranking_bar_visualizations,
 }
 
 
