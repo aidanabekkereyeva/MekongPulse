@@ -120,12 +120,23 @@ def generate_visualization():
         return jsonify({'error': str(e)}), 500
 
 
+MODEL_DISPATCH = {
+    "holt_winters":       visualization.generate_holt_winters_prediction,
+    "sarima":             visualization.generate_sarima_prediction,
+    "random_forest":      visualization.generate_random_forest_prediction,
+    "gradient_boosting":  visualization.generate_gradient_boosting_prediction,
+    "linear_seasonal":    visualization.generate_linear_seasonal_prediction,
+    "svr":                visualization.generate_svr_prediction,
+}
+
 @app.route('/generate_prediction', methods=['POST'])
 def generate_prediction():
     import traceback
     try:
         data = request.json
-        result = visualization.generate_holt_winters_prediction(
+        model_key = data.get('model', 'holt_winters')
+        fn = MODEL_DISPATCH.get(model_key, visualization.generate_holt_winters_prediction)
+        result = fn(
             category_name=data['category_name'],
             station_name=data['station_name'],
             start_date=data['start_date'],
@@ -135,6 +146,67 @@ def generate_prediction():
         return jsonify(result)
     except Exception as e:
         traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/analyze_with_ai', methods=['POST'])
+def analyze_with_ai():
+    try:
+        import anthropic
+        data = request.json
+        summary = data.get('summary', {})
+        station = summary.get('station_name', 'Unknown')
+        category = summary.get('category_name', 'Unknown')
+        mean_val = summary.get('mean', '--')
+        min_val = summary.get('min', '--')
+        max_val = summary.get('max', '--')
+        std_val = summary.get('std', '--')
+        trend = summary.get('trend', '--')
+        first_year = summary.get('first_year', '--')
+        last_year = summary.get('last_year', '--')
+        record_count = summary.get('record_count', '--')
+        coverage_pct = summary.get('coverage_pct', '--')
+        ranking = data.get('ranking', [])
+
+        ranking_text = ""
+        if ranking:
+            ranking_text = "\n".join(
+                f"  {i+1}. {r.get('station_name','?')} — avg {r.get('mean','?')}"
+                for i, r in enumerate(ranking[:5])
+            )
+
+        prompt = f"""You are a hydrological data analyst specializing in the Mekong River basin.
+Analyze the following monitoring data and provide a concise, professional analytical summary.
+
+Station: {station}
+Category: {category}
+Data span: {first_year} – {last_year}
+Record count: {record_count}
+Coverage: {coverage_pct}%
+Mean: {mean_val}
+Min: {min_val}
+Max: {max_val}
+Std deviation: {std_val}
+Trend direction: {trend}
+{f"Station ranking (by average):{chr(10)}{ranking_text}" if ranking_text else ""}
+
+Write a structured analysis in 3 short paragraphs:
+1. Data overview and quality assessment
+2. Key hydrological patterns and what the trend implies
+3. Notable observations or recommendations for further investigation
+
+Keep it concise, analytical, and grounded in the numbers above. Do not invent data not provided."""
+
+        client = anthropic.Anthropic()
+        message = client.messages.create(
+            model="claude-opus-4-6",
+            max_tokens=600,
+            messages=[{"role": "user", "content": prompt}]
+        )
+        analysis = message.content[0].text
+        return jsonify({'analysis': analysis})
+    except Exception as e:
+        print(f"AI analysis error: {e}")
         return jsonify({'error': str(e)}), 500
 
 

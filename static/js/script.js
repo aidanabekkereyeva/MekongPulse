@@ -149,7 +149,6 @@ let selectedStationEntries = [];
 let selectedVisualizations = [];
 let selectedGraphOption = null;
 let hasAutoAddCategories = false;
-let currentFocusedStation = null;
 
 // ------------------------------
 // ELEMENTS
@@ -170,11 +169,6 @@ const visualizationDetailsContainer = document.getElementById("visualization-det
 const graphContainer = document.getElementById("graph-container");
 const categorySelectionDiv = document.getElementById("category-selection-div");
 const stationDropdownWrapper = document.getElementById("station-dropdown");
-
-const featuredStationName = document.getElementById("featured-station-name");
-const featuredStationCountry = document.getElementById("featured-station-country");
-const featuredStationCoords = document.getElementById("featured-station-coords");
-const featuredStationCategories = document.getElementById("featured-station-categories");
 
 const statTotalStations = document.getElementById("stat-total-stations");
 const statTotalCategories = document.getElementById("stat-total-categories");
@@ -208,7 +202,6 @@ const fullScreenModal = document.getElementById("fullScreenModal");
 const closeModalBtn = document.querySelector(".modal .close");
 
 const overviewSection = document.querySelector(".user-guide");
-const stationOverviewSection = document.querySelector(".station-overview");
 const builderSection = document.querySelector(".custom-visualization-setup");
 const dashboardSection = document.querySelector(".visualization-dashboard");
 const aboutSection = document.querySelector(".about-us");
@@ -251,7 +244,7 @@ function getSelectedGraphConfig() {
 }
 
 function setSectionVisible(section) {
-  [overviewSection, stationOverviewSection, builderSection, dashboardSection, aboutSection, predictionSection].forEach(sec => {
+  [overviewSection, builderSection, dashboardSection, aboutSection, predictionSection].forEach(sec => {
     if (!sec) return;
     sec.classList.add("hidden");
   });
@@ -569,17 +562,6 @@ function updateOverviewStats() {
   const aboutCategories = document.getElementById("about-stat-categories");
   if (aboutStations)   aboutStations.textContent   = stationNameList.length  || "--";
   if (aboutCategories) aboutCategories.textContent = categoryNameList.length || "--";
-}
-
-function updateFeaturedStationPanel(stationName) {
-  const station = stationDetailsMap[stationName];
-  if (!station) return;
-
-  currentFocusedStation = stationName;
-  featuredStationName.textContent = station.station_name || "--";
-  featuredStationCountry.textContent = station.country || "--";
-  featuredStationCoords.textContent = `${station.latitude}, ${station.longitude}`;
-  featuredStationCategories.textContent = station.available_categories || "--";
 }
 
 function getCategoryDateRange(categoryName, stationName) {
@@ -1080,6 +1062,16 @@ function triggerStartVisualization() {
   updateInsightAndCoverage(summary);
   updateRankingTable(ranking);
 
+  // Store for AI analysis
+  lastSummaryForAI = summary;
+  lastRankingForAI = ranking;
+  const aiPanel = document.getElementById('ai-analysis-panel');
+  const aiBody = document.getElementById('ai-analysis-body');
+  if (aiPanel) {
+    aiPanel.classList.remove('hidden');
+    aiBody.innerHTML = '<p class="ai-analysis-placeholder">Click "Analyze with AI" to generate an analytical summary of your current visualization data.</p>';
+  }
+
   // Key findings (needs both summary + ranking)
   const findingsList = document.getElementById("findings-list");
   if (findingsList) {
@@ -1179,15 +1171,44 @@ function createStationIcon(country) {
   const color = getCountryColor(country);
   return L.divIcon({
     className: '',
-    html: `
-      <div class="marker-wrap">
-        <div class="marker-glow" style="background:${color};"></div>
-        <div class="marker-core" style="background:${color};"></div>
-      </div>`,
-    iconSize: [30, 30],
-    iconAnchor: [15, 15],
-    popupAnchor: [0, -17]
+    html: `<div class="station-pin">
+      <svg viewBox="0 0 20 26" width="20" height="26" xmlns="http://www.w3.org/2000/svg">
+        <path d="M10 1C5.86 1 2.5 4.36 2.5 8.5C2.5 14.5 10 25 10 25S17.5 14.5 17.5 8.5C17.5 4.36 14.14 1 10 1Z"
+              fill="${color}" stroke="white" stroke-width="1.5"/>
+        <circle cx="10" cy="8.5" r="3" fill="white" opacity="0.85"/>
+      </svg>
+    </div>`,
+    iconSize: [20, 26],
+    iconAnchor: [10, 26],
+    popupAnchor: [0, -30]
   });
+}
+
+let _activeHighlightCountry = null;
+
+function applyCountryHighlight(country) {
+  _activeHighlightCountry = country;
+  stationMarkers.forEach(m => {
+    const el = m.getElement();
+    if (!el) return;
+    const pin = el.querySelector('.station-pin');
+    if (!pin) return;
+    if (country && m._country !== country) {
+      pin.classList.add('pin-faded');
+    } else {
+      pin.classList.remove('pin-faded');
+    }
+  });
+
+  // Update legend item styles
+  document.querySelectorAll('.legend-item[data-country]').forEach(item => {
+    const isSel = item.dataset.country === country;
+    item.classList.toggle('legend-active', !!country && isSel);
+    item.classList.toggle('legend-faded', !!country && !isSel);
+  });
+
+  const clearBtn = document.getElementById('legend-clear-btn');
+  if (clearBtn) clearBtn.style.display = country ? 'block' : 'none';
 }
 
 function buildMapLegend() {
@@ -1197,7 +1218,6 @@ function buildMapLegend() {
 
   const entries = Object.entries(COUNTRY_COLORS);
 
-  // Count stations per country
   const countByCountry = {};
   Object.values(stationDetailsMap).forEach(s => {
     countByCountry[s.country] = (countByCountry[s.country] || 0) + 1;
@@ -1206,13 +1226,26 @@ function buildMapLegend() {
   legend.innerHTML = `
     <h4>Countries</h4>
     ${entries.map(([country, color]) => `
-      <div class="legend-item">
+      <div class="legend-item" data-country="${country}">
         <div class="legend-dot" style="background:${color}"></div>
         <span>${country}</span>
         <span class="legend-count">${countByCountry[country] || 0}</span>
       </div>
     `).join('')}
+    <button id="legend-clear-btn" class="legend-clear-btn" style="display:none">✕ Clear filter</button>
   `;
+
+  // Click to highlight
+  legend.querySelectorAll('.legend-item[data-country]').forEach(item => {
+    item.addEventListener('click', () => {
+      const country = item.dataset.country;
+      applyCountryHighlight(_activeHighlightCountry === country ? null : country);
+    });
+  });
+
+  document.getElementById('legend-clear-btn')?.addEventListener('click', () => {
+    applyCountryHighlight(null);
+  });
 
   if (filterSelect) {
     entries.forEach(([country]) => {
@@ -1266,9 +1299,8 @@ function showStationsOnMapUI(mode) {
           <div style="margin-top:2px;">${badges || '--'}</div>
         </div>
         <div class="map-popup-footer">
-          <button class="map-popup-btn" onclick="window.focusStationFromMap('${station.station_name.replace(/'/g, "\\'")}')">
-            View station details
-          </button>
+          <button class="map-popup-btn map-popup-btn-outline" onclick="window.goToBuilder()">Visualization</button>
+          <button class="map-popup-btn" onclick="window.goToAnalyze()">Analyze</button>
         </div>
       </div>
     `;
@@ -1283,9 +1315,10 @@ function showStationsOnMapUI(mode) {
         className: 'station-tooltip'
       });
 
-    marker.on("click", () => {
-      updateFeaturedStationPanel(station.station_name);
-    });
+    marker._country = station.country;
+
+    marker.on("mouseover", function() { this.setZIndexOffset(1000); });
+    marker.on("mouseout",  function() { this.setZIndexOffset(0); });
 
     markerClusterGroup.addLayer(marker);
     stationMarkers.push(marker);
@@ -1306,9 +1339,14 @@ function showStationsOnMapUI(mode) {
   }
 }
 
-window.focusStationFromMap = function(stationName) {
-  updateFeaturedStationPanel(stationName);
-  setSectionVisible(stationOverviewSection);
+window.goToBuilder = function() {
+  setSectionVisible(builderSection);
+  setActiveNav(".custom-visualization-setup-icon");
+};
+
+window.goToAnalyze = function() {
+  setSectionVisible(dashboardSection);
+  setActiveNav(".visualization-dashboard-icon");
 };
 
 function initializeMap() {
@@ -1316,7 +1354,7 @@ function initializeMap() {
     minZoom: 4,
     maxZoom: 18,
     zoomControl: false
-  }).setView([15.87, 100.99], 5);
+  }).setView([16.5, 103.5], 7);
 
   L.control.zoom({ position: 'bottomright' }).addTo(map);
 
@@ -1391,7 +1429,6 @@ function bindSectionTriggers(selector, section) {
 
 function setupNavigation() {
   bindSectionTriggers(".user-guide-icon", overviewSection);
-  bindSectionTriggers(".station-overview-icon", stationOverviewSection);
   bindSectionTriggers(".custom-visualization-setup-icon", builderSection);
   bindSectionTriggers(".visualization-dashboard-icon", dashboardSection);
   bindSectionTriggers(".prediction-icon", predictionSection);
@@ -1528,7 +1565,6 @@ addStationBtn.addEventListener("click", function() {
     return;
   }
 
-  updateFeaturedStationPanel(currentStation);
   renderSelectedStations();
   updateBuilderSummary();
 });
@@ -1561,6 +1597,48 @@ function setupModalEvents() {
     if (event.target === fullScreenModal) {
       fullScreenModal.style.display = "none";
       Plotly.purge("fullScreenGraph");
+    }
+  });
+}
+
+// ------------------------------
+// AI ANALYSIS
+// ------------------------------
+let lastSummaryForAI = null;
+let lastRankingForAI = [];
+
+function setupAiAnalysis() {
+  const btn = document.getElementById('run-ai-analysis-btn');
+  const body = document.getElementById('ai-analysis-body');
+  if (!btn || !body) return;
+
+  btn.addEventListener('click', async () => {
+    if (!lastSummaryForAI) {
+      body.innerHTML = '<p class="ai-analysis-error">Generate a visualization first before running AI analysis.</p>';
+      return;
+    }
+    btn.disabled = true;
+    btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 1s linear infinite"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> Analyzing...`;
+    body.innerHTML = '<p class="ai-analysis-placeholder">AI is analyzing your data...</p>';
+
+    try {
+      const res = await fetch('/analyze_with_ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ summary: lastSummaryForAI, ranking: lastRankingForAI })
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+
+      const paragraphs = data.analysis.split('\n').filter(p => p.trim()).map(p =>
+        `<p class="ai-para">${p.trim()}</p>`
+      ).join('');
+      body.innerHTML = paragraphs;
+    } catch (err) {
+      body.innerHTML = `<p class="ai-analysis-error">Analysis failed: ${err.message}. Make sure ANTHROPIC_API_KEY is set.</p>`;
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg> Analyze with AI`;
     }
   });
 }
@@ -1696,12 +1774,102 @@ function autofillPredDateRange() {
   }
 }
 
+const MODEL_META = {
+  holt_winters: {
+    label: "Holt-Winters Prediction",
+    desc: "<strong>Holt-Winters</strong> — Triple exponential smoothing that decomposes the series into level, trend, and seasonal components. Best for data with clear seasonal patterns.",
+    infoCards: (info) => [
+      ["Model", info.model_type],
+      ["Historical data", `${info.historical_months} months`],
+      ["Forecast period", `${info.last_historical} → ${info.forecast_end}`],
+      ["AIC", info.aic],
+      ["RMSE", info.rmse],
+      ["α (level)", info.alpha],
+      ["β (trend)", info.beta],
+      ...(info.gamma != null ? [["γ (seasonal)", info.gamma]] : []),
+    ],
+  },
+  sarima: {
+    label: "SARIMA Prediction",
+    desc: "<strong>SARIMA</strong> — Seasonal AutoRegressive Integrated Moving Average. A classical statistical model that captures autocorrelation, differencing for stationarity, and seasonal cycles.",
+    infoCards: (info) => [
+      ["Model", info.model_type],
+      ["Historical data", `${info.historical_months} months`],
+      ["Forecast period", `${info.last_historical} → ${info.forecast_end}`],
+      ["AIC", info.aic],
+      ["RMSE", info.rmse],
+    ],
+  },
+  random_forest: {
+    label: "Random Forest Prediction",
+    desc: "<strong>Random Forest</strong> — An ensemble of 200 decision trees trained on lag features and Fourier seasonality terms. Robust to outliers and captures non-linear patterns.",
+    infoCards: (info) => [
+      ["Model", info.model_type],
+      ["Historical data", `${info.historical_months} months`],
+      ["Forecast period", `${info.last_historical} → ${info.forecast_end}`],
+      ["RMSE", info.rmse],
+      ["Top features", info.top_features],
+    ],
+  },
+  gradient_boosting: {
+    label: "Gradient Boosting Prediction",
+    desc: "<strong>Gradient Boosting</strong> — Sequentially builds 200 shallow trees, each correcting the errors of the previous. Effective at capturing complex trends with controlled learning rate.",
+    infoCards: (info) => [
+      ["Model", info.model_type],
+      ["Historical data", `${info.historical_months} months`],
+      ["Forecast period", `${info.last_historical} → ${info.forecast_end}`],
+      ["RMSE", info.rmse],
+    ],
+  },
+  linear_seasonal: {
+    label: "Linear Seasonal Prediction",
+    desc: "<strong>Linear Seasonal</strong> — Fits a linear trend plus Fourier harmonic terms to model seasonality. Highly interpretable — each coefficient directly reflects a seasonal or trend component.",
+    infoCards: (info) => [
+      ["Model", info.model_type],
+      ["Historical data", `${info.historical_months} months`],
+      ["Forecast period", `${info.last_historical} → ${info.forecast_end}`],
+      ["RMSE", info.rmse],
+      ["R²", info.r2],
+      ["Coefficients", info.coefficients],
+    ],
+  },
+  svr: {
+    label: "SVR Prediction",
+    desc: "<strong>SVR</strong> — Support Vector Regression with an RBF kernel. Finds a regression hyperplane that fits the training data within an epsilon-insensitive margin. Good for small datasets with complex patterns.",
+    infoCards: (info) => [
+      ["Model", info.model_type],
+      ["Historical data", `${info.historical_months} months`],
+      ["Forecast period", `${info.last_historical} → ${info.forecast_end}`],
+      ["RMSE", info.rmse],
+    ],
+  },
+};
+
+let selectedPredModel = 'holt_winters';
+
 function setupPredictionEvents() {
   document.getElementById('pred-station-select')?.addEventListener('change', function() {
     updatePredCategoriesForStation(this.value);
     autofillPredDateRange();
   });
   document.getElementById('pred-category-select')?.addEventListener('change', autofillPredDateRange);
+
+  // Model tab switching
+  document.querySelectorAll('.model-tab').forEach(tab => {
+    tab.addEventListener('click', function() {
+      document.querySelectorAll('.model-tab').forEach(t => t.classList.remove('active'));
+      this.classList.add('active');
+      selectedPredModel = this.dataset.model;
+      const meta = MODEL_META[selectedPredModel];
+      const titleEl = document.getElementById('pred-section-title');
+      const descEl  = document.getElementById('pred-model-desc');
+      if (titleEl) titleEl.textContent = meta.label;
+      if (descEl)  descEl.innerHTML   = meta.desc;
+      // Reset chart when switching models
+      document.getElementById('pred-model-info')?.classList.add('hidden');
+      document.getElementById('pred-chart-container')?.classList.add('hidden');
+    });
+  });
 
   document.getElementById('pred-generate-btn')?.addEventListener('click', function() {
     const station        = document.getElementById('pred-station-select')?.value;
@@ -1724,7 +1892,14 @@ function setupPredictionEvents() {
     fetch('/generate_prediction', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ station_name: station, category_name: category, start_date: startDate, end_date: endDate, forecast_months: forecastMonths })
+      body: JSON.stringify({
+        model: selectedPredModel,
+        station_name: station,
+        category_name: category,
+        start_date: startDate,
+        end_date: endDate,
+        forecast_months: forecastMonths
+      })
     })
     .then(r => r.json())
     .then(data => {
@@ -1735,21 +1910,12 @@ function setupPredictionEvents() {
       }
 
       const info = data.model_info;
-      const gammaRow = info.gamma !== null
-        ? `<div class="pred-info-card"><span class="pred-info-label">γ (seasonal)</span><span class="pred-info-value">${info.gamma}</span></div>`
-        : '';
+      const meta = MODEL_META[selectedPredModel];
+      const cards = meta.infoCards(info).map(([label, val]) =>
+        `<div class="pred-info-card"><span class="pred-info-label">${label}</span><span class="pred-info-value">${val ?? '--'}</span></div>`
+      ).join('');
 
-      document.getElementById('pred-model-info').innerHTML = `
-        <div class="pred-info-grid">
-          <div class="pred-info-card"><span class="pred-info-label">Model</span><span class="pred-info-value">${info.model_type}</span></div>
-          <div class="pred-info-card"><span class="pred-info-label">Historical data</span><span class="pred-info-value">${info.historical_months} months</span></div>
-          <div class="pred-info-card"><span class="pred-info-label">Forecast period</span><span class="pred-info-value">${info.last_historical} → ${info.forecast_end}</span></div>
-          <div class="pred-info-card"><span class="pred-info-label">AIC</span><span class="pred-info-value">${info.aic}</span></div>
-          <div class="pred-info-card"><span class="pred-info-label">RMSE</span><span class="pred-info-value">${info.rmse}</span></div>
-          <div class="pred-info-card"><span class="pred-info-label">α (level)</span><span class="pred-info-value">${info.alpha}</span></div>
-          <div class="pred-info-card"><span class="pred-info-label">β (trend)</span><span class="pred-info-value">${info.beta}</span></div>
-          ${gammaRow}
-        </div>`;
+      document.getElementById('pred-model-info').innerHTML = `<div class="pred-info-grid">${cards}</div>`;
       document.getElementById('pred-model-info').classList.remove('hidden');
       document.getElementById('pred-chart-container').classList.remove('hidden');
       Plotly.newPlot('pred-chart', JSON.parse(data.chart), {}, { responsive: true });
@@ -1779,10 +1945,6 @@ document.addEventListener("DOMContentLoaded", async function() {
     updateBuilderSummary();
     updateVisualizationQueueUI();
 
-    if (stationNameList.length) {
-      updateFeaturedStationPanel(stationNameList[0]);
-    }
-
     setupNavigation();
     setupBuilderEvents();
     setupModalEvents();
@@ -1790,6 +1952,7 @@ document.addEventListener("DOMContentLoaded", async function() {
     setupPredictionEvents();
     setupSidebarToggle();
     setupThemeToggle();
+    setupAiAnalysis();
     setupUndoToast();
   } catch (error) {
     console.error("Initialization error:", error);

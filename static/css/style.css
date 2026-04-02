@@ -681,10 +681,12 @@ button {
   padding: 10px 16px 12px;
   border-top: 1px solid #f1f5f9;
   background: #f8fafc;
+  display: flex;
+  gap: 8px;
 }
 
 .map-popup-btn {
-  width: 100%;
+  flex: 1;
   padding: 8px;
   background: var(--accent);
   color: white;
@@ -698,6 +700,94 @@ button {
 
 .map-popup-btn:hover {
   background: var(--accent-dark);
+}
+
+.map-popup-btn-outline {
+  background: transparent;
+  color: var(--accent);
+  border: 1.5px solid var(--accent);
+}
+
+.map-popup-btn-outline:hover {
+  background: var(--accent);
+  color: white;
+}
+
+/* AI Analysis Panel */
+.ai-analysis-panel {
+  margin-top: 28px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.ai-analysis-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  background: var(--panel-soft);
+  border-bottom: 1px solid var(--border);
+}
+
+.ai-analysis-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--text);
+}
+
+.ai-run-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.ai-run-btn:hover { background: var(--accent-dark); }
+.ai-run-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.ai-analysis-body {
+  padding: 20px 24px;
+  background: var(--panel);
+  min-height: 80px;
+}
+
+.ai-analysis-placeholder {
+  color: var(--muted);
+  font-size: 0.88rem;
+  font-style: italic;
+  margin: 0;
+}
+
+.ai-analysis-error {
+  color: #dc2626;
+  font-size: 0.88rem;
+  margin: 0;
+}
+
+.ai-para {
+  font-size: 0.9rem;
+  line-height: 1.7;
+  color: var(--text);
+  margin: 0 0 12px;
+}
+
+.ai-para:last-child { margin-bottom: 0; }
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 /* Scroll hint */
@@ -1665,6 +1755,50 @@ input.dropdown {
 [data-theme="dark"] .trend-arrow-wrap.trend-stable { background: rgba(255,255,255,0.05); }
 
 /* ===== PREDICTION ===== */
+.model-selector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.model-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.model-tab:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.model-tab.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+.pred-model-desc {
+  padding: 12px 16px;
+  background: var(--panel-soft);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font-size: 0.85rem;
+  color: var(--text);
+  line-height: 1.6;
+  margin-bottom: 20px;
+}
+
 .pred-model-info {
   margin: 20px 0 0;
 }
@@ -1940,6 +2074,10 @@ input.dropdown {
 }
 
 [data-theme="dark"] .map-popup-footer { background: var(--panel-soft); }
+[data-theme="dark"] .map-popup-btn-outline { color: var(--accent); border-color: var(--accent); }
+[data-theme="dark"] .ai-analysis-panel { border-color: var(--border); }
+[data-theme="dark"] .ai-analysis-header { background: var(--panel-soft); border-color: var(--border); }
+[data-theme="dark"] .ai-analysis-body { background: var(--panel); }
 
 [data-theme="dark"] .secondary-btn {
   background: var(--panel-soft);
@@ -1972,6 +2110,11 @@ input.dropdown {
 [data-theme="dark"] .pred-info-value {
   color: var(--text);
 }
+
+[data-theme="dark"] .model-tab { background: var(--panel-soft); border-color: var(--border); color: var(--muted); }
+[data-theme="dark"] .model-tab:hover { border-color: var(--accent); color: var(--accent); }
+[data-theme="dark"] .model-tab.active { background: var(--accent); color: white; border-color: var(--accent); }
+[data-theme="dark"] .pred-model-desc { background: var(--panel-soft); color: var(--text); }
 
 [data-theme="dark"] .pred-chart-container {
   background: var(--panel);

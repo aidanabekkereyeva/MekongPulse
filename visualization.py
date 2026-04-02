@@ -12,6 +12,11 @@ from plotly.subplots import make_subplots
 from data_loader import DataRepository, SeriesRequest
 import numpy as np
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
+from statsmodels.tsa.statespace.sarimax import SARIMAX
+from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
+from sklearn.linear_model import LinearRegression
+from sklearn.svm import SVR
+from sklearn.preprocessing import StandardScaler
 
 # Set by app.py at startup
 repo: Optional[DataRepository] = None
@@ -1049,3 +1054,392 @@ def generate_holt_winters_prediction(
         "chart": json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder),
         "model_info": model_info,
     }
+
+
+# ------------------------------
+# SHARED ML HELPERS
+# ------------------------------
+
+def _prepare_ml_series(category_name, station_name, start_date, end_date):
+    """Load and resample to monthly. Returns pd.Series indexed by DatetimeIndex."""
+    df = get_feature_series_df(category_name, station_name, start_date, end_date)
+    if df is None or df.empty:
+        raise ValueError(f"No data found for {station_name} / {category_name}")
+    series = (
+        df.set_index("Timestamp")["Value"]
+        .resample("MS").mean()
+        .interpolate(method="linear")
+        .dropna()
+    )
+    if len(series) < 12:
+        raise ValueError("At least 12 months of data are required for forecasting.")
+    return series
+
+
+def _make_forecast_chart(series, fitted_vals, forecast_vals, forecast_index, ci_upper, ci_lower,
+                          model_label, station_name, category_name, accent_color="#e74c3c"):
+    """Build a standard Plotly figure for any forecast model."""
+    unit_label = get_category_units(category_name)
+    bridge_date = series.index[-1]
+    bridge_value = float(series.values[-1])
+
+    ci_upper_bridged = [bridge_value] + list(ci_upper)
+    ci_lower_bridged = [bridge_value] + list(ci_lower)
+    ci_x = [bridge_date] + list(forecast_index)
+
+    forecast_x = [bridge_date] + list(forecast_index)
+    forecast_y = [bridge_value] + list(forecast_vals)
+
+    fig = go.Figure()
+
+    fig.add_trace(go.Scatter(
+        x=ci_x + ci_x[::-1],
+        y=ci_upper_bridged + ci_lower_bridged[::-1],
+        fill="toself",
+        fillcolor="rgba(231,107,64,0.13)",
+        line=dict(color="rgba(0,0,0,0)"),
+        name="95% Confidence Interval",
+        hoverinfo="skip",
+    ))
+
+    fig.add_trace(go.Scatter(
+        x=series.index, y=series.values,
+        mode="lines", name="Historical (monthly avg)",
+        line=dict(color="#2874a6", width=2),
+    ))
+
+    if fitted_vals is not None:
+        fig.add_trace(go.Scatter(
+            x=series.index, y=fitted_vals,
+            mode="lines", name="Model fit",
+            line=dict(color="#27ae60", width=1.5, dash="dot"),
+        ))
+
+    fig.add_trace(go.Scatter(
+        x=forecast_x, y=forecast_y,
+        mode="lines+markers",
+        name=f"Forecast ({len(forecast_vals)} months)",
+        line=dict(color=accent_color, width=2.5),
+        marker=dict(size=5),
+    ))
+
+    split_x = series.index[-1]
+    fig.add_shape(type="line", x0=split_x, x1=split_x, y0=0, y1=1, yref="paper",
+                  line=dict(color="#888888", width=1.5, dash="dash"))
+    fig.add_annotation(x=split_x, y=1, yref="paper", text="Forecast start",
+                       showarrow=False, xanchor="left", font=dict(size=11, color="#888888"))
+
+    apply_clean_layout(
+        fig,
+        title=f"{model_label} — {station_display(station_name)} · {category_name}",
+        yaxis_title=unit_label,
+        xaxis_title="Date",
+    )
+    return fig
+
+
+def _make_lag_features(series: pd.Series, lags=(1, 2, 3, 6, 12)):
+    """Build lag + month seasonality features for ML models."""
+    df = pd.DataFrame({"value": series})
+    for lag in lags:
+        df[f"lag_{lag}"] = df["value"].shift(lag)
+    df["month_sin"] = np.sin(2 * np.pi * df.index.month / 12)
+    df["month_cos"] = np.cos(2 * np.pi * df.index.month / 12)
+    df["month_sin2"] = np.sin(4 * np.pi * df.index.month / 12)
+    df["month_cos2"] = np.cos(4 * np.pi * df.index.month / 12)
+    return df.dropna()
+
+
+def _iterative_forecast(model, last_known: pd.Series, forecast_months: int,
+                        lags=(1, 2, 3, 6, 12), scaler=None):
+    """Iteratively predict future values using previous predictions as lags."""
+    history = list(last_known.values)
+    future_dates = pd.date_range(last_known.index[-1] + pd.DateOffset(months=1),
+                                 periods=forecast_months, freq="MS")
+    predictions = []
+    for date in future_dates:
+        row = {}
+        for lag in lags:
+            row[f"lag_{lag}"] = history[-lag] if lag <= len(history) else history[0]
+        row["month_sin"] = np.sin(2 * np.pi * date.month / 12)
+        row["month_cos"] = np.cos(2 * np.pi * date.month / 12)
+        row["month_sin2"] = np.sin(4 * np.pi * date.month / 12)
+        row["month_cos2"] = np.cos(4 * np.pi * date.month / 12)
+        X = np.array([[row[k] for k in sorted(row.keys())]])
+        if scaler:
+            X = scaler.transform(X)
+        pred = float(model.predict(X)[0])
+        pred = max(pred, 0.0)
+        predictions.append(pred)
+        history.append(pred)
+    return predictions, future_dates
+
+
+def _residual_ci(residuals, forecast_months):
+    """Compute growing CI from in-sample residuals (1.96 * sigma * sqrt(h))."""
+    sigma = float(np.std(residuals))
+    return [1.96 * sigma * np.sqrt(h) for h in range(1, forecast_months + 1)]
+
+
+# ------------------------------
+# SARIMA
+# ------------------------------
+
+def generate_sarima_prediction(category_name, station_name, start_date, end_date, forecast_months=12):
+    series = _prepare_ml_series(category_name, station_name, start_date, end_date)
+    use_seasonal = len(series) >= 24
+
+    order = (1, 1, 1)
+    seasonal_order = (1, 1, 0, 12) if use_seasonal else (0, 0, 0, 0)
+
+    model = SARIMAX(series, order=order, seasonal_order=seasonal_order,
+                    enforce_stationarity=False, enforce_invertibility=False)
+    fitted = model.fit(disp=False)
+
+    forecast_result = fitted.get_forecast(steps=forecast_months)
+    forecast_mean = forecast_result.predicted_mean
+    ci = forecast_result.conf_int(alpha=0.05)
+    ci_upper = list(ci.iloc[:, 1].clip(lower=0))
+    ci_lower = list(ci.iloc[:, 0].clip(lower=0))
+
+    residuals = series - fitted.fittedvalues
+    rmse = float(np.sqrt(np.mean(residuals.dropna() ** 2)))
+
+    fig = _make_forecast_chart(
+        series, list(fitted.fittedvalues), list(forecast_mean.values),
+        forecast_mean.index, ci_upper, ci_lower,
+        "SARIMA Forecast", station_name, category_name, accent_color="#8e44ad"
+    )
+
+    model_info = {
+        "station": station_display(station_name),
+        "category": category_name,
+        "historical_months": int(len(series)),
+        "model_type": f"SARIMA{order}x{seasonal_order}" + (" (seasonal)" if use_seasonal else ""),
+        "forecast_months": int(forecast_months),
+        "aic": round(float(fitted.aic), 2),
+        "rmse": round(rmse, 4),
+        "last_historical": series.index[-1].strftime("%Y-%m"),
+        "forecast_end": forecast_mean.index[-1].strftime("%Y-%m"),
+    }
+    return {"chart": json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder), "model_info": model_info}
+
+
+# ------------------------------
+# RANDOM FOREST
+# ------------------------------
+
+def generate_random_forest_prediction(category_name, station_name, start_date, end_date, forecast_months=12):
+    series = _prepare_ml_series(category_name, station_name, start_date, end_date)
+    feat_df = _make_lag_features(series)
+    feature_cols = sorted([c for c in feat_df.columns if c != "value"])
+
+    X = feat_df[feature_cols].values
+    y = feat_df["value"].values
+
+    model = RandomForestRegressor(n_estimators=200, max_depth=8, random_state=42, n_jobs=-1)
+    model.fit(X, y)
+
+    fitted_vals = model.predict(X)
+    residuals = y - fitted_vals
+    rmse = float(np.sqrt(np.mean(residuals ** 2)))
+
+    forecast_vals, future_dates = _iterative_forecast(model, series, forecast_months)
+    ci_offsets = _residual_ci(residuals, forecast_months)
+    ci_upper = [max(v + o, 0) for v, o in zip(forecast_vals, ci_offsets)]
+    ci_lower = [max(v - o, 0) for v, o in zip(forecast_vals, ci_offsets)]
+
+    # Align fitted_vals back onto the series index (lag rows were dropped)
+    fitted_series = pd.Series(fitted_vals, index=feat_df.index)
+
+    fig = _make_forecast_chart(
+        series, list(fitted_series), forecast_vals, future_dates,
+        ci_upper, ci_lower,
+        "Random Forest Forecast", station_name, category_name, accent_color="#d35400"
+    )
+
+    importances = dict(zip(feature_cols, model.feature_importances_.round(3)))
+    top_features = ", ".join(f"{k}={v}" for k, v in sorted(importances.items(), key=lambda x: -x[1])[:3])
+
+    model_info = {
+        "station": station_display(station_name),
+        "category": category_name,
+        "historical_months": int(len(series)),
+        "model_type": "Random Forest (n=200 trees, max_depth=8)",
+        "forecast_months": int(forecast_months),
+        "rmse": round(rmse, 4),
+        "top_features": top_features,
+        "last_historical": series.index[-1].strftime("%Y-%m"),
+        "forecast_end": future_dates[-1].strftime("%Y-%m"),
+    }
+    return {"chart": json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder), "model_info": model_info}
+
+
+# ------------------------------
+# GRADIENT BOOSTING
+# ------------------------------
+
+def generate_gradient_boosting_prediction(category_name, station_name, start_date, end_date, forecast_months=12):
+    series = _prepare_ml_series(category_name, station_name, start_date, end_date)
+    feat_df = _make_lag_features(series)
+    feature_cols = sorted([c for c in feat_df.columns if c != "value"])
+
+    X = feat_df[feature_cols].values
+    y = feat_df["value"].values
+
+    model = GradientBoostingRegressor(n_estimators=200, max_depth=4, learning_rate=0.05, random_state=42)
+    model.fit(X, y)
+
+    fitted_vals = model.predict(X)
+    residuals = y - fitted_vals
+    rmse = float(np.sqrt(np.mean(residuals ** 2)))
+
+    forecast_vals, future_dates = _iterative_forecast(model, series, forecast_months)
+    ci_offsets = _residual_ci(residuals, forecast_months)
+    ci_upper = [max(v + o, 0) for v, o in zip(forecast_vals, ci_offsets)]
+    ci_lower = [max(v - o, 0) for v, o in zip(forecast_vals, ci_offsets)]
+
+    fitted_series = pd.Series(fitted_vals, index=feat_df.index)
+
+    fig = _make_forecast_chart(
+        series, list(fitted_series), forecast_vals, future_dates,
+        ci_upper, ci_lower,
+        "Gradient Boosting Forecast", station_name, category_name, accent_color="#16a085"
+    )
+
+    model_info = {
+        "station": station_display(station_name),
+        "category": category_name,
+        "historical_months": int(len(series)),
+        "model_type": "Gradient Boosting (n=200, lr=0.05, depth=4)",
+        "forecast_months": int(forecast_months),
+        "rmse": round(rmse, 4),
+        "last_historical": series.index[-1].strftime("%Y-%m"),
+        "forecast_end": future_dates[-1].strftime("%Y-%m"),
+    }
+    return {"chart": json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder), "model_info": model_info}
+
+
+# ------------------------------
+# LINEAR TREND + SEASONALITY
+# ------------------------------
+
+def generate_linear_seasonal_prediction(category_name, station_name, start_date, end_date, forecast_months=12):
+    series = _prepare_ml_series(category_name, station_name, start_date, end_date)
+
+    n = len(series)
+    t = np.arange(n)
+    months = series.index.month
+
+    def make_X(t_vals, month_vals):
+        return np.column_stack([
+            t_vals,
+            np.sin(2 * np.pi * month_vals / 12),
+            np.cos(2 * np.pi * month_vals / 12),
+            np.sin(4 * np.pi * month_vals / 12),
+            np.cos(4 * np.pi * month_vals / 12),
+        ])
+
+    X_train = make_X(t, months)
+    y_train = series.values
+
+    model = LinearRegression()
+    model.fit(X_train, y_train)
+
+    fitted_vals = model.predict(X_train)
+    residuals = y_train - fitted_vals
+    rmse = float(np.sqrt(np.mean(residuals ** 2)))
+    sigma = float(np.std(residuals))
+
+    future_dates = pd.date_range(series.index[-1] + pd.DateOffset(months=1),
+                                 periods=forecast_months, freq="MS")
+    t_future = np.arange(n, n + forecast_months)
+    X_future = make_X(t_future, future_dates.month)
+    forecast_vals = list(np.maximum(model.predict(X_future), 0))
+
+    ci_offsets = [1.96 * sigma * np.sqrt(h) for h in range(1, forecast_months + 1)]
+    ci_upper = [max(v + o, 0) for v, o in zip(forecast_vals, ci_offsets)]
+    ci_lower = [max(v - o, 0) for v, o in zip(forecast_vals, ci_offsets)]
+
+    fig = _make_forecast_chart(
+        series, list(fitted_vals), forecast_vals, future_dates,
+        ci_upper, ci_lower,
+        "Linear Trend + Seasonality Forecast", station_name, category_name, accent_color="#2980b9"
+    )
+
+    coef_labels = ["Trend", "sin(2π/12)", "cos(2π/12)", "sin(4π/12)", "cos(4π/12)"]
+    coef_str = ", ".join(f"{l}={round(c,3)}" for l, c in zip(coef_labels, model.coef_))
+
+    model_info = {
+        "station": station_display(station_name),
+        "category": category_name,
+        "historical_months": int(n),
+        "model_type": "Linear Regression with Fourier Seasonal Terms",
+        "forecast_months": int(forecast_months),
+        "rmse": round(rmse, 4),
+        "r2": round(float(model.score(X_train, y_train)), 4),
+        "coefficients": coef_str,
+        "last_historical": series.index[-1].strftime("%Y-%m"),
+        "forecast_end": future_dates[-1].strftime("%Y-%m"),
+    }
+    return {"chart": json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder), "model_info": model_info}
+
+
+# ------------------------------
+# SVR (Support Vector Regression)
+# ------------------------------
+
+def generate_svr_prediction(category_name, station_name, start_date, end_date, forecast_months=12):
+    series = _prepare_ml_series(category_name, station_name, start_date, end_date)
+    feat_df = _make_lag_features(series)
+    feature_cols = sorted([c for c in feat_df.columns if c != "value"])
+
+    X_raw = feat_df[feature_cols].values
+    y = feat_df["value"].values
+
+    scaler_X = StandardScaler()
+    scaler_y = StandardScaler()
+    X = scaler_X.fit_transform(X_raw)
+    y_scaled = scaler_y.fit_transform(y.reshape(-1, 1)).ravel()
+
+    model = SVR(kernel="rbf", C=100, gamma="scale", epsilon=0.01)
+    model.fit(X, y_scaled)
+
+    fitted_scaled = model.predict(X)
+    fitted_vals = scaler_y.inverse_transform(fitted_scaled.reshape(-1, 1)).ravel()
+    residuals = y - fitted_vals
+    rmse = float(np.sqrt(np.mean(residuals ** 2)))
+
+    # Wrap model + scalers so _iterative_forecast works on original scale
+    class _ScaledSVR:
+        def predict(self_inner, X_new):
+            X_sc = scaler_X.transform(X_new)
+            y_sc = model.predict(X_sc)
+            return scaler_y.inverse_transform(y_sc.reshape(-1, 1)).ravel()
+
+    forecast_vals, future_dates = _iterative_forecast(_ScaledSVR(), series, forecast_months)
+    forecast_vals = [max(v, 0) for v in forecast_vals]
+
+    ci_offsets = _residual_ci(residuals, forecast_months)
+    ci_upper = [max(v + o, 0) for v, o in zip(forecast_vals, ci_offsets)]
+    ci_lower = [max(v - o, 0) for v, o in zip(forecast_vals, ci_offsets)]
+
+    fitted_series = pd.Series(fitted_vals, index=feat_df.index)
+
+    fig = _make_forecast_chart(
+        series, list(fitted_series), forecast_vals, future_dates,
+        ci_upper, ci_lower,
+        "SVR Forecast", station_name, category_name, accent_color="#c0392b"
+    )
+
+    model_info = {
+        "station": station_display(station_name),
+        "category": category_name,
+        "historical_months": int(len(series)),
+        "model_type": "Support Vector Regression (RBF kernel, C=100)",
+        "forecast_months": int(forecast_months),
+        "rmse": round(rmse, 4),
+        "last_historical": series.index[-1].strftime("%Y-%m"),
+        "forecast_end": future_dates[-1].strftime("%Y-%m"),
+    }
+    return {"chart": json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder), "model_info": model_info}
