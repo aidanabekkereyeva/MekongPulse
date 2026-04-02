@@ -3,7 +3,8 @@
     "allow": [
       "Bash(find /c/Users/Aidan/Desktop/Web_Platform -type f -name *.py -o -name *.html -o -name *.js -o -name *.css -o -name *.csv -o -name *.json -o -name *.xlsx -o -name *.xls)",
       "Bash(python -c \":*)",
-      "Bash(pip install:*)"
+      "Bash(pip install:*)",
+      "Bash(python -c \"from google import genai; print\\('ok'\\)\")"
     ]
   }
 }

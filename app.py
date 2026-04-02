@@ -152,11 +152,24 @@ def generate_prediction():
 @app.route('/analyze_with_ai', methods=['POST'])
 def analyze_with_ai():
     try:
-        import anthropic
+        import os
+        from google import genai
+        try:
+            from config import GEMINI_API_KEY as api_key
+        except ImportError:
+            api_key = os.environ.get("GEMINI_API_KEY")
+        if not api_key or api_key == "paste-your-key-here":
+            return jsonify({'error': 'Please add your Gemini API key to config.py'}), 500
+        client = genai.Client(api_key=api_key)
         data = request.json
         summary = data.get('summary', {})
-        station = summary.get('station_name', 'Unknown')
-        category = summary.get('category_name', 'Unknown')
+        graph_type = data.get('graph_type', 'Unknown')
+        stations = data.get('stations', [])
+        categories = data.get('categories', [])
+        ranking = data.get('ranking', [])
+
+        station = summary.get('station_name', ', '.join(stations) if stations else 'Unknown')
+        category = summary.get('category_name', ', '.join(categories) if categories else 'Unknown')
         mean_val = summary.get('mean', '--')
         min_val = summary.get('min', '--')
         max_val = summary.get('max', '--')
@@ -166,44 +179,34 @@ def analyze_with_ai():
         last_year = summary.get('last_year', '--')
         record_count = summary.get('record_count', '--')
         coverage_pct = summary.get('coverage_pct', '--')
-        ranking = data.get('ranking', [])
 
         ranking_text = ""
         if ranking:
-            ranking_text = "\n".join(
-                f"  {i+1}. {r.get('station_name','?')} — avg {r.get('mean','?')}"
-                for i, r in enumerate(ranking[:5])
+            ranking_text = ", ".join(
+                f"{r.get('station_name','?')}={r.get('mean','?')}"
+                for r in ranking[:5]
             )
 
-        prompt = f"""You are a hydrological data analyst specializing in the Mekong River basin.
-Analyze the following monitoring data and provide a concise, professional analytical summary.
+        prompt = f"""Mekong basin hydrological analyst. Write a structured report using these section headers on their own line followed by a colon. No markdown symbols.
 
-Station: {station}
-Category: {category}
-Data span: {first_year} – {last_year}
-Record count: {record_count}
-Coverage: {coverage_pct}%
-Mean: {mean_val}
-Min: {min_val}
-Max: {max_val}
-Std deviation: {std_val}
-Trend direction: {trend}
-{f"Station ranking (by average):{chr(10)}{ranking_text}" if ranking_text else ""}
+Data: {graph_type} | {station} | {category} | {first_year}-{last_year} | {record_count} records | {coverage_pct}% coverage | mean={mean_val} min={min_val} max={max_val} std={std_val} trend={trend}{f' | ranking: {ranking_text}' if ranking_text else ''}
 
-Write a structured analysis in 3 short paragraphs:
-1. Data overview and quality assessment
-2. Key hydrological patterns and what the trend implies
-3. Notable observations or recommendations for further investigation
+Sections to write (2-3 sentences each):
 
-Keep it concise, analytical, and grounded in the numbers above. Do not invent data not provided."""
+Data Quality and Coverage Assessment:
+Statistical Overview and Interpretation:
+Trend Analysis and Temporal Patterns:
+{f'Comparative Station Analysis:' if ranking_text else ''}
+Key Findings and Anomalies:
+Research Recommendations:
 
-        client = anthropic.Anthropic()
-        message = client.messages.create(
-            model="claude-opus-4-6",
-            max_tokens=600,
-            messages=[{"role": "user", "content": prompt}]
+Academic language. Only use the numbers provided."""
+
+        response = client.models.generate_content(
+            model="gemini-2.0-flash-lite",
+            contents=prompt,
         )
-        analysis = message.content[0].text
+        analysis = response.text
         return jsonify({'analysis': analysis})
     except Exception as e:
         print(f"AI analysis error: {e}")

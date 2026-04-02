@@ -206,6 +206,10 @@ const builderSection = document.querySelector(".custom-visualization-setup");
 const dashboardSection = document.querySelector(".visualization-dashboard");
 const aboutSection = document.querySelector(".about-us");
 const predictionSection = document.querySelector(".prediction");
+const analyzeSection      = document.querySelector(".analyze-section");
+const correlationSection  = document.querySelector(".correlation-section");
+const seasonalSection     = document.querySelector(".seasonal-section");
+const exportSection       = document.querySelector(".export-section");
 
 // ------------------------------
 // HELPERS
@@ -244,7 +248,7 @@ function getSelectedGraphConfig() {
 }
 
 function setSectionVisible(section) {
-  [overviewSection, builderSection, dashboardSection, aboutSection, predictionSection].forEach(sec => {
+  [overviewSection, builderSection, dashboardSection, aboutSection, predictionSection, analyzeSection, correlationSection, seasonalSection, exportSection].forEach(sec => {
     if (!sec) return;
     sec.classList.add("hidden");
   });
@@ -565,18 +569,28 @@ function updateOverviewStats() {
 }
 
 function getCategoryDateRange(categoryName, stationName) {
+  const cleanCategory = (categoryName || "").trim().toLowerCase();
+  const cleanStation  = (stationName  || "").trim().toLowerCase();
+
+  // Primary: exact match in the category's rows
   const rows = categoryDetailsMap[categoryName] || [];
-
-  const cleanCategory = (categoryName || "").trim();
-  const cleanStation = (stationName || "").trim();
-
-  return (
-    rows.find(
-      row =>
-        (row.category_name || "").trim() === cleanCategory &&
-        (row.station_name || "").trim() === cleanStation
-    ) || null
+  const exact = rows.find(row =>
+    (row.category_name || "").trim().toLowerCase() === cleanCategory &&
+    (row.station_name  || "").trim().toLowerCase() === cleanStation
   );
+  if (exact) return exact;
+
+  // Fallback: search all categories for this station and return widest date span
+  let earliest = null, latest = null;
+  Object.values(categoryDetailsMap).forEach(catRows => {
+    catRows.forEach(row => {
+      if ((row.station_name || "").trim().toLowerCase() !== cleanStation) return;
+      if (!earliest || row.start_date < earliest) earliest = row.start_date;
+      if (!latest   || row.end_date   > latest)   latest   = row.end_date;
+    });
+  });
+  if (earliest && latest) return { start_date: earliest, end_date: latest };
+  return null;
 }
 
 function addAllCategoriesForStation(stationName) {
@@ -1345,8 +1359,8 @@ window.goToBuilder = function() {
 };
 
 window.goToAnalyze = function() {
-  setSectionVisible(dashboardSection);
-  setActiveNav(".visualization-dashboard-icon");
+  setSectionVisible(analyzeSection);
+  setActiveNav(".analyze-section-icon");
 };
 
 function initializeMap() {
@@ -1432,6 +1446,10 @@ function setupNavigation() {
   bindSectionTriggers(".custom-visualization-setup-icon", builderSection);
   bindSectionTriggers(".visualization-dashboard-icon", dashboardSection);
   bindSectionTriggers(".prediction-icon", predictionSection);
+  bindSectionTriggers(".analyze-section-icon", analyzeSection);
+  bindSectionTriggers(".correlation-icon", correlationSection);
+  bindSectionTriggers(".seasonal-icon", seasonalSection);
+  bindSectionTriggers(".export-icon", exportSection);
   bindSectionTriggers(".about-us-icon", aboutSection);
 }
 
@@ -1639,6 +1657,268 @@ function setupAiAnalysis() {
     } finally {
       btn.disabled = false;
       btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg> Analyze with AI`;
+    }
+  });
+}
+
+// ------------------------------
+// ANALYZE SECTION
+// ------------------------------
+let azSelectedGraph = null;
+let azSelectedCategories = [];
+let azSelectedStations = [];
+
+function azRenderSummary() {
+  const graphEl = document.getElementById('az-graph-preview');
+  const catEl   = document.getElementById('az-categories-preview');
+  const staEl   = document.getElementById('az-stations-preview');
+  if (graphEl) graphEl.textContent = azSelectedGraph || 'No graph selected yet';
+  if (catEl)   catEl.textContent   = azSelectedCategories.length || '0';
+  if (staEl)   staEl.textContent   = azSelectedStations.length || '0';
+}
+
+function azRenderTags(containerId, items, onRemove) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  container.innerHTML = items.map((item, i) =>
+    `<span class="selected-tag">${item}<button class="tag-remove-btn" data-index="${i}" aria-label="Remove">×</button></span>`
+  ).join('');
+  container.querySelectorAll('.tag-remove-btn').forEach(btn => {
+    btn.addEventListener('click', () => onRemove(parseInt(btn.dataset.index)));
+  });
+}
+
+function azUpdateGraphConstraints() {
+  const config = graphTypeOptions.find(o => o.name === azSelectedGraph);
+  if (!config) return;
+
+  const catDiv = document.getElementById('az-category-selection-div');
+  if (config.auto_add_categories) {
+    azSelectedCategories = [...categoryNameList];
+    catDiv && (catDiv.style.display = 'none');
+  } else {
+    catDiv && (catDiv.style.display = '');
+  }
+
+  // Enforce limits
+  const maxCat = config.number_of_categories_allow;
+  const maxSta = config.number_of_stations_allow;
+  if (maxCat !== 'All' && azSelectedCategories.length > maxCat) azSelectedCategories = azSelectedCategories.slice(0, maxCat);
+  if (maxSta !== 'All' && azSelectedStations.length > maxSta)   azSelectedStations   = azSelectedStations.slice(0, maxSta);
+
+  azRenderTags('az-selected-categories', azSelectedCategories, (i) => {
+    azSelectedCategories.splice(i, 1);
+    azRenderTags('az-selected-categories', azSelectedCategories, arguments.callee);
+    azRenderSummary();
+  });
+  azRenderTags('az-selected-stations', azSelectedStations, (i) => {
+    azSelectedStations.splice(i, 1);
+    azRenderTags('az-selected-stations', azSelectedStations, arguments.callee);
+    azRenderSummary();
+  });
+  azRenderSummary();
+}
+
+function azBuildAnalysisReport(text) {
+  // Parse section headers (e.g. "Data Quality and Coverage Assessment:")
+  const sectionPattern = /^([A-Z][^:\n]{5,80}):[ \t]*$/gm;
+  const parts = [];
+  let lastIndex = 0;
+  let match;
+  const plainText = text.trim();
+  const matches = [];
+  let m;
+  const re = /^([A-Z][^:\n]{5,80}):[ \t]*$/gm;
+  while ((m = re.exec(plainText)) !== null) matches.push(m);
+
+  if (matches.length === 0) {
+    // Fallback: plain paragraphs
+    return plainText.split(/\n+/).filter(p => p.trim()).map(p =>
+      `<p class="az-para">${p.trim()}</p>`
+    ).join('');
+  }
+
+  let html = '';
+  matches.forEach((match, idx) => {
+    const headerStart = match.index;
+    const contentStart = headerStart + match[0].length;
+    const contentEnd = idx + 1 < matches.length ? matches[idx + 1].index : plainText.length;
+    const header = match[1].trim();
+    const body = plainText.slice(contentStart, contentEnd).trim();
+    const paras = body.split(/\n+/).filter(p => p.trim()).map(p =>
+      `<p class="az-para">${p.trim()}</p>`
+    ).join('');
+    html += `<div class="az-section"><h4 class="az-section-title">${header}</h4>${paras}</div>`;
+  });
+  return html;
+}
+
+function setupAnalyzeEvents() {
+  const graphSelect = document.getElementById('az-options-select');
+  const catSelect   = document.getElementById('az-categories-select');
+  const staSelect   = document.getElementById('az-stations-select');
+  const addCatBtn   = document.getElementById('az-add-category-btn');
+  const addStaBtn   = document.getElementById('az-add-station-btn');
+  const generateBtn = document.getElementById('az-generate-btn');
+
+  if (!graphSelect) return;
+
+  // Populate graph type dropdown (same options as builder)
+  graphTypeOptions.forEach(opt => {
+    const o = document.createElement('option');
+    o.value = opt.name;
+    o.textContent = opt.name;
+    graphSelect.appendChild(o);
+  });
+
+  // Populate categories
+  categoryNameList.forEach(cat => {
+    const o = document.createElement('option');
+    o.value = cat; o.textContent = cat;
+    catSelect.appendChild(o);
+  });
+
+  // Populate stations
+  stationNameList.forEach(sta => {
+    const o = document.createElement('option');
+    o.value = sta; o.textContent = sta;
+    staSelect.appendChild(o);
+  });
+
+  graphSelect.addEventListener('change', function() {
+    azSelectedGraph = this.value;
+    azSelectedCategories = [];
+    azSelectedStations = [];
+    azUpdateGraphConstraints();
+  });
+
+  addCatBtn?.addEventListener('click', () => {
+    const val = catSelect.value;
+    if (!val) return;
+    const config = graphTypeOptions.find(o => o.name === azSelectedGraph);
+    const max = config?.number_of_categories_allow;
+    if (max !== 'All' && azSelectedCategories.length >= max) {
+      showAlert(document.getElementById('az-one-category-alert'));
+      return;
+    }
+    if (!azSelectedCategories.includes(val)) {
+      azSelectedCategories.push(val);
+      azRenderTags('az-selected-categories', azSelectedCategories, (i) => {
+        azSelectedCategories.splice(i, 1);
+        azRenderTags('az-selected-categories', azSelectedCategories, () => {});
+        azRenderSummary();
+      });
+      azRenderSummary();
+    }
+  });
+
+  addStaBtn?.addEventListener('click', () => {
+    const val = staSelect.value;
+    if (!val) return;
+    const config = graphTypeOptions.find(o => o.name === azSelectedGraph);
+    const max = config?.number_of_stations_allow;
+    if (max !== 'All' && azSelectedStations.length >= max) {
+      showAlert(document.getElementById('az-one-station-alert'));
+      return;
+    }
+    if (!azSelectedStations.includes(val)) {
+      azSelectedStations.push(val);
+      azRenderTags('az-selected-stations', azSelectedStations, (i) => {
+        azSelectedStations.splice(i, 1);
+        azRenderTags('az-selected-stations', azSelectedStations, () => {});
+        azRenderSummary();
+      });
+      azRenderSummary();
+    }
+  });
+
+  generateBtn?.addEventListener('click', async () => {
+    if (!azSelectedGraph || azSelectedCategories.length === 0 || azSelectedStations.length === 0) {
+      showAlert(document.getElementById('az-no-selection-alert'));
+      return;
+    }
+
+    generateBtn.disabled = true;
+    generateBtn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 1s linear infinite;vertical-align:middle;margin-right:6px;"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>Generating…`;
+
+    const chartContainer = document.getElementById('az-chart-container');
+    const analysisPanel  = document.getElementById('az-analysis-panel');
+    const analysisBody   = document.getElementById('az-analysis-body');
+    const loadingEl      = document.getElementById('az-analysis-loading');
+
+    chartContainer?.classList.add('hidden');
+    analysisPanel?.classList.add('hidden');
+
+    // Build viz payload — attach date range from categoryDetailsMap for each pair
+    const dataEntries = azSelectedCategories.flatMap(cat =>
+      azSelectedStations.flatMap(sta => {
+        const detail = getCategoryDateRange(cat, sta);
+        if (!detail) return [];  // skip pairs with no known date range
+        return [{
+          category_name: cat,
+          station_name: sta,
+          start_date: formatDateToDDMMYYYY(detail.start_date),
+          end_date:   formatDateToDDMMYYYY(detail.end_date),
+        }];
+      })
+    );
+    if (dataEntries.length === 0) {
+      analysisBody.innerHTML = '<p class="az-error">No data available for the selected station and category combination.</p>';
+      analysisPanel?.classList.remove('hidden');
+      generateBtn.disabled = false;
+      generateBtn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z"/><path d="M12 8v4l3 3"/></svg>Generate Analysis`;
+      return;
+    }
+    const payload = [{ graph_type: azSelectedGraph, data: dataEntries }];
+
+    try {
+      // Step 1: generate chart
+      const vizRes  = await fetch('/generate_visualization', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const vizData = await vizRes.json();
+      if (vizData.error) throw new Error(vizData.error);
+
+      const charts  = vizData.charts || [];
+      const summary = vizData.summary || {};
+      const ranking = vizData.ranking || [];
+
+      if (charts.length > 0) {
+        chartContainer?.classList.remove('hidden');
+        Plotly.newPlot('az-chart', JSON.parse(charts[0]), {}, { responsive: true });
+      }
+
+      // Step 2: AI analysis
+      analysisPanel?.classList.remove('hidden');
+      analysisBody.innerHTML = '';
+      loadingEl?.classList.remove('hidden');
+
+      const aiRes  = await fetch('/analyze_with_ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          summary,
+          ranking,
+          graph_type: azSelectedGraph,
+          stations: azSelectedStations,
+          categories: azSelectedCategories
+        })
+      });
+      const aiData = await aiRes.json();
+      loadingEl?.classList.add('hidden');
+
+      if (aiData.error) throw new Error(aiData.error);
+      analysisBody.innerHTML = azBuildAnalysisReport(aiData.analysis);
+
+    } catch (err) {
+      loadingEl?.classList.add('hidden');
+      analysisPanel?.classList.remove('hidden');
+      analysisBody.innerHTML = `<p class="az-error">Error: ${err.message}. Make sure GEMINI_API_KEY is set.</p>`;
+    } finally {
+      generateBtn.disabled = false;
+      generateBtn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z"/><path d="M12 8v4l3 3"/></svg>Generate Analysis`;
     }
   });
 }
@@ -1953,6 +2233,7 @@ document.addEventListener("DOMContentLoaded", async function() {
     setupSidebarToggle();
     setupThemeToggle();
     setupAiAnalysis();
+    setupAnalyzeEvents();
     setupUndoToast();
   } catch (error) {
     console.error("Initialization error:", error);

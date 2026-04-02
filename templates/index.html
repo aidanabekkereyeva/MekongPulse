@@ -52,6 +52,22 @@
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
           <span>Prediction</span>
         </div>
+        <div class="nav-item analyze-section-icon" data-label="Analyze">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+          <span>Analyze</span>
+        </div>
+        <div class="nav-item correlation-icon" data-label="Correlation Explorer">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="17" r="2"/><circle cx="17" cy="7" r="2"/><circle cx="17" cy="17" r="2"/><circle cx="7" cy="7" r="2"/><line x1="9" y1="7" x2="15" y2="7"/><line x1="9" y1="17" x2="15" y2="17"/><line x1="7" y1="9" x2="7" y2="15"/><line x1="17" y1="9" x2="17" y2="15"/></svg>
+          <span>Correlation</span>
+        </div>
+        <div class="nav-item seasonal-icon" data-label="Seasonal Decomposition">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12 Q6 4 10 12 Q14 20 18 12 Q20 8 22 12"/><line x1="2" y1="20" x2="22" y2="20"/></svg>
+          <span>Seasonal</span>
+        </div>
+        <div class="nav-item export-icon" data-label="Data Export">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <span>Export</span>
+        </div>
         <div class="nav-item about-us-icon" data-label="About Project">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
           <span>About Project</span>
@@ -124,7 +140,10 @@
             <button class="primary-btn custom-visualization-setup-icon">Start Visualization</button>
             <button class="secondary-btn visualization-dashboard-icon">Open Dashboard</button>
             <button class="secondary-btn prediction-icon">Prediction</button>
-            <button class="secondary-btn visualization-dashboard-icon">Analyze</button>
+            <button class="secondary-btn analyze-section-icon">Analyze</button>
+            <button class="secondary-btn correlation-icon">Correlation</button>
+            <button class="secondary-btn seasonal-icon">Seasonal</button>
+            <button class="secondary-btn export-icon">Export</button>
           </div>
         </div>
 
@@ -591,6 +610,166 @@
         </div>
       </section>
 
+      <!-- ===== CORRELATION EXPLORER ===== -->
+      <section class="panel correlation-section hidden">
+        <div class="panel-heading">
+          <div>
+            <p class="section-label">Coming Soon</p>
+            <h2>Correlation Explorer</h2>
+          </div>
+        </div>
+        <div class="coming-soon-panel">
+          <div class="coming-soon-icon">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="17" r="2"/><circle cx="17" cy="7" r="2"/><circle cx="17" cy="17" r="2"/><circle cx="7" cy="7" r="2"/><line x1="9" y1="7" x2="15" y2="7"/><line x1="9" y1="17" x2="15" y2="17"/><line x1="7" y1="9" x2="7" y2="15"/><line x1="17" y1="9" x2="17" y2="15"/></svg>
+          </div>
+          <h3>Correlation Explorer</h3>
+          <p>Explore statistical relationships between hydrological variables across monitoring stations. Generate scatter plots, Pearson correlation matrices, and lag-correlation analyses to identify whether upstream rainfall drives downstream discharge, or how sediment load responds to water level changes across the basin.</p>
+          <div class="coming-soon-features">
+            <span class="coming-soon-tag">Scatter plots</span>
+            <span class="coming-soon-tag">Correlation matrix</span>
+            <span class="coming-soon-tag">Lag correlation</span>
+            <span class="coming-soon-tag">Cross-station comparison</span>
+            <span class="coming-soon-tag">Variable pair analysis</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== SEASONAL DECOMPOSITION ===== -->
+      <section class="panel seasonal-section hidden">
+        <div class="panel-heading">
+          <div>
+            <p class="section-label">Coming Soon</p>
+            <h2>Seasonal Decomposition</h2>
+          </div>
+        </div>
+        <div class="coming-soon-panel">
+          <div class="coming-soon-icon">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12 Q6 4 10 12 Q14 20 18 12 Q20 8 22 12"/><line x1="2" y1="20" x2="22" y2="20"/></svg>
+          </div>
+          <h3>Seasonal Decomposition</h3>
+          <p>Decompose any station's time series into its constituent components — long-term trend, repeating seasonal cycle, and irregular residual. Based on STL (Seasonal and Trend decomposition using Loess), this module isolates the Mekong's monsoon-driven seasonality from underlying multi-year directional shifts, enabling clearer interpretation of whether observed changes are cyclical or structural.</p>
+          <div class="coming-soon-features">
+            <span class="coming-soon-tag">STL decomposition</span>
+            <span class="coming-soon-tag">Trend isolation</span>
+            <span class="coming-soon-tag">Seasonal cycle extraction</span>
+            <span class="coming-soon-tag">Residual anomaly view</span>
+            <span class="coming-soon-tag">Monsoon pattern analysis</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== DATA EXPORT ===== -->
+      <section class="panel export-section hidden">
+        <div class="panel-heading">
+          <div>
+            <p class="section-label">Coming Soon</p>
+            <h2>Data Export</h2>
+          </div>
+        </div>
+        <div class="coming-soon-panel">
+          <div class="coming-soon-icon">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          </div>
+          <h3>Data Export</h3>
+          <p>Export any station's data, generated visualisations, and AI analytical reports into portable formats suitable for academic submission, research presentations, or further analysis in external tools. Download raw filtered records as structured CSV, save charts as high-resolution PNG, or compile a complete analytical session into a formatted PDF report.</p>
+          <div class="coming-soon-features">
+            <span class="coming-soon-tag">CSV data download</span>
+            <span class="coming-soon-tag">Chart PNG export</span>
+            <span class="coming-soon-tag">PDF report generation</span>
+            <span class="coming-soon-tag">AI report export</span>
+            <span class="coming-soon-tag">Forecast data export</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== ANALYZE SECTION ===== -->
+      <section class="panel analyze-section hidden">
+        <div class="panel-heading">
+          <div>
+            <p class="section-label">AI-Powered Analysis</p>
+            <h2>Analysis Builder</h2>
+          </div>
+        </div>
+
+        <div class="form-card">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="menu-title" for="az-options-select">Visualization Type</label>
+              <select id="az-options-select" class="dropdown"></select>
+            </div>
+          </div>
+
+          <div class="form-row" id="az-category-selection-div">
+            <div class="form-group">
+              <label class="menu-title" for="az-categories-select">Categories</label>
+              <div class="control-row">
+                <select id="az-categories-select" class="dropdown"></select>
+                <button type="button" id="az-add-category-btn" class="action-add-btn">Add Category</button>
+              </div>
+              <p class="helper-text">Choose a category, then click "Add Category".</p>
+              <div class="selected-categories" id="az-selected-categories"></div>
+              <p class="warning-alert" id="az-one-category-alert">Only one category is allowed for this visualization type.</p>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="menu-title" for="az-stations-select">Stations</label>
+              <div class="control-row">
+                <select id="az-stations-select" class="dropdown"></select>
+                <button type="button" id="az-add-station-btn" class="action-add-btn">Add Station</button>
+              </div>
+              <p class="helper-text">Choose a station, then click "Add Station".</p>
+              <div class="selected-stations" id="az-selected-stations"></div>
+              <p class="warning-alert" id="az-one-station-alert">Only one station is allowed for this visualization type.</p>
+            </div>
+          </div>
+
+          <div class="builder-summary">
+            <div class="summary-box">
+              <p class="card-label">Selected graph</p>
+              <p id="az-graph-preview">No graph selected yet</p>
+            </div>
+            <div class="summary-box">
+              <p class="card-label">Selected categories</p>
+              <p id="az-categories-preview">0</p>
+            </div>
+            <div class="summary-box">
+              <p class="card-label">Selected stations</p>
+              <p id="az-stations-preview">0</p>
+            </div>
+          </div>
+
+          <div class="action-row">
+            <button id="az-generate-btn" class="primary-btn">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z"/><path d="M12 8v4l3 3"/></svg>
+              Generate Analysis
+            </button>
+          </div>
+          <p class="warning-alert" id="az-no-selection-alert">Please select a graph type, at least one category and one station.</p>
+        </div>
+
+        <!-- Chart output -->
+        <div id="az-chart-container" class="hidden" style="margin-top:24px;">
+          <div id="az-chart" style="width:100%;height:480px;"></div>
+        </div>
+
+        <!-- AI Analysis Report -->
+        <div id="az-analysis-panel" class="az-analysis-panel hidden">
+          <div class="az-analysis-header">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+            <span>AI Analytical Report</span>
+            <div id="az-analysis-loading" class="az-loading hidden">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 1s linear infinite"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+              Generating report...
+            </div>
+          </div>
+          <div id="az-analysis-body" class="az-analysis-body">
+            <p class="az-placeholder">Your AI analytical report will appear here after generating the analysis.</p>
+          </div>
+        </div>
+      </section>
+
       <section class="panel about-us hidden">
         <div class="panel-heading">
           <div>
@@ -599,123 +778,146 @@
           </div>
         </div>
 
-        <!-- Overview statement -->
+        <!-- Intro banner -->
         <div class="info-panel about-intro-panel">
           <p class="about-intro-text">
-            Mekong Pulse is an interactive hydrological analytics dashboard developed as a final-year academic project. It provides a structured, data-driven environment for exploring long-term river monitoring records across the Mekong basin — integrating station discovery, configurable multi-variable visualisation, statistical analysis, and time-series forecasting into a single cohesive platform.
+            Mekong Pulse is an interactive hydrological analytics and AI-assisted interpretation platform developed as a final-year academic project. It integrates station-level data exploration, configurable multi-variable visualisation, statistical analysis, multi-model time-series forecasting, and AI-generated analytical reporting into a single, cohesive research environment — grounded in real monitoring data from the Mekong River Commission network.
           </p>
         </div>
 
-        <!-- Row 1: 3-col -->
-        <div class="three-column-grid" style="margin-top:16px;">
-          <div class="info-panel">
-            <div class="about-icon-wrap about-icon-amber">
-              <!-- Globe / geographic scope -->
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-            </div>
-            <h3>Research Context</h3>
-            <p>
-              The Mekong River system is one of the most hydrologically significant river basins in Southeast Asia, supporting the livelihoods of over 60 million people across six riparian nations. Understanding long-term patterns in rainfall, river discharge, sediment load, and water level is critical for water resource management, flood risk assessment, and environmental policy.
-            </p>
-            <p>
-              This platform was developed to support the academic exploration of such patterns using real monitoring station data, providing an accessible interface for structured temporal analysis.
-            </p>
-          </div>
-
-          <div class="info-panel">
-            <div class="about-icon-wrap about-icon-green">
-              <!-- Layers / stacked analysis types -->
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
-            </div>
-            <h3>Analytical Capabilities</h3>
-            <ul>
-              <li>Single and multi-station timeline comparison</li>
-              <li>Year-over-year and decade-by-decade analysis</li>
-              <li>Flow duration curves and monthly climatology</li>
-              <li>Rolling average trend overlays</li>
-              <li>Cumulative departure from long-term mean</li>
-              <li>Anomaly detection with statistical thresholds</li>
-              <li>Correlation scatter plots across categories</li>
-              <li>Holt-Winters exponential smoothing forecasts</li>
-            </ul>
-          </div>
-
-          <div class="info-panel">
-            <div class="about-icon-wrap about-icon-navy">
-              <!-- CPU / processor chip -->
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>
-            </div>
-            <h3>Technical Architecture</h3>
-            <ul>
-              <li><strong>Backend:</strong> Python · Flask · Pandas · NumPy</li>
-              <li><strong>Forecasting:</strong> statsmodels ExponentialSmoothing (Holt-Winters)</li>
-              <li><strong>Visualisation:</strong> Plotly (graph_objs + express)</li>
-              <li><strong>Mapping:</strong> Leaflet.js · GeoJSON basin overlay · CartoDB tiles</li>
-              <li><strong>Frontend:</strong> Vanilla JS · Inter typeface · CSS custom properties</li>
-              <li><strong>Data format:</strong> CSV-based station and category records</li>
-              <li><strong>Theme:</strong> Light/dark mode with localStorage persistence</li>
-            </ul>
-          </div>
-        </div>
-
-        <!-- Row 2: 2-col -->
-        <div class="two-column-grid" style="margin-top:16px;">
-          <div class="info-panel">
-            <div class="about-icon-wrap about-icon-purple">
-              <!-- Database cylinder -->
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
-            </div>
-            <h3>Methodology and Data</h3>
-            <p>
-              Station records were sourced from the Mekong River Commission (MRC) monitoring network, covering hydrological categories including rainfall, river discharge, suspended sediment, and water level. Data was preprocessed and structured into a station-category model, enabling flexible cross-station and cross-category querying at the presentation layer.
-            </p>
-            <p>
-              The forecasting module applies the Holt-Winters triple exponential smoothing method, which decomposes time series into level, trend, and seasonal components. Where at least 24 months of data are available, a full additive seasonal model is fitted. A 95% confidence interval is computed from model residuals and reported alongside each forecast to communicate uncertainty.
-            </p>
-            <p>
-              Statistical summaries include mean, min, max, standard deviation, coefficient of variation, and a first-half vs second-half trend comparison — providing both descriptive and inferential context for each visualisation.
-            </p>
-          </div>
-
-          <div class="info-panel">
-            <div class="about-icon-wrap about-icon-amber">
-              <!-- Graduation cap -->
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
-            </div>
-            <h3>Academic Value and Limitations</h3>
-            <p>
-              This platform demonstrates the application of data engineering, statistical analysis, and interactive design principles within an environmental informatics context. It is intended as a decision-support and presentation tool rather than an operational forecasting system.
-            </p>
-            <p>
-              The Holt-Winters model assumes that historical seasonal patterns will persist into the future, which may not hold under climate change scenarios. Forecast reliability decreases with longer horizons, and confidence intervals should be interpreted as indicative rather than definitive. Stations with sparse or irregular records will produce less reliable statistical summaries.
-            </p>
-            <p>
-              Future development could incorporate machine learning-based forecasting models, real-time data feeds, multi-variable regression, and enhanced spatial analysis using basin-level GIS layers.
-            </p>
-          </div>
-        </div>
-
-        <!-- Row 3: platform highlights strip -->
-        <div class="about-highlights-row">
+        <!-- highlights strip -->
+        <div class="about-highlights-row" style="margin-top:16px;">
           <div class="about-highlight">
             <span class="about-highlight-num" id="about-stat-stations">--</span>
             <span class="about-highlight-label">Monitoring Stations</span>
           </div>
           <div class="about-highlight">
             <span class="about-highlight-num" id="about-stat-categories">--</span>
-            <span class="about-highlight-label">Hydrological Categories</span>
-          </div>
-          <div class="about-highlight">
-            <span class="about-highlight-num">16</span>
-            <span class="about-highlight-label">Visualisation Types</span>
+            <span class="about-highlight-label">Hydrological Variables</span>
           </div>
           <div class="about-highlight">
             <span class="about-highlight-num">6</span>
-            <span class="about-highlight-label">Riparian Countries</span>
+            <span class="about-highlight-label">Riparian Nations</span>
+          </div>
+          <div class="about-highlight">
+            <span class="about-highlight-num">6</span>
+            <span class="about-highlight-label">Forecasting Models</span>
           </div>
           <div class="about-highlight">
             <span class="about-highlight-num">Up to 36mo</span>
             <span class="about-highlight-label">Forecast Horizon</span>
+          </div>
+        </div>
+
+        <!-- Row 1: Problem + Why Mekong -->
+        <div class="two-column-grid" style="margin-top:20px;">
+          <div class="info-panel">
+            <div class="about-icon-wrap about-icon-amber">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </div>
+            <h3>The Problem</h3>
+            <p>
+              Transboundary river systems such as the Mekong face an accelerating convergence of pressures: upstream hydropower dam proliferation, deforestation-driven catchment degradation, shifting monsoon patterns attributable to anthropogenic climate change, and increasing agricultural water abstraction across six riparian states. These compounding stressors are altering river discharge regimes, sediment dynamics, and seasonal flood pulse behaviour in ways that directly threaten food security, biodiversity, and the livelihoods of an estimated 60–70 million people.
+            </p>
+            <p>
+              Despite the existence of long-term hydrological monitoring networks coordinated by the Mekong River Commission (MRC), the analytical accessibility of this data remains limited. Raw station records are rarely accompanied by interactive tools that allow non-specialist researchers, students, or policymakers to explore temporal patterns, compare stations spatially, or generate evidence-based forecasts — creating a significant gap between data availability and practical analytical utility.
+            </p>
+          </div>
+
+          <div class="info-panel">
+            <div class="about-icon-wrap about-icon-green">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+            </div>
+            <h3>Why the Mekong River?</h3>
+            <p>
+              The Mekong River — at approximately 4,900 kilometres the twelfth longest river in the world and the longest in Southeast Asia — was selected as the subject of this project for several compelling academic and applied reasons. It represents one of the most biodiverse freshwater ecosystems on Earth, sustaining the world's largest inland fishery and forming the agricultural and ecological backbone of Cambodia, Laos, Myanmar, Thailand, Vietnam, and the Yunnan province of China.
+            </p>
+            <p>
+              Critically, the Mekong is a river system under documented, measurable stress. Peer-reviewed literature has recorded statistically significant changes in discharge variability, sediment load reduction downstream of major dams, and shifts in the timing of the annual flood pulse. This makes it an exceptionally relevant subject for applied hydrological analysis: the data is rich, the stakes are high, and the analytical questions are both scientifically meaningful and socially urgent.
+            </p>
+          </div>
+        </div>
+
+        <!-- Row 2: Why this project + Motivation -->
+        <div class="two-column-grid" style="margin-top:16px;">
+          <div class="info-panel">
+            <div class="about-icon-wrap about-icon-purple">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+            </div>
+            <h3>Project Rationale and Motivation</h3>
+            <p>
+              This project was undertaken in response to a perceived need for a unified, accessible, and academically rigorous tool that bridges the gap between raw hydrological data and actionable insight. Existing platforms for Mekong basin data either require specialist GIS software, are restricted to institutional access, or present data without supporting analytical or forecasting infrastructure.
+            </p>
+            <p>
+              The motivation was to demonstrate that modern web technologies, open-source scientific computing libraries, and AI language models can be combined to produce a platform that is simultaneously presentation-ready, analytically substantive, and approachable for students and early-career researchers. The project also served as an opportunity to apply skills in data engineering, statistical modelling, machine learning, and full-stack development within a real-world environmental informatics context.
+            </p>
+            <p>
+              The choice to incorporate multiple forecasting models — ranging from classical statistical approaches (Holt-Winters, SARIMA) to ensemble machine learning methods (Random Forest, Gradient Boosting) and kernel-based regression (SVR) — reflects a deliberate effort to situate the platform at the intersection of traditional hydrology and contemporary data science practice.
+            </p>
+          </div>
+
+          <div class="info-panel">
+            <div class="about-icon-wrap about-icon-navy">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+            </div>
+            <h3>Methodology and Data</h3>
+            <p>
+              Station records were sourced from the Mekong River Commission (MRC) monitoring network, encompassing four primary hydrological variables: rainfall (mm), river discharge (m³/s), water level (m), and total suspended solids (mg/l). Data was preprocessed and structured into a station-category relational model, enabling flexible cross-station and cross-variable querying at the presentation layer without requiring a live database connection.
+            </p>
+            <p>
+              Forecasting is implemented across six models. Classical methods — Holt-Winters triple exponential smoothing and SARIMA — decompose time series into trend, seasonal, and residual components with fitted confidence intervals. Machine learning methods — Random Forest, Gradient Boosting, Support Vector Regression, and Linear Seasonal decomposition — operate on engineered lag features and Fourier harmonic terms to capture non-linear seasonal dynamics. All models generate 95% confidence intervals from in-sample residuals to communicate forecast uncertainty.
+            </p>
+            <p>
+              The AI-assisted analysis module uses the Gemini language model to generate structured hydrological reports, interpreting statistical summaries, trend directions, station rankings, and data quality metrics in the context of Mekong basin environmental science.
+            </p>
+          </div>
+        </div>
+
+        <!-- Row 3: Analytical Capabilities + Technical Architecture -->
+        <div class="two-column-grid" style="margin-top:16px;">
+          <div class="info-panel">
+            <div class="about-icon-wrap about-icon-green">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+            </div>
+            <h3>Analytical Capabilities</h3>
+            <ul>
+              <li>Single and multi-station temporal timeline comparison</li>
+              <li>Year-over-year and multi-decade trend analysis</li>
+              <li>Flow duration curves and monthly climatology box plots</li>
+              <li>Rolling average smoothing and trend overlays</li>
+              <li>Cumulative departure from long-term mean</li>
+              <li>Anomaly detection with statistical threshold bands</li>
+              <li>Correlation scatter plots across hydrological variables</li>
+              <li>Multi-station temporal heatmaps</li>
+              <li>Six-model time-series forecasting with confidence intervals</li>
+              <li>AI-generated structured analytical reports via Gemini</li>
+              <li>Data quality scoring: coverage, variability, trend, and span</li>
+              <li>Automated key findings generation from summary statistics</li>
+            </ul>
+          </div>
+
+          <div class="info-panel">
+            <div class="about-icon-wrap about-icon-amber">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>
+            </div>
+            <h3>Technical Architecture</h3>
+            <ul>
+              <li><strong>Backend:</strong> Python · Flask · Pandas · NumPy</li>
+              <li><strong>Statistical models:</strong> statsmodels (Holt-Winters, SARIMA)</li>
+              <li><strong>Machine learning:</strong> scikit-learn (Random Forest, Gradient Boosting, SVR, Linear Regression)</li>
+              <li><strong>AI analysis:</strong> Google Gemini API via google-genai</li>
+              <li><strong>Visualisation:</strong> Plotly graph_objs and express</li>
+              <li><strong>Mapping:</strong> Leaflet.js · GeoJSON basin overlay · CartoDB tiles</li>
+              <li><strong>Frontend:</strong> Vanilla JS · CSS custom properties · Inter typeface</li>
+              <li><strong>Persistence:</strong> localStorage for sidebar state and theme preference</li>
+              <li><strong>Data format:</strong> CSV-based station and category records</li>
+            </ul>
+
+            <div style="margin-top:16px; padding:12px 14px; background:var(--panel-soft); border-radius:var(--radius-sm); border-left:3px solid var(--accent);">
+              <p style="font-size:0.82rem; color:var(--muted); margin:0; line-height:1.6;">
+                <strong style="color:var(--text);">Limitations:</strong> Forecasting models assume historical patterns persist and are intended as decision-support tools, not operational predictions. Data quality varies by station; sparse records yield less reliable statistical summaries. The AI analysis module requires a valid Gemini API key and is subject to rate limits on the free tier.
+              </p>
+            </div>
           </div>
         </div>
       </section>
