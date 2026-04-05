@@ -2412,6 +2412,155 @@ function setupPredictionEvents() {
 }
 
 // ------------------------------
+// SEASONAL DECOMPOSITION
+// ------------------------------
+function populateSeasonalDropdowns() {
+  const staSel = document.getElementById('seas-station-select');
+  const catSel = document.getElementById('seas-category-select');
+  if (!staSel || !catSel) return;
+
+  const prevSta = staSel.value;
+  staSel.innerHTML = '<option value="">Select a station...</option>';
+  stationNameList.forEach(name => {
+    const opt = document.createElement('option');
+    opt.value = name; opt.textContent = name;
+    staSel.appendChild(opt);
+  });
+  if (prevSta && stationNameList.includes(prevSta)) staSel.value = prevSta;
+
+  _updateSeasonalCategories(staSel.value);
+}
+
+function _updateSeasonalCategories(stationName) {
+  const catSel = document.getElementById('seas-category-select');
+  if (!catSel) return;
+  const prev = catSel.value;
+  catSel.innerHTML = '<option value="">Select a category...</option>';
+
+  const available = stationName
+    ? categoryNameList.filter(name =>
+        (categoryDetailsMap[name] || []).some(row => row.station_name === stationName)
+      )
+    : categoryNameList;
+
+  available.forEach(name => {
+    const opt = document.createElement('option');
+    opt.value = name; opt.textContent = name;
+    catSel.appendChild(opt);
+  });
+  if (prev && available.includes(prev)) catSel.value = prev;
+}
+
+function _autofillSeasonalDates() {
+  const station  = document.getElementById('seas-station-select')?.value;
+  const category = document.getElementById('seas-category-select')?.value;
+  const startEl  = document.getElementById('seas-start-date');
+  const endEl    = document.getElementById('seas-end-date');
+  if (!station || !category) {
+    if (startEl) startEl.value = '';
+    if (endEl)   endEl.value   = '';
+    return;
+  }
+  const detail = getCategoryDateRange(category, station);
+  if (detail) {
+    if (startEl) startEl.value = formatDateToDDMMYYYY(detail.start_date);
+    if (endEl)   endEl.value   = formatDateToDDMMYYYY(detail.end_date);
+  } else {
+    if (startEl) startEl.value = '';
+    if (endEl)   endEl.value   = '';
+  }
+}
+
+function _showSeasonalAnalysis(analysis, source) {
+  const panel = document.getElementById('seas-analysis-panel');
+  const body  = document.getElementById('seas-analysis-body');
+  if (!panel || !body || !analysis) return;
+  const tag = source === 'gemini'
+    ? '<span class="analysis-source-tag gemini-tag">Gemini AI</span>'
+    : '<span class="analysis-source-tag fallback-tag">Pre-plan Analysis</span>';
+  body.innerHTML = tag + azBuildAnalysisReport(analysis);
+  panel.classList.remove('hidden');
+}
+
+function setupSeasonalEvents() {
+  populateSeasonalDropdowns();
+
+  document.getElementById('seas-station-select')?.addEventListener('change', function() {
+    _updateSeasonalCategories(this.value);
+    _autofillSeasonalDates();
+  });
+  document.getElementById('seas-category-select')?.addEventListener('change', _autofillSeasonalDates);
+
+  document.getElementById('seas-generate-btn')?.addEventListener('click', function() {
+    const station  = document.getElementById('seas-station-select')?.value;
+    const category = document.getElementById('seas-category-select')?.value;
+    const startDate = document.getElementById('seas-start-date')?.value;
+    const endDate   = document.getElementById('seas-end-date')?.value;
+    const period    = parseInt(document.getElementById('seas-period-select')?.value || '12');
+
+    if (!station || !category || !startDate || !endDate) {
+      showAlert(document.getElementById('seas-alert'));
+      return;
+    }
+
+    const btn = this;
+    btn.disabled = true;
+    btn.textContent = 'Running…';
+
+    // Hide previous results
+    document.getElementById('seas-stats-grid')?.classList.add('hidden');
+    document.getElementById('seas-chart-container')?.classList.add('hidden');
+    document.getElementById('seas-analysis-panel')?.classList.add('hidden');
+
+    fetch('/generate_seasonal', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        station_name: station,
+        category_name: category,
+        start_date: startDate,
+        end_date: endDate,
+        period: period,
+      }),
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.error) {
+        const el = document.getElementById('seas-alert');
+        if (el) { el.textContent = 'Decomposition error: ' + data.error; showAlert(el); }
+        return;
+      }
+
+      const s = data.summary;
+
+      // Stats grid
+      const trendDir = s.trend_direction;
+      const trendColour = trendDir === 'Increasing' ? '#16a34a' : trendDir === 'Decreasing' ? '#dc2626' : '#6b7fa0';
+      document.getElementById('seas-stat-trend-dir').textContent = trendDir;
+      document.getElementById('seas-stat-trend-dir').style.color = trendColour;
+      document.getElementById('seas-stat-trend-str').textContent = (s.trend_strength * 100).toFixed(1) + '%';
+      document.getElementById('seas-stat-seas-str').textContent  = (s.seasonal_strength * 100).toFixed(1) + '%';
+      document.getElementById('seas-stat-peak').textContent      = s.peak_month;
+      document.getElementById('seas-stat-trough').textContent    = s.trough_month;
+      document.getElementById('seas-stat-anomalies').textContent = s.anomaly_count + ' months';
+      document.getElementById('seas-stats-grid').classList.remove('hidden');
+
+      // Chart
+      document.getElementById('seas-chart-container').classList.remove('hidden');
+      Plotly.newPlot('seas-chart', JSON.parse(data.chart), {}, { responsive: true });
+
+      // Analysis
+      _showSeasonalAnalysis(data.analysis, data.analysis_source);
+    })
+    .catch(err => {
+      const el = document.getElementById('seas-alert');
+      if (el) { el.textContent = 'Error: ' + err.message; showAlert(el); }
+    })
+    .finally(() => { btn.disabled = false; btn.textContent = 'Run Decomposition'; });
+  });
+}
+
+// ------------------------------
 // INIT
 // ------------------------------
 document.addEventListener("DOMContentLoaded", async function() {
@@ -2433,6 +2582,7 @@ document.addEventListener("DOMContentLoaded", async function() {
     setupModalEvents();
     populatePredictionDropdowns();
     setupPredictionEvents();
+    setupSeasonalEvents();
     setupSidebarToggle();
     setupThemeToggle();
     setupAiAnalysis();

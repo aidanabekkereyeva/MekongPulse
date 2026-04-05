@@ -661,23 +661,91 @@
       <section class="panel seasonal-section hidden">
         <div class="panel-heading">
           <div>
-            <p class="section-label">Coming Soon</p>
+            <p class="section-label">Time Series Analysis</p>
             <h2>Seasonal Decomposition</h2>
           </div>
         </div>
-        <div class="coming-soon-panel">
-          <div class="coming-soon-icon">
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12 Q6 4 10 12 Q14 20 18 12 Q20 8 22 12"/><line x1="2" y1="20" x2="22" y2="20"/></svg>
+
+        <p class="seasonal-intro">
+          Decompose any station's time series into its constituent components using STL (Seasonal and Trend decomposition using Loess). The method isolates the Mekong's monsoon-driven seasonality from underlying multi-year directional shifts — revealing whether observed changes are cyclical or structural.
+        </p>
+
+        <div class="form-card">
+          <div class="two-column-grid">
+            <div class="form-group">
+              <label class="menu-title" for="seas-station-select">Station</label>
+              <select id="seas-station-select" class="dropdown"><option value="">Select a station...</option></select>
+            </div>
+            <div class="form-group">
+              <label class="menu-title" for="seas-category-select">Category</label>
+              <select id="seas-category-select" class="dropdown"><option value="">Select a category...</option></select>
+            </div>
           </div>
-          <h3>Seasonal Decomposition</h3>
-          <p>Decompose any station's time series into its constituent components — long-term trend, repeating seasonal cycle, and irregular residual. Based on STL (Seasonal and Trend decomposition using Loess), this module isolates the Mekong's monsoon-driven seasonality from underlying multi-year directional shifts, enabling clearer interpretation of whether observed changes are cyclical or structural.</p>
-          <div class="coming-soon-features">
-            <span class="coming-soon-tag">STL decomposition</span>
-            <span class="coming-soon-tag">Trend isolation</span>
-            <span class="coming-soon-tag">Seasonal cycle extraction</span>
-            <span class="coming-soon-tag">Residual anomaly view</span>
-            <span class="coming-soon-tag">Monsoon pattern analysis</span>
+
+          <div class="two-column-grid" style="margin-top:18px;">
+            <div class="form-group">
+              <label class="menu-title" for="seas-start-date">From</label>
+              <input type="text" id="seas-start-date" class="dropdown" placeholder="DD-MM-YYYY" />
+            </div>
+            <div class="form-group">
+              <label class="menu-title" for="seas-end-date">To</label>
+              <input type="text" id="seas-end-date" class="dropdown" placeholder="DD-MM-YYYY" />
+            </div>
           </div>
+
+          <div class="form-row" style="margin-top:18px;">
+            <div class="form-group" style="max-width:280px;">
+              <label class="menu-title" for="seas-period-select">Seasonal period</label>
+              <select id="seas-period-select" class="dropdown">
+                <option value="12" selected>12 months — Annual cycle</option>
+                <option value="6">6 months — Semi-annual cycle</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="action-row">
+            <button id="seas-generate-btn" class="primary-btn">Run Decomposition</button>
+          </div>
+          <p class="warning-alert" id="seas-alert">Please fill in all fields before running the decomposition.</p>
+        </div>
+
+        <div id="seas-stats-grid" class="seasonal-stats-grid hidden">
+          <div class="seasonal-stat-card">
+            <span class="seasonal-stat-label">Trend Direction</span>
+            <span id="seas-stat-trend-dir" class="seasonal-stat-value">—</span>
+          </div>
+          <div class="seasonal-stat-card">
+            <span class="seasonal-stat-label">Trend Strength</span>
+            <span id="seas-stat-trend-str" class="seasonal-stat-value">—</span>
+          </div>
+          <div class="seasonal-stat-card">
+            <span class="seasonal-stat-label">Seasonal Strength</span>
+            <span id="seas-stat-seas-str" class="seasonal-stat-value">—</span>
+          </div>
+          <div class="seasonal-stat-card">
+            <span class="seasonal-stat-label">Peak Month</span>
+            <span id="seas-stat-peak" class="seasonal-stat-value">—</span>
+          </div>
+          <div class="seasonal-stat-card">
+            <span class="seasonal-stat-label">Trough Month</span>
+            <span id="seas-stat-trough" class="seasonal-stat-value">—</span>
+          </div>
+          <div class="seasonal-stat-card">
+            <span class="seasonal-stat-label">Residual Anomalies</span>
+            <span id="seas-stat-anomalies" class="seasonal-stat-value">—</span>
+          </div>
+        </div>
+
+        <div id="seas-chart-container" class="seas-chart-container hidden">
+          <div id="seas-chart" style="width:100%;height:700px;"></div>
+        </div>
+
+        <div id="seas-analysis-panel" class="az-analysis-panel hidden">
+          <div class="az-analysis-header">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+            <span>AI Decomposition Analysis</span>
+          </div>
+          <div id="seas-analysis-body" class="az-analysis-body"></div>
         </div>
       </section>
 

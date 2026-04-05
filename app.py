@@ -11,6 +11,7 @@ from data_loader import DataRepository
 from visualization import generate_visualizations_with_summary
 from services.analysis_ai import _gemini_generate, gemini_available, gemini_generate_safe
 from services import ml_prediction_service
+from services import seasonal_service
 
 app = Flask(__name__)
 
@@ -77,6 +78,7 @@ _repo = DataRepository(
 )
 visualization.repo = _repo
 ml_prediction_service.repo = _repo
+seasonal_service.repo = _repo
 generate_static_csvs(_repo)
 print("[startup] Ready.")
 
@@ -450,6 +452,138 @@ Academic language. Only use the numbers provided."""
 
     except Exception as e:
         print(f"[AI] Unexpected error in analyze_with_ai: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+def _build_seasonal_fallback_analysis(station, category, trend_direction, trend_strength,
+                                       seasonal_strength, peak_month, trough_month,
+                                       anomaly_count, seasonal_amplitude, n_obs,
+                                       start_date, end_date, unit, period):
+    period_label = "annual" if period == 12 else f"{period}-month"
+    ts_pct = round(trend_strength * 100, 1)
+    ss_pct = round(seasonal_strength * 100, 1)
+
+    if trend_direction == "Increasing":
+        trend_sent = (
+            f"The trend component reveals a statistically increasing signal in {category} at {station}. "
+            f"This progressive elevation may reflect upstream land-use change, altered dam operation "
+            f"regimes, or a long-term climatic shift affecting hydrological fluxes in this reach."
+        )
+    elif trend_direction == "Decreasing":
+        trend_sent = (
+            f"The trend component exhibits a progressive decline in {category} at {station}, which may "
+            f"indicate reduced upstream contributions, increased abstraction pressure, or a sustained "
+            f"shift in monsoon intensity over the observation window."
+        )
+    else:
+        trend_sent = (
+            f"The trend component is approximately stable, suggesting {category} at {station} is "
+            f"stationary in the long-term mean once seasonal cyclicity is isolated. "
+            f"This stationarity may facilitate classical statistical modelling approaches."
+        )
+
+    if ss_pct >= 75:
+        seas_sent = f"A seasonal strength of {ss_pct}% confirms a dominant {period_label} monsoon-driven cycle."
+    elif ss_pct >= 40:
+        seas_sent = f"A seasonal strength of {ss_pct}% indicates a moderate but discernible {period_label} cycle."
+    else:
+        seas_sent = f"A seasonal strength of only {ss_pct}% suggests a relatively weak {period_label} seasonal signal."
+
+    report = f"""Decomposition Overview:
+STL (Seasonal and Trend decomposition using Loess) was applied to {n_obs} monthly observations of {category} at {station} spanning {start_date} to {end_date}, using a {period_label} seasonal period (period={period}). The decomposition separates the original series into three additive components: a long-term trend, a repeating seasonal cycle, and an irregular residual that captures unexplained variation. The LOESS smoother used is robust to outliers, making it well-suited to hydrological data with intermittent extreme values.
+
+Trend Component Analysis:
+{trend_sent} The trend strength index of {ts_pct}% quantifies the proportion of variance attributable to the trend relative to the combined trend-residual signal. Values approaching 100% indicate a smooth, dominant directional change, while lower values suggest greater irregularity in the underlying trend.
+
+Seasonal Component Analysis:
+{seas_sent} The seasonal amplitude of {seasonal_amplitude} {unit} — the peak-to-trough swing of the extracted seasonal cycle — confirms that {peak_month} marks the seasonal maximum and {trough_month} the seasonal minimum for {category} at this station. This pattern aligns with the Mekong basin's characteristic monsoon-driven wet-dry alternation, with peak flows typically coinciding with the South Asian summer monsoon (June–October).
+
+Residual Component and Anomalies:
+The residual component captures variation unexplained by trend and seasonality. A total of {anomaly_count} monthly residuals exceed ±2 standard deviations, flagging potential anomalous events such as extreme floods, droughts, or data quality issues. Cross-referencing these anomaly months with regional rainfall records, ENSO indices, and upstream dam operation schedules is recommended to contextualise whether they represent genuine hydrological extremes or observational artefacts.
+
+Research Recommendations:
+The seasonal decomposition provides a foundation for isolating anthropogenic signals from natural variability in {category} dynamics at {station}. Future analysis should compare extracted seasonal cycles across multiple stations to detect spatial propagation of monsoon signals along the Mekong mainstem. Trend components should be evaluated against upstream dam commissioning timelines and regional land-cover change datasets to attribute observed directional shifts to specific drivers. Spectral analysis of the residual component may reveal multi-year oscillatory modes linked to ENSO and the Indian Ocean Dipole."""
+
+    return report
+
+
+def _generate_seasonal_analysis(station, category, trend_direction, trend_strength,
+                                 seasonal_strength, peak_month, trough_month,
+                                 anomaly_count, seasonal_amplitude, n_obs,
+                                 start_date, end_date, unit, period):
+    """Try Gemini; fall back to structured static report."""
+    api_key = os.getenv('GEMINI_API_KEY', '').strip()
+    period_label = "annual (12-month)" if period == 12 else f"{period}-month"
+
+    prompt = f"""Mekong basin hydrological analyst. Write a structured seasonal decomposition report using these section headers on their own line followed by a colon. No markdown symbols.
+
+Data: STL decomposition | {station} | {category} | {start_date} to {end_date} | {n_obs} monthly obs | period={period} ({period_label}) | trend={trend_direction} | trend_strength={trend_strength} | seasonal_strength={seasonal_strength} | peak_month={peak_month} | trough_month={trough_month} | seasonal_amplitude={seasonal_amplitude} {unit} | anomaly_count={anomaly_count}
+
+Sections to write (2-3 sentences each):
+
+Decomposition Overview:
+Trend Component Analysis:
+Seasonal Component Analysis:
+Residual Component and Anomalies:
+Research Recommendations:
+
+Academic language. Only use the numbers provided."""
+
+    result = gemini_generate_safe(api_key, prompt)
+    if result is not None:
+        print('[AI] Seasonal decomposition analysis from Gemini.')
+        return result, 'gemini'
+
+    print('[AI] Using fallback seasonal analysis.')
+    return _build_seasonal_fallback_analysis(
+        station, category, trend_direction, trend_strength,
+        seasonal_strength, peak_month, trough_month,
+        anomaly_count, seasonal_amplitude, n_obs,
+        start_date, end_date, unit, period,
+    ), 'fallback'
+
+
+@app.route('/generate_seasonal', methods=['POST'])
+def generate_seasonal():
+    import traceback
+    try:
+        data    = request.json
+        station  = data['station_name']
+        category = data['category_name']
+        start    = data['start_date']
+        end      = data['end_date']
+        period   = int(data.get('period', 12))
+
+        result = seasonal_service.generate_stl_decomposition(
+            station=station,
+            category=category,
+            start_date=pd.to_datetime(start, dayfirst=True).strftime('%Y-%m-%d'),
+            end_date=pd.to_datetime(end, dayfirst=True).strftime('%Y-%m-%d'),
+            period=period,
+        )
+
+        s = result['summary']
+        analysis, source = _generate_seasonal_analysis(
+            station=station,
+            category=category,
+            trend_direction=s['trend_direction'],
+            trend_strength=s['trend_strength'],
+            seasonal_strength=s['seasonal_strength'],
+            peak_month=s['peak_month'],
+            trough_month=s['trough_month'],
+            anomaly_count=s['anomaly_count'],
+            seasonal_amplitude=s['seasonal_amplitude'],
+            n_obs=s['n_obs'],
+            start_date=s['start_date'],
+            end_date=s['end_date'],
+            unit=s['unit'],
+            period=s['period'],
+        )
+        result['analysis'] = analysis
+        result['analysis_source'] = source
+        return jsonify(result)
+    except Exception as e:
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 
