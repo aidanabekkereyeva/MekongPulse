@@ -1,0 +1,9 @@
+flask
+pandas
+numpy
+statsmodels
+scikit-learn
+plotly
+google-genai
+python-dotenv
+markdown

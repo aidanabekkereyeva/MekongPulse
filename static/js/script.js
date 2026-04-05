@@ -1719,6 +1719,17 @@ function azUpdateGraphConstraints() {
   azRenderSummary();
 }
 
+function showPredictionAnalysis(analysis, source) {
+  const panel = document.getElementById('pred-analysis-panel');
+  const body  = document.getElementById('pred-analysis-body');
+  if (!panel || !body || !analysis) return;
+  const sourceTag = source === 'gemini'
+    ? '<span class="analysis-source-tag gemini-tag">Gemini AI</span>'
+    : '<span class="analysis-source-tag fallback-tag">Pre-plan Analysis</span>';
+  body.innerHTML = sourceTag + azBuildAnalysisReport(analysis);
+  panel.classList.remove('hidden');
+}
+
 function azBuildAnalysisReport(text) {
   // Parse section headers (e.g. "Data Quality and Coverage Assessment:")
   const sectionPattern = /^([A-Z][^:\n]{5,80}):[ \t]*$/gm;
@@ -1986,6 +1997,46 @@ function setupThemeToggle() {
 // ------------------------------
 // PREDICTION
 // ------------------------------
+
+// ML station map: { "Station Name": ["Category", ...] }  — fetched once at load
+let mlStationMap = {};
+
+async function loadMLStationMap() {
+  try {
+    const res = await fetch('/ml_stations');
+    mlStationMap = await res.json();
+  } catch (e) {
+    mlStationMap = {};
+  }
+}
+
+function populatePredMLDropdowns() {
+  const predStation  = document.getElementById('pred-station-select');
+  const predCategory = document.getElementById('pred-category-select');
+  if (!predStation || !predCategory) return;
+
+  predStation.innerHTML = '<option value="">Select a station...</option>';
+  Object.keys(mlStationMap).sort().forEach(name => {
+    const opt = document.createElement('option');
+    opt.value = name; opt.textContent = name;
+    predStation.appendChild(opt);
+  });
+
+  predCategory.innerHTML = '<option value="">Select a category...</option>';
+}
+
+function updatePredMLCategoriesForStation(stationName) {
+  const predCategory = document.getElementById('pred-category-select');
+  if (!predCategory) return;
+  predCategory.innerHTML = '<option value="">Select a category...</option>';
+  const cats = stationName ? (mlStationMap[stationName] || []) : [];
+  cats.forEach(name => {
+    const opt = document.createElement('option');
+    opt.value = name; opt.textContent = name;
+    predCategory.appendChild(opt);
+  });
+}
+
 function populatePredictionDropdowns() {
   const predStation  = document.getElementById('pred-station-select');
   const predCategory = document.getElementById('pred-category-select');
@@ -2069,70 +2120,129 @@ const MODEL_META = {
       ...(info.gamma != null ? [["γ (seasonal)", info.gamma]] : []),
     ],
   },
-  sarima: {
-    label: "SARIMA Prediction",
-    desc: "<strong>SARIMA</strong> — Seasonal AutoRegressive Integrated Moving Average. A classical statistical model that captures autocorrelation, differencing for stationarity, and seasonal cycles.",
+  // ── Pre-trained ML models (load from CSV, horizon in days) ──
+  LSTM: {
+    label: "LSTM Forecast",
+    desc: "<strong>LSTM</strong> — Long Short-Term Memory recurrent network pre-trained on daily hydrological time series. Excels at capturing long-range temporal dependencies and sequential patterns in river flow data.",
+    ml: true,
     infoCards: (info) => [
-      ["Model", info.model_type],
-      ["Historical data", `${info.historical_months} months`],
-      ["Forecast period", `${info.last_historical} → ${info.forecast_end}`],
-      ["AIC", info.aic],
+      ["Model", info.model],
+      ["Horizon", `${info.horizon_days} days`],
       ["RMSE", info.rmse],
+      ["MAPE", info.mape],
+      ["Last historical", info.last_historical],
+      ["Forecast end", info.forecast_end],
     ],
   },
-  random_forest: {
-    label: "Random Forest Prediction",
-    desc: "<strong>Random Forest</strong> — An ensemble of 200 decision trees trained on lag features and Fourier seasonality terms. Robust to outliers and captures non-linear patterns.",
+  PatchTST: {
+    label: "PatchTST Forecast",
+    desc: "<strong>PatchTST</strong> — Patch-based Transformer for time series. Divides the input sequence into patches and applies self-attention, enabling efficient long-context modelling of hydrological signals.",
+    ml: true,
     infoCards: (info) => [
-      ["Model", info.model_type],
-      ["Historical data", `${info.historical_months} months`],
-      ["Forecast period", `${info.last_historical} → ${info.forecast_end}`],
+      ["Model", info.model],
+      ["Horizon", `${info.horizon_days} days`],
       ["RMSE", info.rmse],
-      ["Top features", info.top_features],
+      ["MAPE", info.mape],
+      ["Last historical", info.last_historical],
+      ["Forecast end", info.forecast_end],
     ],
   },
-  gradient_boosting: {
-    label: "Gradient Boosting Prediction",
-    desc: "<strong>Gradient Boosting</strong> — Sequentially builds 200 shallow trees, each correcting the errors of the previous. Effective at capturing complex trends with controlled learning rate.",
+  DLinear: {
+    label: "DLinear Forecast",
+    desc: "<strong>DLinear</strong> — Decomposition Linear model that separates trend and seasonal components before applying a linear mapping. Surprisingly competitive with deep models while remaining fully interpretable.",
+    ml: true,
     infoCards: (info) => [
-      ["Model", info.model_type],
-      ["Historical data", `${info.historical_months} months`],
-      ["Forecast period", `${info.last_historical} → ${info.forecast_end}`],
+      ["Model", info.model],
+      ["Horizon", `${info.horizon_days} days`],
       ["RMSE", info.rmse],
+      ["MAPE", info.mape],
+      ["Last historical", info.last_historical],
+      ["Forecast end", info.forecast_end],
     ],
   },
-  linear_seasonal: {
-    label: "Linear Seasonal Prediction",
-    desc: "<strong>Linear Seasonal</strong> — Fits a linear trend plus Fourier harmonic terms to model seasonality. Highly interpretable — each coefficient directly reflects a seasonal or trend component.",
+  GRU: {
+    label: "GRU Forecast",
+    desc: "<strong>GRU</strong> — Gated Recurrent Unit, a streamlined recurrent network pre-trained on Mekong daily series. Uses reset and update gates to efficiently model sequential dependencies without the complexity of LSTM.",
+    ml: true,
     infoCards: (info) => [
-      ["Model", info.model_type],
-      ["Historical data", `${info.historical_months} months`],
-      ["Forecast period", `${info.last_historical} → ${info.forecast_end}`],
+      ["Model", info.model],
+      ["Horizon", `${info.horizon_days} days`],
       ["RMSE", info.rmse],
-      ["R²", info.r2],
-      ["Coefficients", info.coefficients],
+      ["MAPE", info.mape],
+      ["Last historical", info.last_historical],
+      ["Forecast end", info.forecast_end],
     ],
   },
-  svr: {
-    label: "SVR Prediction",
-    desc: "<strong>SVR</strong> — Support Vector Regression with an RBF kernel. Finds a regression hyperplane that fits the training data within an epsilon-insensitive margin. Good for small datasets with complex patterns.",
+  iTransformer: {
+    label: "iTransformer Forecast",
+    desc: "<strong>iTransformer</strong> — Inverted Transformer (ICLR 2024). Applies attention across the variate dimension rather than time, enabling each variable's full temporal context to be embedded before cross-series attention is applied.",
+    ml: true,
     infoCards: (info) => [
-      ["Model", info.model_type],
-      ["Historical data", `${info.historical_months} months`],
-      ["Forecast period", `${info.last_historical} → ${info.forecast_end}`],
+      ["Model", info.model],
+      ["Horizon", `${info.horizon_days} days`],
       ["RMSE", info.rmse],
+      ["MAPE", info.mape],
+      ["Last historical", info.last_historical],
+      ["Forecast end", info.forecast_end],
     ],
+  },
+  ml_compare: {
+    label: "Multi-Model Comparison",
+    desc: "<strong>Compare All</strong> — Overlays LSTM, GRU, PatchTST, DLinear, and iTransformer forecasts on one chart with a ranked RMSE/MAPE table to identify the best-performing model for this station and feature.",
+    ml: true,
+    infoCards: () => [],
   },
 };
 
 let selectedPredModel = 'holt_winters';
 
+const ML_HORIZON_OPTIONS = [
+  { value: '7',  label: '7 days ahead' },
+  { value: '14', label: '14 days ahead', selected: true },
+  { value: '21', label: '21 days ahead' },
+  { value: '30', label: '30 days ahead' },
+];
+const STAT_HORIZON_OPTIONS = [
+  { value: '6',  label: '6 months ahead' },
+  { value: '12', label: '12 months ahead', selected: true },
+  { value: '24', label: '24 months ahead' },
+  { value: '36', label: '36 months ahead' },
+];
+
+function _isMLModel(modelKey) {
+  return !!(MODEL_META[modelKey] && MODEL_META[modelKey].ml);
+}
+
+function _syncPredFormForModel(modelKey) {
+  const dateGroup    = document.getElementById('pred-date-group');
+  const horizonSel   = document.getElementById('pred-horizon-select');
+  const isML = _isMLModel(modelKey);
+
+  // Show/hide date inputs
+  if (dateGroup) dateGroup.style.display = isML ? 'none' : '';
+
+  // Swap horizon options
+  if (horizonSel) {
+    const opts = isML ? ML_HORIZON_OPTIONS : STAT_HORIZON_OPTIONS;
+    const curVal = horizonSel.value;
+    horizonSel.innerHTML = opts.map(o =>
+      `<option value="${o.value}"${o.selected || o.value === curVal ? ' selected' : ''}>${o.label}</option>`
+    ).join('');
+  }
+}
+
 function setupPredictionEvents() {
   document.getElementById('pred-station-select')?.addEventListener('change', function() {
-    updatePredCategoriesForStation(this.value);
-    autofillPredDateRange();
+    if (_isMLModel(selectedPredModel)) {
+      updatePredMLCategoriesForStation(this.value);
+    } else {
+      updatePredCategoriesForStation(this.value);
+      autofillPredDateRange();
+    }
   });
-  document.getElementById('pred-category-select')?.addEventListener('change', autofillPredDateRange);
+  document.getElementById('pred-category-select')?.addEventListener('change', function() {
+    if (!_isMLModel(selectedPredModel)) autofillPredDateRange();
+  });
 
   // Model tab switching
   document.querySelectorAll('.model-tab').forEach(tab => {
@@ -2145,20 +2255,30 @@ function setupPredictionEvents() {
       const descEl  = document.getElementById('pred-model-desc');
       if (titleEl) titleEl.textContent = meta.label;
       if (descEl)  descEl.innerHTML   = meta.desc;
-      // Reset chart when switching models
+      // Reset output panels
       document.getElementById('pred-model-info')?.classList.add('hidden');
       document.getElementById('pred-chart-container')?.classList.add('hidden');
+      document.getElementById('pred-compare-table')?.classList.add('hidden');
+      // Swap station/category dropdowns based on model type
+      if (_isMLModel(selectedPredModel)) {
+        populatePredMLDropdowns();
+      } else {
+        populatePredictionDropdowns();
+      }
+      // Adapt form fields (dates, horizon units)
+      _syncPredFormForModel(selectedPredModel);
     });
   });
 
   document.getElementById('pred-generate-btn')?.addEventListener('click', function() {
-    const station        = document.getElementById('pred-station-select')?.value;
-    const category       = document.getElementById('pred-category-select')?.value;
-    const startDate      = document.getElementById('pred-start-date')?.value;
-    const endDate        = document.getElementById('pred-end-date')?.value;
-    const forecastMonths = parseInt(document.getElementById('pred-horizon-select')?.value || '12');
+    const station  = document.getElementById('pred-station-select')?.value;
+    const category = document.getElementById('pred-category-select')?.value;
+    const horizon  = parseInt(document.getElementById('pred-horizon-select')?.value || '12');
+    const isML     = _isMLModel(selectedPredModel);
+    const startDate = document.getElementById('pred-start-date')?.value;
+    const endDate   = document.getElementById('pred-end-date')?.value;
 
-    if (!station || !category || !startDate || !endDate) {
+    if (!station || !category || (!isML && (!startDate || !endDate))) {
       showAlert(document.getElementById('pred-alert'));
       return;
     }
@@ -2168,7 +2288,91 @@ function setupPredictionEvents() {
     btn.textContent = 'Generating…';
     document.getElementById('pred-model-info')?.classList.add('hidden');
     document.getElementById('pred-chart-container')?.classList.add('hidden');
+    document.getElementById('pred-compare-table')?.classList.add('hidden');
+    document.getElementById('pred-analysis-panel')?.classList.add('hidden');
 
+    // ── ML: Compare All ────────────────────────────────────────────────────
+    if (selectedPredModel === 'ml_compare') {
+      fetch('/compare_models', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ station_name: station, category_name: category, horizon_days: horizon }),
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.error) {
+          const el = document.getElementById('pred-alert');
+          if (el) { el.textContent = 'Comparison error: ' + data.error; showAlert(el); }
+          return;
+        }
+        // Chart
+        document.getElementById('pred-chart-container').classList.remove('hidden');
+        Plotly.newPlot('pred-chart', JSON.parse(data.chart), {}, { responsive: true });
+        // Metrics table
+        const info = data.model_info;
+        const tbody = document.getElementById('pred-compare-tbody');
+        if (tbody && info.metrics) {
+          const sorted = [...info.metrics].sort((a, b) => {
+            const ar = parseFloat(a.RMSE), br = parseFloat(b.RMSE);
+            if (isNaN(ar)) return 1; if (isNaN(br)) return -1;
+            return ar - br;
+          });
+          tbody.innerHTML = sorted.map((m, i) => {
+            const best = m.Model === info.best_model;
+            return `<tr class="${best ? 'best-model-row' : ''}">
+              <td>${m.Model}${best ? ' <span class="best-badge">Best</span>' : ''}</td>
+              <td>${m.RMSE}</td><td>${m.MAPE}</td><td>#${i + 1}</td></tr>`;
+          }).join('');
+        }
+        document.getElementById('pred-compare-table').classList.remove('hidden');
+      })
+      .catch(err => {
+        const el = document.getElementById('pred-alert');
+        if (el) { el.textContent = 'Error: ' + err.message; showAlert(el); }
+      })
+      .finally(() => { btn.disabled = false; btn.textContent = 'Generate Forecast'; });
+      return;
+    }
+
+    // ── ML: single model ───────────────────────────────────────────────────
+    if (isML) {
+      fetch('/generate_ml_prediction', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: selectedPredModel,
+          station_name: station,
+          category_name: category,
+          horizon_days: horizon,
+        }),
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.error) {
+          const el = document.getElementById('pred-alert');
+          if (el) { el.textContent = 'Forecast error: ' + data.error; showAlert(el); }
+          return;
+        }
+        const info = data.model_info;
+        const meta = MODEL_META[selectedPredModel];
+        const cards = meta.infoCards(info).map(([label, val]) =>
+          `<div class="pred-info-card"><span class="pred-info-label">${label}</span><span class="pred-info-value">${val ?? '--'}</span></div>`
+        ).join('');
+        document.getElementById('pred-model-info').innerHTML = `<div class="pred-info-grid">${cards}</div>`;
+        document.getElementById('pred-model-info').classList.remove('hidden');
+        document.getElementById('pred-chart-container').classList.remove('hidden');
+        Plotly.newPlot('pred-chart', JSON.parse(data.chart), {}, { responsive: true });
+        showPredictionAnalysis(data.analysis, data.analysis_source);
+      })
+      .catch(err => {
+        const el = document.getElementById('pred-alert');
+        if (el) { el.textContent = 'Error: ' + err.message; showAlert(el); }
+      })
+      .finally(() => { btn.disabled = false; btn.textContent = 'Generate Forecast'; });
+      return;
+    }
+
+    // ── Statistical models (original flow) ────────────────────────────────
     fetch('/generate_prediction', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -2178,8 +2382,8 @@ function setupPredictionEvents() {
         category_name: category,
         start_date: startDate,
         end_date: endDate,
-        forecast_months: forecastMonths
-      })
+        forecast_months: horizon,
+      }),
     })
     .then(r => r.json())
     .then(data => {
@@ -2188,17 +2392,16 @@ function setupPredictionEvents() {
         if (el) { el.textContent = 'Forecast error: ' + data.error; showAlert(el); }
         return;
       }
-
       const info = data.model_info;
       const meta = MODEL_META[selectedPredModel];
       const cards = meta.infoCards(info).map(([label, val]) =>
         `<div class="pred-info-card"><span class="pred-info-label">${label}</span><span class="pred-info-value">${val ?? '--'}</span></div>`
       ).join('');
-
       document.getElementById('pred-model-info').innerHTML = `<div class="pred-info-grid">${cards}</div>`;
       document.getElementById('pred-model-info').classList.remove('hidden');
       document.getElementById('pred-chart-container').classList.remove('hidden');
       Plotly.newPlot('pred-chart', JSON.parse(data.chart), {}, { responsive: true });
+      showPredictionAnalysis(data.analysis, data.analysis_source);
     })
     .catch(err => {
       const el = document.getElementById('pred-alert');
@@ -2213,7 +2416,7 @@ function setupPredictionEvents() {
 // ------------------------------
 document.addEventListener("DOMContentLoaded", async function() {
   try {
-    await Promise.all([loadCSVStationDetails(), loadCSVCategoryDetails()]);
+    await Promise.all([loadCSVStationDetails(), loadCSVCategoryDetails(), loadMLStationMap()]);
 
     initializeMap();
     showGraphOptionsOnUI();

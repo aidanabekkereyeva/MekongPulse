@@ -1,3 +1,6 @@
+from dotenv import load_dotenv
+load_dotenv(override=True)
+
 from flask import Flask, render_template, request, jsonify
 import json
 import os
@@ -6,6 +9,8 @@ import pandas as pd
 import visualization
 from data_loader import DataRepository
 from visualization import generate_visualizations_with_summary
+from services.analysis_ai import _gemini_generate, gemini_available, gemini_generate_safe
+from services import ml_prediction_service
 
 app = Flask(__name__)
 
@@ -71,6 +76,7 @@ _repo = DataRepository(
     geojson_path="data/Mekong_Setup/geojson/mekong_basin.geojson",
 )
 visualization.repo = _repo
+ml_prediction_service.repo = _repo
 generate_static_csvs(_repo)
 print("[startup] Ready.")
 
@@ -143,24 +149,243 @@ def generate_prediction():
             end_date=data['end_date'],
             forecast_months=int(data.get('forecast_months', 12)),
         )
+        info = result.get('model_info', {})
+        analysis, source = _generate_prediction_analysis(
+            station=data['station_name'],
+            category=data['category_name'],
+            model=info.get('model_type', 'Holt-Winters'),
+            horizon=info.get('forecast_months', data.get('forecast_months', 12)),
+            rmse=info.get('rmse', 'n/a'),
+            mape='n/a',
+            last_historical=info.get('last_historical', '--'),
+            forecast_end=info.get('forecast_end', '--'),
+            source_type='statistical',
+            extra_info={
+                'aic': info.get('aic'),
+                'alpha': info.get('alpha'),
+                'beta': info.get('beta'),
+                'gamma': info.get('gamma'),
+            },
+        )
+        result['analysis'] = analysis
+        result['analysis_source'] = source
         return jsonify(result)
     except Exception as e:
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/ml_stations')
+def ml_stations():
+    return jsonify(ml_prediction_service.build_ml_station_map())
+
+
+def _build_prediction_fallback_analysis(station, category, model, horizon, rmse, mape,
+                                         last_historical, forecast_end, source_type,
+                                         extra_info=None):
+    """Structured prediction analysis report used when Gemini is unavailable."""
+    extra_info = extra_info or {}
+
+    rmse_str = str(rmse) if rmse not in (None, 'n/a', '--') else 'n/a'
+    mape_str = str(mape) if mape not in (None, 'n/a', '--') else 'n/a'
+
+    try:
+        mape_f = float(str(mape_str).replace('%', ''))
+        conf = 'high' if mape_f < 10 else 'moderate' if mape_f < 20 else 'low'
+        conf_sent = (
+            f'A MAPE of {mape_str} places this forecast in the '
+            f'{"strong" if conf == "high" else "moderate" if conf == "moderate" else "weak"} '
+            f'accuracy band, indicating {conf} confidence in point estimates.'
+        )
+    except (ValueError, TypeError):
+        conf = 'indeterminate'
+        conf_sent = 'Model accuracy metrics are not available for this station-feature combination.'
+
+    if source_type == 'trained_model':
+        model_desc = (
+            f'{model} is a pre-trained deep learning model evaluated on rolling historical windows '
+            f'across this station. It operates on daily resolution and produces forecasts '
+            f'up to {horizon} days ahead without requiring manual parameter tuning.'
+        )
+    else:
+        model_desc = (
+            f'Holt-Winters triple exponential smoothing decomposes the time series into level, '
+            f'trend, and seasonal components. It is well-suited to data with regular seasonal cycles '
+            f'such as those driven by the Mekong monsoon regime.'
+        )
+
+    aic_line = ''
+    if extra_info.get('aic'):
+        aic_line = f' The Akaike Information Criterion (AIC = {extra_info["aic"]}) provides a relative measure of model fit penalised for complexity.'
+
+    report = f"""Model Overview:
+{model_desc} The forecast spans from {last_historical} to {forecast_end}, covering a {horizon}-{'day' if source_type == 'trained_model' else 'month'} horizon for {category} at {station}.
+
+Performance Assessment:
+RMSE = {rmse_str} and MAPE = {mape_str} quantify the average magnitude of prediction errors on held-out historical data. {conf_sent}{aic_line} These metrics are derived from rolling backtesting windows and reflect out-of-sample generalisation rather than in-sample fit.
+
+Forecast Interpretation:
+The {model} forecast for {category} at {station} should be interpreted as a probabilistic projection based on learned historical patterns. The Mekong basin exhibits strong seasonal cyclicity driven by the South Asian monsoon; forecasts that fall within the expected seasonal envelope carry higher reliability than those projecting anomalous departures. Confidence intervals, where shown, represent 1.96σ propagated residual uncertainty.
+
+Operational Considerations:
+This forecast is intended as a decision-support tool for research and planning purposes. It does not account for real-time upstream events, dam operation changes, or extreme meteorological anomalies outside the training distribution. For high-stakes operational use, model output should be cross-referenced with field observations and ensemble forecasts from hydrometeorological services.
+
+Research Recommendations:
+Future work should evaluate model performance disaggregated by season, as error characteristics may differ substantially between wet and dry periods in the Mekong basin. Incorporating upstream discharge data and remote sensing precipitation products as exogenous inputs may improve forecast skill, particularly at longer horizons where auto-regressive skill degrades."""
+
+    return report
+
+
+def _generate_prediction_analysis(station, category, model, horizon, rmse, mape,
+                                   last_historical, forecast_end, source_type, extra_info=None):
+    """Try Gemini; fall back to structured static report on any failure."""
+    extra_info = extra_info or {}
+    api_key = os.getenv('GEMINI_API_KEY', '').strip()
+
+    horizon_unit = 'days' if source_type == 'trained_model' else 'months'
+    aic_part = f' | AIC={extra_info.get("aic", "n/a")}' if extra_info.get('aic') else ''
+    alpha_part = (
+        f' | α={extra_info.get("alpha", "n/a")} β={extra_info.get("beta", "n/a")}'
+        + (f' γ={extra_info.get("gamma")}' if extra_info.get('gamma') else '')
+        if extra_info.get('alpha') else ''
+    )
+
+    prompt = f"""Mekong basin hydrological forecasting analyst. Write a structured forecast report using these section headers on their own line followed by a colon. No markdown symbols.
+
+Data: {model} | {station} | {category} | horizon={horizon} {horizon_unit} | {last_historical} → {forecast_end} | RMSE={rmse} | MAPE={mape}{aic_part}{alpha_part}
+
+Sections to write (2-3 sentences each):
+
+Model Overview:
+Performance Assessment:
+Forecast Interpretation:
+Operational Considerations:
+Research Recommendations:
+
+Academic language. Only use the numbers provided."""
+
+    result = gemini_generate_safe(api_key, prompt)
+    if result is not None:
+        print('[AI] Prediction analysis from Gemini.')
+        return result, 'gemini'
+
+    print('[AI] Using fallback prediction analysis.')
+    return _build_prediction_fallback_analysis(
+        station, category, model, horizon, rmse, mape,
+        last_historical, forecast_end, source_type, extra_info
+    ), 'fallback'
+
+
+@app.route('/generate_ml_prediction', methods=['POST'])
+def generate_ml_prediction():
+    import traceback
+    try:
+        data = request.json
+        result = ml_prediction_service.generate_ml_prediction(
+            category_name=data['category_name'],
+            station_name=data['station_name'],
+            model=data.get('model', 'FlowNet'),
+            horizon=int(data.get('horizon_days', 14)),
+        )
+        info = result['model_info']
+        analysis, source = _generate_prediction_analysis(
+            station=data['station_name'],
+            category=data['category_name'],
+            model=info['model'],
+            horizon=info['horizon_days'],
+            rmse=info['rmse'],
+            mape=info['mape'],
+            last_historical=info['last_historical'],
+            forecast_end=info['forecast_end'],
+            source_type='trained_model',
+        )
+        result['analysis'] = analysis
+        result['analysis_source'] = source
+        return jsonify(result)
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/compare_models', methods=['POST'])
+def compare_models():
+    import traceback
+    try:
+        data = request.json
+        result = ml_prediction_service.generate_model_comparison(
+            category_name=data['category_name'],
+            station_name=data['station_name'],
+            horizon=int(data.get('horizon_days', 14)),
+        )
+        return jsonify(result)
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+def _build_fallback_analysis(station, category, graph_type, first_year, last_year,
+                              record_count, coverage_pct, mean_val, min_val, max_val,
+                              std_val, trend, ranking_text=""):
+    """
+    Generate a structured data-driven analysis report without Gemini.
+    Uses actual data values so the report is still meaningful and specific.
+    """
+    try:
+        cov = float(str(coverage_pct).replace('%', ''))
+        cov_quality = "high" if cov >= 80 else "moderate" if cov >= 50 else "limited"
+        cov_confidence = "reliable" if cov >= 80 else "adequate" if cov >= 50 else "constrained"
+    except (ValueError, TypeError):
+        cov_quality = "variable"
+        cov_confidence = "variable"
+
+    trend_str = str(trend).lower()
+    if "increas" in trend_str or "upward" in trend_str or "rising" in trend_str:
+        trend_interp = (f"An increasing trend in {category} has been identified at {station}, "
+                        "suggesting progressive changes in basin hydrology that may reflect "
+                        "upstream land-use modification, altered precipitation patterns, or "
+                        "long-term climatic shifts within the Mekong watershed.")
+    elif "decreas" in trend_str or "downward" in trend_str or "falling" in trend_str:
+        trend_interp = (f"A decreasing trend in {category} has been observed at {station}, "
+                        "which may indicate reduced upstream contributions, increased abstractions, "
+                        "or shifts in monsoon intensity affecting hydrological fluxes in this reach.")
+    else:
+        trend_interp = (f"No statistically dominant directional trend was detected for {category} "
+                        f"at {station} across the observation period, suggesting relative stationarity "
+                        "in the hydrological signal, though inter-annual variability remains present.")
+
+    ranking_section = ""
+    if ranking_text:
+        ranking_section = (
+            f"\n\nComparative Station Analysis:\n"
+            f"Cross-station comparison reveals the following mean values across monitored sites: "
+            f"{ranking_text}. This ranking contextualises {station} within the broader Mekong "
+            f"monitoring network, highlighting spatial gradients in {category} that reflect "
+            f"differences in catchment area, tributary contributions, and local geomorphological conditions. "
+            f"Stations with elevated mean values may be subject to greater upstream discharge volumes "
+            f"or sediment loading, warranting targeted comparative investigation."
+        )
+
+    report = f"""Data Quality and Coverage Assessment:
+The dataset for {station} ({category}) spans {first_year} to {last_year}, comprising {record_count} recorded observations with {coverage_pct}% temporal coverage. This {cov_quality} data coverage indicates {cov_confidence} analytical confidence for trend detection and statistical inference within this monitoring period. Gaps in the observational record, if present, may introduce uncertainty into derived statistics and should be considered when interpreting temporal patterns.
+
+Statistical Overview and Interpretation:
+Across the full observation period, {category} at {station} recorded a mean value of {mean_val}, with values ranging from a minimum of {min_val} to a maximum of {max_val} and a standard deviation of {std_val}. The observed range reflects the dynamic hydrological regime characteristic of the Mekong basin, which is strongly governed by the seasonal monsoon cycle and upstream snowmelt contributions from the Tibetan Plateau. The standard deviation value of {std_val} quantifies the degree of dispersion around the mean, providing insight into the variability structure of this hydrological variable.
+
+Trend Analysis and Temporal Patterns:
+{trend_interp} Seasonal cyclicity is expected given the Mekong's pronounced wet-dry season alternation, and multi-year oscillations may correspond to large-scale climate drivers such as the El Niño–Southern Oscillation (ENSO) and the Indian Ocean Dipole. Continued monitoring is essential to distinguish anthropogenic signals from natural climate variability in this data record.{ranking_section}
+
+Key Findings and Anomalies:
+The observed range of {min_val} to {max_val} at {station} represents substantial hydrological variability that merits attention in both operational water management and academic research contexts. Extreme values at either bound may correspond to anomalous flood or drought events, and cross-referencing with regional rainfall records and upstream dam operation schedules is recommended to contextualise these observations. The {coverage_pct}% data coverage over {first_year}–{last_year} provides a {cov_quality}-quality baseline for future change detection studies.
+
+Research Recommendations:
+Future research should prioritise gap-filling of missing observations using interpolation or remote-sensing-derived proxies to improve the temporal completeness of this station record. Multivariate analysis incorporating concurrent rainfall, temperature, and land-cover change data would strengthen the mechanistic understanding of the observed {category} dynamics at {station}. Regional comparison across the Mekong monitoring network, particularly under projected climate change scenarios, would further elucidate the drivers and trajectories of hydrological change in this internationally significant river basin."""
+
+    return report
+
+
 @app.route('/analyze_with_ai', methods=['POST'])
 def analyze_with_ai():
     try:
-        import os
-        from google import genai
-        try:
-            from config import GEMINI_API_KEY as api_key
-        except ImportError:
-            api_key = os.environ.get("GEMINI_API_KEY")
-        if not api_key or api_key == "paste-your-key-here":
-            return jsonify({'error': 'Please add your Gemini API key to config.py'}), 500
-        client = genai.Client(api_key=api_key)
         data = request.json
         summary = data.get('summary', {})
         graph_type = data.get('graph_type', 'Unknown')
@@ -168,15 +393,15 @@ def analyze_with_ai():
         categories = data.get('categories', [])
         ranking = data.get('ranking', [])
 
-        station = summary.get('station_name', ', '.join(stations) if stations else 'Unknown')
-        category = summary.get('category_name', ', '.join(categories) if categories else 'Unknown')
-        mean_val = summary.get('mean', '--')
-        min_val = summary.get('min', '--')
-        max_val = summary.get('max', '--')
-        std_val = summary.get('std', '--')
-        trend = summary.get('trend', '--')
-        first_year = summary.get('first_year', '--')
-        last_year = summary.get('last_year', '--')
+        station      = summary.get('station_name', ', '.join(stations) if stations else 'Unknown')
+        category     = summary.get('category_name', ', '.join(categories) if categories else 'Unknown')
+        mean_val     = summary.get('mean', '--')
+        min_val      = summary.get('min', '--')
+        max_val      = summary.get('max', '--')
+        std_val      = summary.get('std', '--')
+        trend        = summary.get('trend', '--')
+        first_year   = summary.get('first_year', '--')
+        last_year    = summary.get('last_year', '--')
         record_count = summary.get('record_count', '--')
         coverage_pct = summary.get('coverage_pct', '--')
 
@@ -187,7 +412,12 @@ def analyze_with_ai():
                 for r in ranking[:5]
             )
 
-        prompt = f"""Mekong basin hydrological analyst. Write a structured report using these section headers on their own line followed by a colon. No markdown symbols.
+        # --- Attempt Gemini ---
+        api_key = os.getenv("GEMINI_API_KEY", "").strip()
+        gemini_result = None
+
+        if gemini_available():
+            prompt = f"""Mekong basin hydrological analyst. Write a structured report using these section headers on their own line followed by a colon. No markdown symbols.
 
 Data: {graph_type} | {station} | {category} | {first_year}-{last_year} | {record_count} records | {coverage_pct}% coverage | mean={mean_val} min={min_val} max={max_val} std={std_val} trend={trend}{f' | ranking: {ranking_text}' if ranking_text else ''}
 
@@ -202,14 +432,24 @@ Research Recommendations:
 
 Academic language. Only use the numbers provided."""
 
-        response = client.models.generate_content(
-            model="gemini-2.0-flash-lite",
-            contents=prompt,
+            gemini_result = gemini_generate_safe(api_key, prompt)
+        else:
+            print("[AI] Gemini API key not configured — using fallback analysis.")
+
+        # --- Return Gemini result or fallback ---
+        if gemini_result is not None:
+            return jsonify({'analysis': gemini_result, 'source': 'gemini'})
+
+        print("[AI] Serving pre-plan fallback analysis.")
+        fallback = _build_fallback_analysis(
+            station, category, graph_type, first_year, last_year,
+            record_count, coverage_pct, mean_val, min_val, max_val,
+            std_val, trend, ranking_text,
         )
-        analysis = response.text
-        return jsonify({'analysis': analysis})
+        return jsonify({'analysis': fallback, 'source': 'fallback'})
+
     except Exception as e:
-        print(f"AI analysis error: {e}")
+        print(f"[AI] Unexpected error in analyze_with_ai: {e}")
         return jsonify({'error': str(e)}), 500
 
 

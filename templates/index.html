@@ -536,25 +536,31 @@
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
             Holt-Winters
           </button>
-          <button class="model-tab" data-model="sarima">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3"/></svg>
-            SARIMA
+          <div class="model-tab-divider"></div>
+          <button class="model-tab ml-model-tab" data-model="LSTM">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="10" rx="2"/><path d="M7 7V5a2 2 0 0 1 4 0v2"/><path d="M13 7V5a2 2 0 0 1 4 0v2"/></svg>
+            LSTM
           </button>
-          <button class="model-tab" data-model="random_forest">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-            Random Forest
+          <button class="model-tab ml-model-tab" data-model="GRU">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+            GRU
           </button>
-          <button class="model-tab" data-model="gradient_boosting">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
-            Gradient Boosting
+          <button class="model-tab ml-model-tab" data-model="PatchTST">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h6v6H4z"/><path d="M14 4h6v6h-6z"/><path d="M4 14h6v6H4z"/><path d="M14 14h6v6h-6z"/></svg>
+            PatchTST
           </button>
-          <button class="model-tab" data-model="linear_seasonal">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-            Linear Seasonal
+          <button class="model-tab ml-model-tab" data-model="DLinear">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="19" x2="19" y2="5"/><circle cx="5" cy="19" r="2"/><circle cx="19" cy="5" r="2"/></svg>
+            DLinear
           </button>
-          <button class="model-tab" data-model="svr">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
-            SVR
+          <button class="model-tab ml-model-tab" data-model="iTransformer">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 22 20 2 20"/></svg>
+            iTransformer
+          </button>
+          <div class="model-tab-divider"></div>
+          <button class="model-tab ml-model-tab" data-model="ml_compare">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            Compare All
           </button>
         </div>
 
@@ -574,7 +580,7 @@
             </div>
           </div>
 
-          <div class="two-column-grid" style="margin-top:18px;">
+          <div id="pred-date-group" class="two-column-grid" style="margin-top:18px;">
             <div class="form-group">
               <label class="menu-title" for="pred-start-date">Historical data from</label>
               <input type="text" id="pred-start-date" class="dropdown" placeholder="DD-MM-YYYY" />
@@ -607,6 +613,23 @@
 
         <div id="pred-chart-container" class="pred-chart-container hidden">
           <div id="pred-chart" style="width:100%;height:520px;"></div>
+        </div>
+
+        <div id="pred-analysis-panel" class="az-analysis-panel hidden">
+          <div class="az-analysis-header">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+            <span>AI Forecast Analysis</span>
+          </div>
+          <div id="pred-analysis-body" class="az-analysis-body"></div>
+        </div>
+
+        <div id="pred-compare-table" class="pred-compare-table hidden">
+          <h3 class="pred-compare-title">Model Performance Metrics</h3>
+          <table class="ml-metrics-table">
+            <thead><tr><th>Model</th><th>RMSE</th><th>MAPE</th><th>Rank</th></tr></thead>
+            <tbody id="pred-compare-tbody"></tbody>
+          </table>
+          <p class="pred-compare-note">RMSE and MAPE computed from rolling historical-fit evaluation against observed values. Lower is better. Best model highlighted.</p>
         </div>
       </section>
 
