@@ -149,6 +149,25 @@ let selectedStationEntries = [];
 let selectedVisualizations = [];
 let selectedGraphOption = null;
 let hasAutoAddCategories = false;
+const EXPORT_SOURCE_META = {
+  dashboard: { label: "Visualization Dashboard", slug: "visualization_dashboard" },
+  forecast: { label: "Forecast Workspace", slug: "forecast_workspace" },
+  correlation: { label: "Correlation Explorer", slug: "correlation_explorer" },
+  seasonal: { label: "Seasonal Decomposition", slug: "seasonal_decomposition" },
+  analyze: { label: "Analysis Builder", slug: "analysis_builder" },
+};
+let exportSessions = Object.fromEntries(
+  Object.keys(EXPORT_SOURCE_META).map(key => [key, {
+    title: EXPORT_SOURCE_META[key].label,
+    slug: EXPORT_SOURCE_META[key].slug,
+    charts: [],
+    reportHtml: "",
+    reportText: "",
+    meta: [],
+    generatedAt: "",
+    available: false,
+  }])
+);
 
 // ------------------------------
 // ELEMENTS
@@ -1076,6 +1095,8 @@ function triggerStartVisualization() {
   updateInsightAndCoverage(summary);
   updateRankingTable(ranking);
 
+  const findings = generateKeyFindings(summary, ranking) || [];
+
   // Store for AI analysis
   lastSummaryForAI = summary;
   lastRankingForAI = ranking;
@@ -1089,13 +1110,34 @@ function triggerStartVisualization() {
   // Key findings (needs both summary + ranking)
   const findingsList = document.getElementById("findings-list");
   if (findingsList) {
-    const findings = generateKeyFindings(summary, ranking);
     if (findings && findings.length) {
       findingsList.innerHTML = findings.map(f => `<li class="finding-item">${f}</li>`).join("");
     } else {
       findingsList.innerHTML = `<li class="finding-placeholder">No findings could be generated for this selection.</li>`;
     }
   }
+
+  const queueSummary = selectedVisualizations.map((viz, index) => ({
+    label: `Visualization ${index + 1}`,
+    value: viz.graph_type
+  }));
+  const findingsHtml = findings.length
+    ? `<div class="az-section"><h4 class="az-section-title">Key Findings</h4><ul class="corr-findings-list">${findings.map(item => `<li>${item}</li>`).join('')}</ul></div>`
+    : '';
+  setExportSessionPayload('dashboard', {
+    charts,
+    title: 'Visualization Dashboard',
+    reportHtml: findingsHtml,
+    reportText: findings.join('\n'),
+    meta: [
+      { label: 'Queued visualizations', value: String(charts.length || selectedVisualizations.length || 0) },
+      ...queueSummary.slice(0, 4),
+      { label: 'Primary station', value: summary?.station ?? '--' },
+      { label: 'Primary category', value: summary?.category ?? '--' },
+      { label: 'Date range', value: summary?.date_range ?? '--' },
+      { label: 'Coverage', value: summary?.coverage_pct != null ? `${summary.coverage_pct}%` : '--' },
+    ],
+  });
 })
     .catch(error => {
       console.error("Error generating visualizations:", error);
@@ -1652,6 +1694,7 @@ function setupAiAnalysis() {
         `<p class="ai-para">${p.trim()}</p>`
       ).join('');
       body.innerHTML = paragraphs;
+      setExportSessionReport('dashboard', data.analysis, paragraphs);
     } catch (err) {
       body.innerHTML = `<p class="ai-analysis-error">Analysis failed: ${err.message}. Make sure ANTHROPIC_API_KEY is set.</p>`;
     } finally {
@@ -1728,6 +1771,7 @@ function showPredictionAnalysis(analysis, source) {
     : '<span class="analysis-source-tag fallback-tag">Pre-plan Analysis</span>';
   body.innerHTML = sourceTag + azBuildAnalysisReport(analysis);
   panel.classList.remove('hidden');
+  setExportSessionReport('forecast', analysis, body.innerHTML);
 }
 
 function azBuildAnalysisReport(text) {
@@ -1900,6 +1944,19 @@ function setupAnalyzeEvents() {
         chartContainer?.classList.remove('hidden');
         Plotly.newPlot('az-chart', JSON.parse(charts[0]), {}, { responsive: true });
       }
+      setExportSessionPayload('analyze', {
+        charts: charts.slice(0, 1),
+        title: 'Analysis Builder',
+        reportHtml: '',
+        reportText: '',
+        meta: [
+          { label: 'Visualization type', value: azSelectedGraph },
+          { label: 'Stations', value: azSelectedStations.join(', ') },
+          { label: 'Categories', value: azSelectedCategories.join(', ') },
+          { label: 'Returned charts', value: String(charts.length) },
+          { label: 'Coverage window', value: summary?.date_range || '--' },
+        ],
+      });
 
       // Step 2: AI analysis
       analysisPanel?.classList.remove('hidden');
@@ -1922,6 +1979,7 @@ function setupAnalyzeEvents() {
 
       if (aiData.error) throw new Error(aiData.error);
       analysisBody.innerHTML = azBuildAnalysisReport(aiData.analysis);
+      setExportSessionReport('analyze', aiData.analysis, analysisBody.innerHTML);
 
     } catch (err) {
       loadingEl?.classList.add('hidden');
@@ -2196,6 +2254,124 @@ const MODEL_META = {
 
 let selectedPredModel = 'holt_winters';
 
+Object.assign(MODEL_META.holt_winters, {
+  desc: "<strong>Holt-Winters</strong> - Exponential smoothing for level, trend, and seasonality. A strong baseline when the Mekong signal follows a smooth wet-dry cycle and medium-term structure remains stable.",
+  family: "Statistical Forecast",
+  highlights: ["Strong seasonal baseline", "Interpretable smoothing terms", "Monthly forecast horizon"],
+  infoCards: (info) => [
+    ["Model", info.model_type],
+    ["Historical data", `${info.historical_months} months`],
+    ["Forecast period", `${info.last_historical} -> ${info.forecast_end}`],
+    ["AIC", info.aic],
+    ["RMSE", info.rmse],
+    ["MAPE", info.mape],
+    ["MAE", info.mae],
+    ["Bias", info.bias],
+    ["Alpha", info.alpha],
+    ["Beta", info.beta],
+    ...(info.gamma != null ? [["Gamma", info.gamma]] : []),
+  ],
+});
+
+Object.assign(MODEL_META, {
+  sarima: {
+    label: "SARIMA Prediction",
+    desc: "<strong>SARIMA</strong> - Seasonal autoregressive modelling for monthly series with memory, differenced trend, and annual cyclicity.",
+    family: "Statistical Forecast",
+    highlights: ["Captures autoregressive memory", "Good for monthly trend-season structure", "Reports information-criterion fit"],
+    infoCards: (info) => [
+      ["Model", info.model_type],
+      ["Historical data", `${info.historical_months} months`],
+      ["Forecast period", `${info.last_historical} -> ${info.forecast_end}`],
+      ["AIC", info.aic],
+      ["RMSE", info.rmse],
+      ["MAPE", info.mape],
+      ["MAE", info.mae],
+      ["Bias", info.bias],
+    ],
+  },
+  random_forest: {
+    label: "Random Forest Prediction",
+    desc: "<strong>Random Forest</strong> - Tree ensemble forecasting built from lagged memory, rolling summaries, and seasonal features for non-linear monthly relationships.",
+    family: "Statistical Forecast",
+    highlights: ["Learns non-linear lag interactions", "Uses rolling and seasonal features", "Robust on irregular monthly structure"],
+    infoCards: (info) => [
+      ["Model", info.model_type],
+      ["Historical data", `${info.historical_months} months`],
+      ["Forecast period", `${info.last_historical} -> ${info.forecast_end}`],
+      ["RMSE", info.rmse],
+      ["MAPE", info.mape],
+      ["MAE", info.mae],
+      ["Bias", info.bias],
+      ["Top features", info.top_features],
+    ],
+  },
+  gradient_boosting: {
+    label: "Gradient Boosting Prediction",
+    desc: "<strong>Gradient Boosting</strong> - Sequential tree boosting that focuses on residual structure left by earlier learners.",
+    family: "Statistical Forecast",
+    highlights: ["Focuses on residual error structure", "Can react to turning points better than simple baselines", "Monthly feature-based forecasting"],
+    infoCards: (info) => [
+      ["Model", info.model_type],
+      ["Historical data", `${info.historical_months} months`],
+      ["Forecast period", `${info.last_historical} -> ${info.forecast_end}`],
+      ["RMSE", info.rmse],
+      ["MAPE", info.mape],
+      ["MAE", info.mae],
+      ["Bias", info.bias],
+      ["Top features", info.top_features],
+    ],
+  },
+  linear_seasonal: {
+    label: "Linear Seasonal Prediction",
+    desc: "<strong>Linear Seasonal</strong> - Regression with trend terms and Fourier seasonal harmonics for smooth long-term structure and interpretable seasonality.",
+    family: "Statistical Forecast",
+    highlights: ["Highly interpretable regression baseline", "Uses explicit seasonal harmonics", "Reports coefficient-level behaviour"],
+    infoCards: (info) => [
+      ["Model", info.model_type],
+      ["Historical data", `${info.historical_months} months`],
+      ["Forecast period", `${info.last_historical} -> ${info.forecast_end}`],
+      ["RMSE", info.rmse],
+      ["MAPE", info.mape],
+      ["MAE", info.mae],
+      ["Bias", info.bias],
+      ["R^2", info.r2],
+    ],
+  },
+  svr: {
+    label: "SVR Prediction",
+    desc: "<strong>SVR</strong> - Support Vector Regression with a radial basis kernel for smooth but non-linear lag-to-forecast relationships.",
+    family: "Statistical Forecast",
+    highlights: ["Kernel-based non-linear regression", "Good for smooth but non-linear structure", "Scaled lag-feature forecasting"],
+    infoCards: (info) => [
+      ["Model", info.model_type],
+      ["Historical data", `${info.historical_months} months`],
+      ["Forecast period", `${info.last_historical} -> ${info.forecast_end}`],
+      ["RMSE", info.rmse],
+      ["MAPE", info.mape],
+      ["MAE", info.mae],
+      ["Bias", info.bias],
+      ["Kernel", info.kernel || "RBF"],
+    ],
+  },
+});
+
+["LSTM", "GRU", "PatchTST", "DLinear", "iTransformer"].forEach((key) => {
+  MODEL_META[key].family = "Pre-trained ML Forecast";
+  MODEL_META[key].highlights = MODEL_META[key].highlights || [
+    "Daily forecast horizon",
+    "Precomputed model output",
+    "Optional AI narrative"
+  ];
+});
+MODEL_META.ml_compare.aiSupported = false;
+MODEL_META.ml_compare.family = "Model Comparison";
+MODEL_META.ml_compare.highlights = [
+  "Overlays all pre-trained ML models",
+  "Ranks performance quickly",
+  "Best for model selection before deeper reading"
+];
+
 const ML_HORIZON_OPTIONS = [
   { value: '7',  label: '7 days ahead' },
   { value: '14', label: '14 days ahead', selected: true },
@@ -2211,6 +2387,76 @@ const STAT_HORIZON_OPTIONS = [
 
 function _isMLModel(modelKey) {
   return !!(MODEL_META[modelKey] && MODEL_META[modelKey].ml);
+}
+
+function _modelSupportsAi(modelKey) {
+  return MODEL_META[modelKey]?.aiSupported !== false;
+}
+
+function _renderPredictionHighlights(modelKey) {
+  const container = document.getElementById('pred-highlights');
+  const meta = MODEL_META[modelKey];
+  if (!container || !meta) return;
+
+  const highlights = meta.highlights || [];
+  if (!highlights.length) {
+    container.innerHTML = '';
+    container.classList.add('hidden');
+    return;
+  }
+
+  container.innerHTML = `
+    <div class="pred-highlight-grid">
+      ${highlights.map(item => `<div class="pred-highlight-card">${item}</div>`).join('')}
+    </div>
+  `;
+  container.classList.remove('hidden');
+}
+
+function _renderPredictionInfo(info, modelKey) {
+  const meta = MODEL_META[modelKey];
+  const container = document.getElementById('pred-model-info');
+  if (!meta || !container) return;
+
+  const cards = meta.infoCards(info).map(([label, val]) =>
+    `<div class="pred-info-card"><span class="pred-info-label">${label}</span><span class="pred-info-value">${val ?? '--'}</span></div>`
+  ).join('');
+
+  container.innerHTML = `<div class="pred-info-grid">${cards}</div>`;
+  container.classList.remove('hidden');
+}
+
+function _syncPredictionMetaUi(modelKey) {
+  const meta = MODEL_META[modelKey];
+  if (!meta) return;
+
+  const titleEl = document.getElementById('pred-section-title');
+  const descEl = document.getElementById('pred-model-desc');
+  const modeChip = document.getElementById('pred-mode-chip');
+  const speedChip = document.getElementById('pred-speed-chip');
+  const aiToggle = document.getElementById('pred-ai-toggle');
+  const aiCopy = document.getElementById('pred-ai-toggle-copy');
+
+  if (titleEl) titleEl.textContent = meta.label;
+  if (descEl) descEl.innerHTML = meta.desc;
+  if (modeChip) modeChip.textContent = meta.family || (_isMLModel(modelKey) ? 'Pre-trained ML Forecast' : 'Statistical Forecast');
+
+  if (aiToggle) {
+    aiToggle.disabled = !_modelSupportsAi(modelKey);
+    if (!_modelSupportsAi(modelKey)) aiToggle.checked = false;
+  }
+
+  const aiEnabled = !!aiToggle?.checked && _modelSupportsAi(modelKey);
+  if (speedChip) speedChip.textContent = aiEnabled ? 'Deeper analysis mode' : 'Fast chart-only mode';
+  if (aiCopy) {
+    aiCopy.textContent = !_modelSupportsAi(modelKey)
+      ? 'AI reporting is disabled for the comparison view. Switch to a single model if you want a forecast narrative.'
+      : aiEnabled
+        ? `AI report is enabled for ${meta.label}. Forecast generation will take longer because the narrative is produced after the model result.`
+        : `AI report is off for ${meta.label}. This is the fastest way to generate the forecast chart and performance cards.`;
+  }
+
+  _renderPredictionHighlights(modelKey);
 }
 
 function _syncPredFormForModel(modelKey) {
@@ -2411,6 +2657,229 @@ function setupPredictionEvents() {
   });
 }
 
+function setupPredictionEvents() {
+  document.getElementById('pred-station-select')?.addEventListener('change', function() {
+    if (_isMLModel(selectedPredModel)) {
+      updatePredMLCategoriesForStation(this.value);
+    } else {
+      updatePredCategoriesForStation(this.value);
+      autofillPredDateRange();
+    }
+  });
+
+  document.getElementById('pred-category-select')?.addEventListener('change', function() {
+    if (!_isMLModel(selectedPredModel)) autofillPredDateRange();
+  });
+
+  document.querySelectorAll('.model-tab').forEach(tab => {
+    tab.addEventListener('click', function() {
+      document.querySelectorAll('.model-tab').forEach(t => t.classList.remove('active'));
+      this.classList.add('active');
+      selectedPredModel = this.dataset.model;
+
+      document.getElementById('pred-model-info')?.classList.add('hidden');
+      document.getElementById('pred-chart-container')?.classList.add('hidden');
+      document.getElementById('pred-compare-table')?.classList.add('hidden');
+      document.getElementById('pred-analysis-panel')?.classList.add('hidden');
+
+      if (_isMLModel(selectedPredModel)) {
+        populatePredMLDropdowns();
+      } else {
+        populatePredictionDropdowns();
+      }
+
+      _syncPredFormForModel(selectedPredModel);
+      _syncPredictionMetaUi(selectedPredModel);
+    });
+  });
+
+  document.getElementById('pred-ai-toggle')?.addEventListener('change', function() {
+    _syncPredictionMetaUi(selectedPredModel);
+  });
+
+  document.getElementById('pred-generate-btn')?.addEventListener('click', function() {
+    const station = document.getElementById('pred-station-select')?.value;
+    const category = document.getElementById('pred-category-select')?.value;
+    const horizon = parseInt(document.getElementById('pred-horizon-select')?.value || '12');
+    const isML = _isMLModel(selectedPredModel);
+    const includeAnalysis = !!document.getElementById('pred-ai-toggle')?.checked && _modelSupportsAi(selectedPredModel);
+    const startDate = document.getElementById('pred-start-date')?.value;
+    const endDate = document.getElementById('pred-end-date')?.value;
+
+    if (!station || !category || (!isML && (!startDate || !endDate))) {
+      showAlert(document.getElementById('pred-alert'));
+      return;
+    }
+
+    const btn = document.getElementById('pred-generate-btn');
+    btn.disabled = true;
+    btn.textContent = includeAnalysis ? 'Generating forecast + AI report...' : 'Generating forecast...';
+    document.getElementById('pred-model-info')?.classList.add('hidden');
+    document.getElementById('pred-chart-container')?.classList.add('hidden');
+    document.getElementById('pred-compare-table')?.classList.add('hidden');
+    document.getElementById('pred-analysis-panel')?.classList.add('hidden');
+
+    if (selectedPredModel === 'ml_compare') {
+      fetch('/compare_models', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ station_name: station, category_name: category, horizon_days: horizon }),
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.error) {
+          const el = document.getElementById('pred-alert');
+          if (el) { el.textContent = 'Comparison error: ' + data.error; showAlert(el); }
+          return;
+        }
+        document.getElementById('pred-chart-container').classList.remove('hidden');
+        Plotly.newPlot('pred-chart', JSON.parse(data.chart), {}, { responsive: true });
+        const info = data.model_info;
+        const tbody = document.getElementById('pred-compare-tbody');
+        if (tbody && info.metrics) {
+          const sorted = [...info.metrics].sort((a, b) => {
+            const ar = parseFloat(a.RMSE), br = parseFloat(b.RMSE);
+            if (isNaN(ar)) return 1;
+            if (isNaN(br)) return -1;
+            return ar - br;
+          });
+          tbody.innerHTML = sorted.map((m, i) => {
+            const best = m.Model === info.best_model;
+            return `<tr class="${best ? 'best-model-row' : ''}"><td>${m.Model}${best ? ' <span class="best-badge">Best</span>' : ''}</td><td>${m.RMSE}</td><td>${m.MAPE}</td><td>#${i + 1}</td></tr>`;
+          }).join('');
+        }
+        document.getElementById('pred-compare-table').classList.remove('hidden');
+        setExportSessionPayload('forecast', {
+          charts: data.chart ? [data.chart] : [],
+          title: 'Forecast Workspace',
+          reportHtml: '',
+          reportText: '',
+          meta: [
+            { label: 'Mode', value: 'Compare all ML models' },
+            { label: 'Station', value: station },
+            { label: 'Category', value: category },
+            { label: 'Horizon', value: `${horizon} days` },
+            { label: 'Best model', value: info.best_model || '--' },
+          ],
+        });
+      })
+      .catch(err => {
+        const el = document.getElementById('pred-alert');
+        if (el) { el.textContent = 'Error: ' + err.message; showAlert(el); }
+      })
+      .finally(() => {
+        btn.disabled = false;
+        btn.textContent = 'Generate Forecast';
+        _syncPredictionMetaUi(selectedPredModel);
+      });
+      return;
+    }
+
+    if (isML) {
+      fetch('/generate_ml_prediction', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: selectedPredModel,
+          station_name: station,
+          category_name: category,
+          horizon_days: horizon,
+          include_analysis: includeAnalysis,
+        }),
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.error) {
+          const el = document.getElementById('pred-alert');
+          if (el) { el.textContent = 'Forecast error: ' + data.error; showAlert(el); }
+          return;
+        }
+        _renderPredictionInfo(data.model_info, selectedPredModel);
+        document.getElementById('pred-chart-container').classList.remove('hidden');
+        Plotly.newPlot('pred-chart', JSON.parse(data.chart), {}, { responsive: true });
+        setExportSessionPayload('forecast', {
+          charts: data.chart ? [data.chart] : [],
+          title: 'Forecast Workspace',
+          reportHtml: '',
+          reportText: '',
+          meta: [
+            { label: 'Model', value: MODEL_META[selectedPredModel]?.label || selectedPredModel },
+            { label: 'Station', value: station },
+            { label: 'Category', value: category },
+            { label: 'Horizon', value: `${horizon} days` },
+            { label: 'RMSE', value: data.model_info?.rmse ?? '--' },
+            { label: 'MAPE', value: data.model_info?.mape ?? '--' },
+          ],
+        });
+        if (includeAnalysis) showPredictionAnalysis(data.analysis, data.analysis_source);
+      })
+      .catch(err => {
+        const el = document.getElementById('pred-alert');
+        if (el) { el.textContent = 'Error: ' + err.message; showAlert(el); }
+      })
+      .finally(() => {
+        btn.disabled = false;
+        btn.textContent = 'Generate Forecast';
+        _syncPredictionMetaUi(selectedPredModel);
+      });
+      return;
+    }
+
+    fetch('/generate_prediction', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: selectedPredModel,
+        station_name: station,
+        category_name: category,
+        start_date: startDate,
+        end_date: endDate,
+        forecast_months: horizon,
+        include_analysis: includeAnalysis,
+      }),
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.error) {
+        const el = document.getElementById('pred-alert');
+        if (el) { el.textContent = 'Forecast error: ' + data.error; showAlert(el); }
+        return;
+      }
+      _renderPredictionInfo(data.model_info, selectedPredModel);
+      document.getElementById('pred-chart-container').classList.remove('hidden');
+      Plotly.newPlot('pred-chart', JSON.parse(data.chart), {}, { responsive: true });
+      setExportSessionPayload('forecast', {
+        charts: data.chart ? [data.chart] : [],
+        title: 'Forecast Workspace',
+        reportHtml: '',
+        reportText: '',
+        meta: [
+          { label: 'Model', value: MODEL_META[selectedPredModel]?.label || selectedPredModel },
+          { label: 'Station', value: station },
+          { label: 'Category', value: category },
+          { label: 'Training window', value: `${startDate} to ${endDate}` },
+          { label: 'Forecast horizon', value: `${horizon} months` },
+          { label: 'RMSE', value: data.model_info?.rmse ?? '--' },
+          { label: 'MAPE', value: data.model_info?.mape ?? '--' },
+        ],
+      });
+      if (includeAnalysis) showPredictionAnalysis(data.analysis, data.analysis_source);
+    })
+    .catch(err => {
+      const el = document.getElementById('pred-alert');
+      if (el) { el.textContent = 'Error: ' + err.message; showAlert(el); }
+    })
+    .finally(() => {
+      btn.disabled = false;
+      btn.textContent = 'Generate Forecast';
+      _syncPredictionMetaUi(selectedPredModel);
+    });
+  });
+
+  _syncPredFormForModel(selectedPredModel);
+  _syncPredictionMetaUi(selectedPredModel);
+}
+
 // ------------------------------
 // CORRELATION EXPLORER
 // ------------------------------
@@ -2551,6 +3020,7 @@ function renderCorrelationFindings(findings, summary) {
       </p>
     </div>
   `;
+  setExportSessionReport('correlation', stripHtmlToText(body.innerHTML), body.innerHTML);
 }
 
 function setupCorrelationEvents() {
@@ -2621,6 +3091,23 @@ function setupCorrelationEvents() {
       Plotly.newPlot('corr-chart-seasonal', JSON.parse(charts.seasonal), {}, { responsive: true });
       Plotly.newPlot('corr-chart-rolling', JSON.parse(charts.rolling), {}, { responsive: true });
       document.getElementById('corr-chart-grid').classList.remove('hidden');
+
+      setExportSessionPayload('correlation', {
+        charts: [charts.timeline, charts.scatter, charts.lag, charts.seasonal, charts.rolling].filter(Boolean),
+        title: 'Correlation Explorer',
+        reportHtml: '',
+        reportText: '',
+        meta: [
+          { label: 'Station', value: s.station || station },
+          { label: 'Variable A', value: s.category_a || categoryA },
+          { label: 'Variable B', value: s.category_b || categoryB },
+          { label: 'Aligned frequency', value: s.freq_label || s.align_frequency || '--' },
+          { label: 'Observations', value: s.n_obs || '--' },
+          { label: 'Pearson r', value: s.pearson_str || '--' },
+          { label: 'Spearman rho', value: s.spearman_str || '--' },
+          { label: 'Best lag', value: `${formatCorrelationLag(s.best_lag || 0, s.align_frequency)} (${s.best_lag_corr_str || 'n/a'})` },
+        ],
+      });
 
       renderCorrelationFindings(data.findings, s);
       document.getElementById('corr-analysis-panel').classList.remove('hidden');
@@ -2708,6 +3195,7 @@ function _showSeasonalAnalysis(analysis, source) {
     : '<span class="analysis-source-tag fallback-tag">Pre-plan Analysis</span>';
   body.innerHTML = tag + azBuildAnalysisReport(analysis);
   panel.classList.remove('hidden');
+  setExportSessionReport('seasonal', analysis, body.innerHTML);
 }
 
 function setupSeasonalEvents() {
@@ -2776,6 +3264,21 @@ function setupSeasonalEvents() {
       // Chart
       document.getElementById('seas-chart-container').classList.remove('hidden');
       Plotly.newPlot('seas-chart', JSON.parse(data.chart), {}, { responsive: true });
+      setExportSessionPayload('seasonal', {
+        charts: data.chart ? [data.chart] : [],
+        title: 'Seasonal Decomposition',
+        reportHtml: '',
+        reportText: '',
+        meta: [
+          { label: 'Station', value: station },
+          { label: 'Category', value: category },
+          { label: 'Window', value: `${startDate} to ${endDate}` },
+          { label: 'Period', value: `${period} months` },
+          { label: 'Trend direction', value: s.trend_direction },
+          { label: 'Trend strength', value: (s.trend_strength * 100).toFixed(1) + '%' },
+          { label: 'Seasonal strength', value: (s.seasonal_strength * 100).toFixed(1) + '%' },
+        ],
+      });
 
       // Analysis
       _showSeasonalAnalysis(data.analysis, data.analysis_source);
@@ -2785,6 +3288,418 @@ function setupSeasonalEvents() {
       if (el) { el.textContent = 'Error: ' + err.message; showAlert(el); }
     })
     .finally(() => { btn.disabled = false; btn.textContent = 'Run Decomposition'; });
+  });
+}
+
+// ------------------------------
+// DATA EXPORT
+// ------------------------------
+function stripHtmlToText(html) {
+  const div = document.createElement('div');
+  div.innerHTML = html || '';
+  return (div.textContent || div.innerText || '').replace(/\n{3,}/g, '\n\n').trim();
+}
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function buildExportFilename(sectionKey, suffix, extension) {
+  const meta = EXPORT_SOURCE_META[sectionKey] || { slug: 'export' };
+  const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+  return `${meta.slug}_${suffix}_${stamp}.${extension}`;
+}
+
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function setExportSessionPayload(sectionKey, payload) {
+  const existing = exportSessions[sectionKey] || {};
+  exportSessions[sectionKey] = {
+    ...existing,
+    ...payload,
+    title: payload.title || existing.title || EXPORT_SOURCE_META[sectionKey]?.label || 'Export',
+    slug: existing.slug || EXPORT_SOURCE_META[sectionKey]?.slug || 'export',
+    generatedAt: new Date().toISOString(),
+    available: !!((payload.charts && payload.charts.length) || payload.reportHtml || payload.reportText || (payload.meta && payload.meta.length)),
+  };
+  refreshExportSourceSnapshot();
+}
+
+function setExportSessionReport(sectionKey, reportText, reportHtml) {
+  const existing = exportSessions[sectionKey];
+  if (!existing) return;
+  exportSessions[sectionKey] = {
+    ...existing,
+    reportText: reportText || stripHtmlToText(reportHtml || ''),
+    reportHtml: reportHtml || (reportText ? azBuildAnalysisReport(reportText) : ''),
+    generatedAt: new Date().toISOString(),
+    available: true,
+  };
+  refreshExportSourceSnapshot();
+}
+
+function populateExportControls() {
+  const stationSel = document.getElementById('export-station-select');
+  const sourceSel = document.getElementById('export-source-select');
+  if (!stationSel || !sourceSel) return;
+
+  const prevStation = stationSel.value;
+  stationSel.innerHTML = '<option value="">Select a station...</option>';
+  stationNameList.forEach(name => {
+    const opt = document.createElement('option');
+    opt.value = name;
+    opt.textContent = name;
+    stationSel.appendChild(opt);
+  });
+  if (prevStation && stationNameList.includes(prevStation)) stationSel.value = prevStation;
+
+  const prevSource = sourceSel.value || 'dashboard';
+  sourceSel.innerHTML = Object.entries(EXPORT_SOURCE_META).map(([key, meta]) =>
+    `<option value="${key}">${meta.label}</option>`
+  ).join('');
+  sourceSel.value = EXPORT_SOURCE_META[prevSource] ? prevSource : 'dashboard';
+
+  updateExportCategoryOptions(stationSel.value);
+  refreshExportSourceSnapshot();
+}
+
+function updateExportCategoryOptions(stationName) {
+  const catSel = document.getElementById('export-category-select');
+  if (!catSel) return;
+  const previous = catSel.value;
+  const available = stationName
+    ? categoryNameList.filter(name => (categoryDetailsMap[name] || []).some(row => row.station_name === stationName))
+    : categoryNameList;
+
+  catSel.innerHTML = '<option value="">Select a category...</option>';
+  available.forEach(name => {
+    const opt = document.createElement('option');
+    opt.value = name;
+    opt.textContent = name;
+    catSel.appendChild(opt);
+  });
+  if (previous && available.includes(previous)) catSel.value = previous;
+  autofillExportDateRange();
+}
+
+function autofillExportDateRange() {
+  const station = document.getElementById('export-station-select')?.value;
+  const category = document.getElementById('export-category-select')?.value;
+  const startEl = document.getElementById('export-start-date');
+  const endEl = document.getElementById('export-end-date');
+  const preview = document.getElementById('export-date-preview');
+
+  if (!station || !category) {
+    if (startEl) startEl.value = '';
+    if (endEl) endEl.value = '';
+    if (preview) preview.textContent = 'Select a station and category';
+    return;
+  }
+
+  const detail = getCategoryDateRange(category, station);
+  if (!detail) {
+    if (startEl) startEl.value = '';
+    if (endEl) endEl.value = '';
+    if (preview) preview.textContent = 'No known overlap for this selection';
+    return;
+  }
+
+  if (startEl) startEl.value = formatDateToDDMMYYYY(detail.start_date);
+  if (endEl) endEl.value = formatDateToDDMMYYYY(detail.end_date);
+  if (preview) preview.textContent = `${formatDateToDDMMYYYY(detail.start_date)} to ${formatDateToDDMMYYYY(detail.end_date)}`;
+}
+
+function refreshExportSourceSnapshot() {
+  const sourceSel = document.getElementById('export-source-select');
+  const statusEl = document.getElementById('export-source-status');
+  const chartCountEl = document.getElementById('export-source-chart-count');
+  const reportEl = document.getElementById('export-source-report-status');
+  if (!sourceSel || !statusEl || !chartCountEl || !reportEl) return;
+
+  const session = exportSessions[sourceSel.value];
+  const hasCharts = !!(session?.charts?.length);
+  const hasReport = !!(session?.reportHtml || session?.reportText);
+
+  statusEl.textContent = session?.available ? `Ready from ${session.title}` : 'No output generated yet';
+  chartCountEl.textContent = String(session?.charts?.length || 0);
+  reportEl.textContent = hasReport ? 'Available' : 'Unavailable';
+}
+
+async function chartJsonToImage(chartJson, width = 1800, height = 1080) {
+  const temp = document.createElement('div');
+  temp.style.position = 'fixed';
+  temp.style.left = '-10000px';
+  temp.style.top = '0';
+  temp.style.width = `${width}px`;
+  temp.style.height = `${height}px`;
+  temp.style.background = '#ffffff';
+  document.body.appendChild(temp);
+
+  try {
+    const figure = JSON.parse(chartJson);
+    await Plotly.newPlot(
+      temp,
+      figure.data || figure,
+      figure.layout || {},
+      { ...(figure.config || {}), responsive: false, displayModeBar: false }
+    );
+    return await Plotly.toImage(temp, { format: 'png', width, height, scale: 2 });
+  } finally {
+    Plotly.purge(temp);
+    temp.remove();
+  }
+}
+
+async function exportChartsAsPng(sectionKey) {
+  const session = exportSessions[sectionKey];
+  if (!session?.charts?.length) return false;
+
+  for (let i = 0; i < session.charts.length; i += 1) {
+    const dataUrl = await chartJsonToImage(session.charts[i]);
+    const response = await fetch(dataUrl);
+    const blob = await response.blob();
+    downloadBlob(blob, buildExportFilename(sectionKey, `chart_${i + 1}`, 'png'));
+  }
+  return true;
+}
+
+function buildExportHtmlDocument(session, imageUrls = []) {
+  const metaHtml = (session.meta || []).map(item =>
+    `<div class="meta-row"><span class="meta-label">${escapeHtml(item.label)}</span><span class="meta-value">${escapeHtml(item.value)}</span></div>`
+  ).join('');
+
+  const figuresHtml = imageUrls.map((src, index) =>
+    `<figure class="figure-block"><img src="${src}" alt="Exported chart ${index + 1}" /><figcaption>Figure ${index + 1}</figcaption></figure>`
+  ).join('');
+
+  const reportHtml = session.reportHtml
+    ? `<section class="report-block"><h2>Analytical Report</h2>${session.reportHtml}</section>`
+    : `<section class="report-block"><h2>Analytical Report</h2><p class="empty-copy">No narrative report was generated for this output. You can still use the exported figures and metadata.</p></section>`;
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>${escapeHtml(session.title)}</title>
+  <style>
+    body { font-family: Georgia, "Times New Roman", serif; color: #1e293b; margin: 0; background: #f8fafc; }
+    .page { max-width: 980px; margin: 0 auto; padding: 42px 36px 56px; background: #ffffff; }
+    .eyebrow { text-transform: uppercase; letter-spacing: 0.16em; font-size: 11px; color: #8a5b17; margin-bottom: 10px; }
+    h1 { font-size: 34px; line-height: 1.15; margin: 0 0 8px; color: #0f172a; }
+    .subhead { font-size: 15px; color: #475569; margin: 0 0 24px; }
+    .meta-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 18px; padding: 18px 20px; background: #f8fafc; border: 1px solid #dbe4ee; border-radius: 18px; margin-bottom: 28px; }
+    .meta-row { display: flex; justify-content: space-between; gap: 12px; padding-bottom: 8px; border-bottom: 1px solid #e2e8f0; }
+    .meta-label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: #64748b; }
+    .meta-value { font-size: 14px; font-weight: 600; color: #0f172a; text-align: right; }
+    .figure-block { margin: 0 0 26px; padding: 18px; border: 1px solid #dbe4ee; border-radius: 18px; background: #ffffff; }
+    .figure-block img { width: 100%; height: auto; display: block; border-radius: 12px; }
+    .figure-block figcaption { margin-top: 10px; font-size: 13px; color: #64748b; }
+    .report-block { margin-top: 30px; }
+    .report-block h2 { font-size: 24px; margin: 0 0 16px; color: #0f172a; }
+    .az-section { margin-bottom: 18px; }
+    .az-section-title { font-size: 17px; margin: 0 0 8px; color: #0f172a; }
+    .az-para, .empty-copy, .report-block li { font-size: 15px; line-height: 1.72; color: #334155; }
+    .analysis-source-tag { display: inline-block; margin-bottom: 16px; padding: 6px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; background: #e2e8f0; color: #334155; }
+    .corr-findings-list { margin: 0; padding-left: 20px; }
+    @media print {
+      body { background: #ffffff; }
+      .page { max-width: none; padding: 24px; }
+      .figure-block { break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="eyebrow">MekongPulse Export</div>
+    <h1>${escapeHtml(session.title)}</h1>
+    <p class="subhead">Generated ${escapeHtml(new Date(session.generatedAt || Date.now()).toLocaleString())}</p>
+    <div class="meta-grid">${metaHtml || '<div class="meta-row"><span class="meta-label">Status</span><span class="meta-value">No metadata available</span></div>'}</div>
+    ${figuresHtml}
+    ${reportHtml}
+  </div>
+</body>
+</html>`;
+}
+
+async function buildExportDocument(session) {
+  const imageUrls = [];
+  for (const chart of session.charts || []) {
+    imageUrls.push(await chartJsonToImage(chart));
+  }
+  return buildExportHtmlDocument(session, imageUrls);
+}
+
+function buildExportText(session) {
+  const header = [
+    session.title,
+    `Generated: ${new Date(session.generatedAt || Date.now()).toLocaleString()}`,
+    '',
+    'Metadata',
+    ...(session.meta || []).map(item => `- ${item.label}: ${item.value}`),
+    '',
+    'Analytical Report',
+    session.reportText || 'No narrative report was generated for this output.',
+  ];
+  return header.join('\n');
+}
+
+function getSelectedExportSession(alertId) {
+  const sourceSel = document.getElementById('export-source-select');
+  const session = exportSessions[sourceSel?.value || 'dashboard'];
+  if (!session?.available) {
+    showAlert(document.getElementById(alertId));
+    return null;
+  }
+  return { session, sectionKey: sourceSel.value };
+}
+
+function setupExportEvents() {
+  populateExportControls();
+
+  document.getElementById('export-station-select')?.addEventListener('change', function() {
+    updateExportCategoryOptions(this.value);
+  });
+  document.getElementById('export-category-select')?.addEventListener('change', autofillExportDateRange);
+  document.getElementById('export-source-select')?.addEventListener('change', refreshExportSourceSnapshot);
+
+  document.getElementById('export-csv-btn')?.addEventListener('click', async function() {
+    const station = document.getElementById('export-station-select')?.value;
+    const category = document.getElementById('export-category-select')?.value;
+    const startDate = document.getElementById('export-start-date')?.value;
+    const endDate = document.getElementById('export-end-date')?.value;
+    if (!station || !category || !startDate || !endDate) {
+      showAlert(document.getElementById('export-csv-alert'));
+      return;
+    }
+
+    const btn = this;
+    btn.disabled = true;
+    btn.textContent = 'Preparing CSV...';
+    try {
+      const response = await fetch('/export_station_data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          station_name: station,
+          category_name: category,
+          start_date: startDate,
+          end_date: endDate,
+        }),
+      });
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'CSV export failed');
+      }
+      const blob = await response.blob();
+      const disposition = response.headers.get('Content-Disposition') || '';
+      const match = disposition.match(/filename="?([^"]+)"?/i);
+      downloadBlob(blob, match?.[1] || buildExportFilename('dashboard', 'filtered_data', 'csv'));
+    } catch (err) {
+      const alertEl = document.getElementById('export-csv-alert');
+      if (alertEl) {
+        alertEl.textContent = `CSV export error: ${err.message}`;
+        showAlert(alertEl);
+      }
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Download CSV`;
+    }
+  });
+
+  document.getElementById('export-chart-png-btn')?.addEventListener('click', async function() {
+    const selected = getSelectedExportSession('export-session-alert');
+    if (!selected) return;
+    if (!selected.session.charts.length) {
+      showAlert(document.getElementById('export-session-alert'));
+      return;
+    }
+
+    const btn = this;
+    btn.disabled = true;
+    btn.textContent = 'Rendering PNGs...';
+    try {
+      await exportChartsAsPng(selected.sectionKey);
+    } catch (err) {
+      const alertEl = document.getElementById('export-session-alert');
+      if (alertEl) {
+        alertEl.textContent = `Chart export error: ${err.message}`;
+        showAlert(alertEl);
+      }
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Download Chart PNGs';
+    }
+  });
+
+  document.getElementById('export-report-html-btn')?.addEventListener('click', async function() {
+    const selected = getSelectedExportSession('export-session-alert');
+    if (!selected) return;
+
+    const btn = this;
+    btn.disabled = true;
+    btn.textContent = 'Building HTML report...';
+    try {
+      const html = await buildExportDocument(selected.session);
+      downloadBlob(new Blob([html], { type: 'text/html;charset=utf-8' }), buildExportFilename(selected.sectionKey, 'report', 'html'));
+    } catch (err) {
+      const alertEl = document.getElementById('export-session-alert');
+      if (alertEl) {
+        alertEl.textContent = `Report export error: ${err.message}`;
+        showAlert(alertEl);
+      }
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Download Report HTML';
+    }
+  });
+
+  document.getElementById('export-report-txt-btn')?.addEventListener('click', function() {
+    const selected = getSelectedExportSession('export-session-alert');
+    if (!selected) return;
+    const text = buildExportText(selected.session);
+    downloadBlob(new Blob([text], { type: 'text/plain;charset=utf-8' }), buildExportFilename(selected.sectionKey, 'report', 'txt'));
+  });
+
+  document.getElementById('export-pdf-btn')?.addEventListener('click', async function() {
+    const selected = getSelectedExportSession('export-pdf-alert');
+    if (!selected) return;
+
+    const btn = this;
+    btn.disabled = true;
+    btn.textContent = 'Preparing print report...';
+    try {
+      const html = await buildExportDocument(selected.session);
+      const win = window.open('', '_blank');
+      if (!win) throw new Error('Allow pop-ups to open the print report window.');
+      win.document.open();
+      win.document.write(html);
+      win.document.close();
+      win.focus();
+      setTimeout(() => win.print(), 500);
+    } catch (err) {
+      const alertEl = document.getElementById('export-pdf-alert');
+      if (alertEl) {
+        alertEl.textContent = `PDF export error: ${err.message}`;
+        showAlert(alertEl);
+      }
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h9l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2z"/><path d="M14 2v6h6"/><path d="M8 13h8"/><path d="M8 17h8"/></svg>Open Print-Ready PDF Report`;
+    }
   });
 }
 
@@ -2812,6 +3727,7 @@ document.addEventListener("DOMContentLoaded", async function() {
     setupPredictionEvents();
     setupCorrelationEvents();
     setupSeasonalEvents();
+    setupExportEvents();
     setupSidebarToggle();
     setupThemeToggle();
     setupAiAnalysis();

@@ -1,10 +1,11 @@
 from dotenv import load_dotenv
 load_dotenv(override=True)
 
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, Response
 import json
 import os
 import pandas as pd
+import re
 
 import visualization
 from data_loader import DataRepository
@@ -128,6 +129,46 @@ def generate_visualization():
         return jsonify({'error': str(e)}), 500
 
 
+def _safe_download_name(value: str) -> str:
+    value = str(value or "").strip().replace(" ", "_")
+    value = re.sub(r"[^A-Za-z0-9._-]+", "", value)
+    return value or "export"
+
+
+@app.route('/export_station_data', methods=['POST'])
+def export_station_data():
+    try:
+        data = request.json or {}
+        station = data['station_name']
+        category = data['category_name']
+        start = pd.to_datetime(data['start_date'], dayfirst=True).strftime('%Y-%m-%d')
+        end = pd.to_datetime(data['end_date'], dayfirst=True).strftime('%Y-%m-%d')
+
+        df = visualization.get_feature_series_df(category, station, data['start_date'], data['end_date'])
+        if df is None or df.empty:
+            return jsonify({'error': 'No filtered data available for this export request.'}), 404
+
+        export_df = df.copy()
+        export_df['Timestamp'] = pd.to_datetime(export_df['Timestamp']).dt.strftime('%Y-%m-%d')
+        export_df = export_df[['Timestamp', 'Station', 'Feature', 'Value', 'Unit', 'Imputed']]
+
+        csv_body = export_df.to_csv(index=False)
+        filename = (
+            f"{_safe_download_name(station)}_"
+            f"{_safe_download_name(category)}_"
+            f"{start}_to_{end}.csv"
+        )
+
+        return Response(
+            csv_body,
+            mimetype='text/csv',
+            headers={'Content-Disposition': f'attachment; filename="{filename}"'}
+        )
+    except Exception as e:
+        print(f"Error exporting station data: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
 MODEL_DISPATCH = {
     "holt_winters":       visualization.generate_holt_winters_prediction,
     "sarima":             visualization.generate_sarima_prediction,
@@ -142,6 +183,7 @@ def generate_prediction():
     import traceback
     try:
         data = request.json
+        include_analysis = bool(data.get('include_analysis', False))
         model_key = data.get('model', 'holt_winters')
         fn = MODEL_DISPATCH.get(model_key, visualization.generate_holt_winters_prediction)
         result = fn(
@@ -152,25 +194,28 @@ def generate_prediction():
             forecast_months=int(data.get('forecast_months', 12)),
         )
         info = result.get('model_info', {})
-        analysis, source = _generate_prediction_analysis(
-            station=data['station_name'],
-            category=data['category_name'],
-            model=info.get('model_type', 'Holt-Winters'),
-            horizon=info.get('forecast_months', data.get('forecast_months', 12)),
-            rmse=info.get('rmse', 'n/a'),
-            mape='n/a',
-            last_historical=info.get('last_historical', '--'),
-            forecast_end=info.get('forecast_end', '--'),
-            source_type='statistical',
-            extra_info={
-                'aic': info.get('aic'),
-                'alpha': info.get('alpha'),
-                'beta': info.get('beta'),
-                'gamma': info.get('gamma'),
-            },
-        )
-        result['analysis'] = analysis
-        result['analysis_source'] = source
+        result['analysis'] = None
+        result['analysis_source'] = None
+        if include_analysis:
+            analysis, source = _generate_prediction_analysis(
+                station=data['station_name'],
+                category=data['category_name'],
+                model=info.get('model_type', 'Holt-Winters'),
+                horizon=info.get('forecast_months', data.get('forecast_months', 12)),
+                rmse=info.get('rmse', 'n/a'),
+                mape=info.get('mape', 'n/a'),
+                last_historical=info.get('last_historical', '--'),
+                forecast_end=info.get('forecast_end', '--'),
+                source_type='statistical',
+                extra_info={
+                    'aic': info.get('aic'),
+                    'alpha': info.get('alpha'),
+                    'beta': info.get('beta'),
+                    'gamma': info.get('gamma'),
+                },
+            )
+            result['analysis'] = analysis
+            result['analysis_source'] = source
         return jsonify(result)
     except Exception as e:
         traceback.print_exc()
@@ -283,6 +328,7 @@ def generate_ml_prediction():
     import traceback
     try:
         data = request.json
+        include_analysis = bool(data.get('include_analysis', False))
         result = ml_prediction_service.generate_ml_prediction(
             category_name=data['category_name'],
             station_name=data['station_name'],
@@ -290,19 +336,22 @@ def generate_ml_prediction():
             horizon=int(data.get('horizon_days', 14)),
         )
         info = result['model_info']
-        analysis, source = _generate_prediction_analysis(
-            station=data['station_name'],
-            category=data['category_name'],
-            model=info['model'],
-            horizon=info['horizon_days'],
-            rmse=info['rmse'],
-            mape=info['mape'],
-            last_historical=info['last_historical'],
-            forecast_end=info['forecast_end'],
-            source_type='trained_model',
-        )
-        result['analysis'] = analysis
-        result['analysis_source'] = source
+        result['analysis'] = None
+        result['analysis_source'] = None
+        if include_analysis:
+            analysis, source = _generate_prediction_analysis(
+                station=data['station_name'],
+                category=data['category_name'],
+                model=info['model'],
+                horizon=info['horizon_days'],
+                rmse=info['rmse'],
+                mape=info['mape'],
+                last_historical=info['last_historical'],
+                forecast_end=info['forecast_end'],
+                source_type='trained_model',
+            )
+            result['analysis'] = analysis
+            result['analysis_source'] = source
         return jsonify(result)
     except Exception as e:
         traceback.print_exc()

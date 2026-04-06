@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import json
 from typing import Optional
@@ -21,7 +21,7 @@ from sklearn.preprocessing import StandardScaler
 # Set by app.py at startup
 repo: Optional[DataRepository] = None
 
-# Maps display category name (used by frontend) → schema feature key
+# Maps display category name (used by frontend) â†’ schema feature key
 CATEGORY_TO_FEATURE = {
     "Water Level": "Water_Level",
     "Discharge": "Discharge",
@@ -31,7 +31,7 @@ CATEGORY_TO_FEATURE = {
 
 FEATURE_DISPLAY_UNITS = {
     "Water Level": "Water Level (m)",
-    "Discharge": "Discharge (m³/s)",
+    "Discharge": "Discharge (mÂ³/s)",
     "Total Suspended Solids": "Total Suspended Solids (mg/l)",
     "Rainfall": "Rainfall (mm)",
 }
@@ -361,7 +361,7 @@ def generate_annual_monthly_totals_visualizations(selected_data):
 # ------------------------------
 
 def plot_flow_duration_curve(station_name, category_name, start_date, end_date):
-    chart_title = f"Flow Duration Curve — {category_name} at {station_name}"
+    chart_title = f"Flow Duration Curve â€” {category_name} at {station_name}"
     df = get_feature_series_df(category_name, station_name, start_date, end_date)
     if df is None or df.empty:
         return create_no_data_chart(chart_title)
@@ -393,7 +393,7 @@ def generate_flow_duration_curve_visualizations(selected_data):
 # ------------------------------
 
 def plot_monthly_distribution_boxplot(station_name, category_name, start_date, end_date):
-    chart_title = f"Monthly Distribution — {category_name} at {station_name}"
+    chart_title = f"Monthly Distribution â€” {category_name} at {station_name}"
     df = get_feature_series_df(category_name, station_name, start_date, end_date)
     if df is None or df.empty:
         return create_no_data_chart(chart_title)
@@ -428,7 +428,7 @@ def generate_monthly_distribution_boxplot_visualizations(selected_data):
 # ------------------------------
 
 def plot_multi_station_temporal_heatmap(category_name, stations_data):
-    chart_title = f"{category_name} — Multi-Station Temporal Heatmap"
+    chart_title = f"{category_name} â€” Multi-Station Temporal Heatmap"
     station_names = []
     year_values: dict = {}
 
@@ -728,7 +728,7 @@ def _build_correlation_charts(
                 text=(
                     f"Pearson r = {_format_corr_value(stats['pearson'])}<br>"
                     f"Spearman rho = {_format_corr_value(stats['spearman'])}<br>"
-                    f"R² = {_format_corr_value(r_squared)}"
+                    f"RÂ² = {_format_corr_value(r_squared)}"
                 ),
             )
         ],
@@ -988,7 +988,7 @@ def generate_correlation_explorer(
 # ------------------------------
 
 def plot_anomaly_detection_chart(station_name, category_name, start_date, end_date):
-    chart_title = f"Anomaly Detection — {category_name} at {station_name}"
+    chart_title = f"Anomaly Detection â€” {category_name} at {station_name}"
     df = get_feature_series_df(category_name, station_name, start_date, end_date)
     if df is None or df.empty:
         return create_no_data_chart(chart_title)
@@ -1030,7 +1030,7 @@ def generate_anomaly_detection_visualizations(selected_data):
 # ------------------------------
 
 def plot_rolling_average_trend(station_name, category_name, start_date, end_date):
-    chart_title = f"Rolling Average Trend — {category_name} at {station_name}"
+    chart_title = f"Rolling Average Trend â€” {category_name} at {station_name}"
     df = get_feature_series_df(category_name, station_name, start_date, end_date)
     if df is None or df.empty:
         return create_no_data_chart(chart_title)
@@ -1071,7 +1071,7 @@ def generate_rolling_average_trend_visualizations(selected_data):
 # ------------------------------
 
 def plot_cumulative_departure(station_name, category_name, start_date, end_date):
-    chart_title = f"Cumulative Departure from Mean — {category_name} at {station_name}"
+    chart_title = f"Cumulative Departure from Mean â€” {category_name} at {station_name}"
     df = get_feature_series_df(category_name, station_name, start_date, end_date)
     if df is None or df.empty:
         return create_no_data_chart(chart_title)
@@ -1112,7 +1112,7 @@ def generate_cumulative_departure_visualizations(selected_data):
 # ------------------------------
 
 def plot_monthly_climatology(station_name, category_name, start_date, end_date):
-    chart_title = f"Monthly Climatology — {category_name} at {station_name}"
+    chart_title = f"Monthly Climatology â€” {category_name} at {station_name}"
     df = get_feature_series_df(category_name, station_name, start_date, end_date)
     if df is None or df.empty:
         return create_no_data_chart(chart_title)
@@ -1138,7 +1138,7 @@ def plot_monthly_climatology(station_name, category_name, start_date, end_date):
     fig = apply_clean_layout(fig, chart_title, get_category_units(category_name), "Month")
     fig.add_annotation(
         x=0.01, y=0.97, xref="paper", yref="paper",
-        text=f"Based on {years} years of data — error bars show ±1 std dev",
+        text=f"Based on {years} years of data â€” error bars show Â±1 std dev",
         showarrow=False, font=dict(size=11, color="#666"), xanchor="left",
     )
     fig.update_layout(showlegend=False)
@@ -1157,7 +1157,7 @@ def generate_monthly_climatology_visualizations(selected_data):
 # ------------------------------
 
 def plot_decade_comparison(station_name, category_name, start_date, end_date):
-    chart_title = f"Decade-by-Decade Comparison — {category_name} at {station_name}"
+    chart_title = f"Decade-by-Decade Comparison â€” {category_name} at {station_name}"
     df = get_feature_series_df(category_name, station_name, start_date, end_date)
     if df is None or df.empty:
         return create_no_data_chart(chart_title)
@@ -1167,7 +1167,7 @@ def plot_decade_comparison(station_name, category_name, start_date, end_date):
     decades = sorted(df["Decade"].unique())
 
     if len(decades) < 2:
-        return create_no_data_chart(chart_title, "Not enough data — at least two decades required.")
+        return create_no_data_chart(chart_title, "Not enough data â€” at least two decades required.")
 
     colors = px.colors.qualitative.Plotly
     fig = go.Figure()
@@ -1230,7 +1230,7 @@ def plot_station_ranking_bar(category_name, stations_data):
         hovertemplate="Station: %{y}<br>Average: %{x:.2f}<extra></extra>",
     ))
     fig = apply_clean_layout(fig, chart_title, "", get_category_units(category_name))
-    # Override the date tickformat that apply_clean_layout sets — x-axis is numeric here
+    # Override the date tickformat that apply_clean_layout sets â€” x-axis is numeric here
     fig.update_xaxes(tickformat="", title=get_category_units(category_name))
     fig.update_layout(
         yaxis_title="",
@@ -1404,15 +1404,39 @@ def generate_holt_winters_prediction(
         raise ValueError("At least 12 months of data are required for forecasting.")
 
     use_seasonal = len(series) >= 24
+    positive_only = bool((series > 0).all())
 
-    model = ExponentialSmoothing(
-        series,
-        trend="add",
-        seasonal="add" if use_seasonal else None,
-        seasonal_periods=12 if use_seasonal else None,
-        initialization_method="estimated",
-    )
-    fitted = model.fit(optimized=True, remove_bias=True)
+    candidates = [
+        {"trend": "add", "seasonal": "add" if use_seasonal else None, "damped_trend": False},
+        {"trend": "add", "seasonal": "add" if use_seasonal else None, "damped_trend": True},
+    ]
+    if use_seasonal and positive_only:
+        candidates.append({"trend": "add", "seasonal": "mul", "damped_trend": False})
+
+    fitted = None
+    best_cfg = None
+    best_aic = None
+    for cfg in candidates:
+        try:
+            model = ExponentialSmoothing(
+                series,
+                trend=cfg["trend"],
+                damped_trend=cfg["damped_trend"],
+                seasonal=cfg["seasonal"],
+                seasonal_periods=12 if cfg["seasonal"] else None,
+                initialization_method="estimated",
+            )
+            candidate_fit = model.fit(optimized=True, remove_bias=True)
+            candidate_aic = float(candidate_fit.aic)
+            if best_aic is None or candidate_aic < best_aic:
+                fitted = candidate_fit
+                best_cfg = cfg
+                best_aic = candidate_aic
+        except Exception:
+            continue
+
+    if fitted is None:
+        raise ValueError("Unable to fit a Holt-Winters model for the selected series.")
 
     forecast = fitted.forecast(forecast_months)
     residuals = series - fitted.fittedvalues
@@ -1486,13 +1510,13 @@ def generate_holt_winters_prediction(
 
     apply_clean_layout(
         fig,
-        title=f"Holt-Winters Forecast — {station_display(station_name)} · {category_name}",
+        title=f"Holt-Winters Forecast â€” {station_display(station_name)} Â· {category_name}",
         yaxis_title=unit_label,
         xaxis_title="Date",
     )
 
     params = fitted.params if isinstance(fitted.params, dict) else dict(fitted.params)
-    rmse = float(np.sqrt(float(np.mean(residuals ** 2))))
+    metrics = _forecast_metrics(series.values, fitted.fittedvalues.values)
 
     def _p(key):
         v = params.get(key)
@@ -1505,13 +1529,19 @@ def generate_holt_winters_prediction(
         "station": station_display(station_name),
         "category": category_name,
         "historical_months": int(len(series)),
-        "model_type": "Holt-Winters (additive trend + seasonal)" if use_seasonal else "Holt-Winters (additive trend only)",
+        "model_type": (
+            f"Holt-Winters ({'damped ' if best_cfg.get('damped_trend') else ''}additive trend"
+            + (f" + {'multiplicative' if best_cfg.get('seasonal') == 'mul' else 'additive'} seasonal)" if best_cfg.get("seasonal") else ")")
+        ),
         "forecast_months": int(forecast_months),
         "alpha": _p("smoothing_level"),
         "beta": _p("smoothing_trend"),
-        "gamma": _p("smoothing_seasonal") if use_seasonal else None,
+        "gamma": _p("smoothing_seasonal") if best_cfg.get("seasonal") else None,
         "aic": round(float(fitted.aic), 2),
-        "rmse": round(rmse, 4),
+        "rmse": metrics["rmse"],
+        "mae": metrics["mae"],
+        "mape": metrics["mape"],
+        "bias": metrics["bias"],
         "last_historical": series.index[-1].strftime("%Y-%m"),
         "forecast_end": forecast.index[-1].strftime("%Y-%m"),
     }
@@ -1597,7 +1627,7 @@ def _make_forecast_chart(series, fitted_vals, forecast_vals, forecast_index, ci_
 
     apply_clean_layout(
         fig,
-        title=f"{model_label} — {station_display(station_name)} · {category_name}",
+        title=f"{model_label} â€” {station_display(station_name)} Â· {category_name}",
         yaxis_title=unit_label,
         xaxis_title="Date",
     )
@@ -1605,10 +1635,14 @@ def _make_forecast_chart(series, fitted_vals, forecast_vals, forecast_index, ci_
 
 
 def _make_lag_features(series: pd.Series, lags=(1, 2, 3, 6, 12)):
-    """Build lag + month seasonality features for ML models."""
+    """Build lag, rolling-history, and seasonal features for ML models."""
     df = pd.DataFrame({"value": series})
     for lag in lags:
         df[f"lag_{lag}"] = df["value"].shift(lag)
+    df["roll_mean_3"] = df["value"].rolling(3).mean().shift(1)
+    df["roll_mean_6"] = df["value"].rolling(6).mean().shift(1)
+    df["roll_std_3"] = df["value"].rolling(3).std().shift(1)
+    df["roll_std_6"] = df["value"].rolling(6).std().shift(1)
     df["month_sin"] = np.sin(2 * np.pi * df.index.month / 12)
     df["month_cos"] = np.cos(2 * np.pi * df.index.month / 12)
     df["month_sin2"] = np.sin(4 * np.pi * df.index.month / 12)
@@ -1627,6 +1661,12 @@ def _iterative_forecast(model, last_known: pd.Series, forecast_months: int,
         row = {}
         for lag in lags:
             row[f"lag_{lag}"] = history[-lag] if lag <= len(history) else history[0]
+        recent3 = history[-3:] if len(history) >= 3 else history
+        recent6 = history[-6:] if len(history) >= 6 else history
+        row["roll_mean_3"] = float(np.mean(recent3))
+        row["roll_mean_6"] = float(np.mean(recent6))
+        row["roll_std_3"] = float(np.std(recent3))
+        row["roll_std_6"] = float(np.std(recent6))
         row["month_sin"] = np.sin(2 * np.pi * date.month / 12)
         row["month_cos"] = np.cos(2 * np.pi * date.month / 12)
         row["month_sin2"] = np.sin(4 * np.pi * date.month / 12)
@@ -1647,6 +1687,23 @@ def _residual_ci(residuals, forecast_months):
     return [1.96 * sigma * np.sqrt(h) for h in range(1, forecast_months + 1)]
 
 
+def _forecast_metrics(actual, fitted) -> dict:
+    actual_arr = np.asarray(actual, dtype=float)
+    fitted_arr = np.asarray(fitted, dtype=float)
+    residuals = actual_arr - fitted_arr
+    rmse = float(np.sqrt(np.mean(residuals ** 2)))
+    mae = float(np.mean(np.abs(residuals)))
+    denom = np.maximum(np.abs(actual_arr), max(float(np.nanmean(np.abs(actual_arr))) * 0.01, 1e-6))
+    mape = float(np.mean(np.abs(residuals) / denom) * 100)
+    bias = float(np.mean(residuals))
+    return {
+        "rmse": round(rmse, 4),
+        "mae": round(mae, 4),
+        "mape": round(mape, 2),
+        "bias": round(bias, 4),
+    }
+
+
 # ------------------------------
 # SARIMA
 # ------------------------------
@@ -1655,12 +1712,32 @@ def generate_sarima_prediction(category_name, station_name, start_date, end_date
     series = _prepare_ml_series(category_name, station_name, start_date, end_date)
     use_seasonal = len(series) >= 24
 
-    order = (1, 1, 1)
-    seasonal_order = (1, 1, 0, 12) if use_seasonal else (0, 0, 0, 0)
+    candidates = [
+        ((1, 1, 1), (1, 1, 0, 12) if use_seasonal else (0, 0, 0, 0)),
+        ((2, 1, 1), (1, 1, 0, 12) if use_seasonal else (0, 0, 0, 0)),
+        ((1, 1, 2), (0, 1, 1, 12) if use_seasonal else (0, 0, 0, 0)),
+    ]
 
-    model = SARIMAX(series, order=order, seasonal_order=seasonal_order,
-                    enforce_stationarity=False, enforce_invertibility=False)
-    fitted = model.fit(disp=False)
+    fitted = None
+    best_order = None
+    best_seasonal_order = None
+    best_aic = None
+    for order, seasonal_order in candidates:
+        try:
+            model = SARIMAX(series, order=order, seasonal_order=seasonal_order,
+                            enforce_stationarity=False, enforce_invertibility=False)
+            candidate_fit = model.fit(disp=False)
+            candidate_aic = float(candidate_fit.aic)
+            if best_aic is None or candidate_aic < best_aic:
+                fitted = candidate_fit
+                best_order = order
+                best_seasonal_order = seasonal_order
+                best_aic = candidate_aic
+        except Exception:
+            continue
+
+    if fitted is None:
+        raise ValueError("Unable to fit a SARIMA model for the selected series.")
 
     forecast_result = fitted.get_forecast(steps=forecast_months)
     forecast_mean = forecast_result.predicted_mean
@@ -1668,8 +1745,8 @@ def generate_sarima_prediction(category_name, station_name, start_date, end_date
     ci_upper = list(ci.iloc[:, 1].clip(lower=0))
     ci_lower = list(ci.iloc[:, 0].clip(lower=0))
 
-    residuals = series - fitted.fittedvalues
-    rmse = float(np.sqrt(np.mean(residuals.dropna() ** 2)))
+    aligned_fitted = fitted.fittedvalues.reindex(series.index).interpolate(method="linear").bfill().ffill()
+    metrics = _forecast_metrics(series.values, aligned_fitted.values)
 
     fig = _make_forecast_chart(
         series, list(fitted.fittedvalues), list(forecast_mean.values),
@@ -1681,10 +1758,13 @@ def generate_sarima_prediction(category_name, station_name, start_date, end_date
         "station": station_display(station_name),
         "category": category_name,
         "historical_months": int(len(series)),
-        "model_type": f"SARIMA{order}x{seasonal_order}" + (" (seasonal)" if use_seasonal else ""),
+        "model_type": f"SARIMA{best_order}x{best_seasonal_order}" + (" (seasonal)" if use_seasonal else ""),
         "forecast_months": int(forecast_months),
         "aic": round(float(fitted.aic), 2),
-        "rmse": round(rmse, 4),
+        "rmse": metrics["rmse"],
+        "mae": metrics["mae"],
+        "mape": metrics["mape"],
+        "bias": metrics["bias"],
         "last_historical": series.index[-1].strftime("%Y-%m"),
         "forecast_end": forecast_mean.index[-1].strftime("%Y-%m"),
     }
@@ -1703,12 +1783,12 @@ def generate_random_forest_prediction(category_name, station_name, start_date, e
     X = feat_df[feature_cols].values
     y = feat_df["value"].values
 
-    model = RandomForestRegressor(n_estimators=200, max_depth=8, random_state=42, n_jobs=-1)
+    model = RandomForestRegressor(n_estimators=160, max_depth=10, min_samples_leaf=2, random_state=42, n_jobs=-1)
     model.fit(X, y)
 
     fitted_vals = model.predict(X)
     residuals = y - fitted_vals
-    rmse = float(np.sqrt(np.mean(residuals ** 2)))
+    metrics = _forecast_metrics(y, fitted_vals)
 
     forecast_vals, future_dates = _iterative_forecast(model, series, forecast_months)
     ci_offsets = _residual_ci(residuals, forecast_months)
@@ -1731,9 +1811,12 @@ def generate_random_forest_prediction(category_name, station_name, start_date, e
         "station": station_display(station_name),
         "category": category_name,
         "historical_months": int(len(series)),
-        "model_type": "Random Forest (n=200 trees, max_depth=8)",
+        "model_type": "Random Forest (n=160 trees, max_depth=10, leaf>=2)",
         "forecast_months": int(forecast_months),
-        "rmse": round(rmse, 4),
+        "rmse": metrics["rmse"],
+        "mae": metrics["mae"],
+        "mape": metrics["mape"],
+        "bias": metrics["bias"],
         "top_features": top_features,
         "last_historical": series.index[-1].strftime("%Y-%m"),
         "forecast_end": future_dates[-1].strftime("%Y-%m"),
@@ -1753,12 +1836,12 @@ def generate_gradient_boosting_prediction(category_name, station_name, start_dat
     X = feat_df[feature_cols].values
     y = feat_df["value"].values
 
-    model = GradientBoostingRegressor(n_estimators=200, max_depth=4, learning_rate=0.05, random_state=42)
+    model = GradientBoostingRegressor(n_estimators=240, max_depth=3, learning_rate=0.045, subsample=0.85, random_state=42)
     model.fit(X, y)
 
     fitted_vals = model.predict(X)
     residuals = y - fitted_vals
-    rmse = float(np.sqrt(np.mean(residuals ** 2)))
+    metrics = _forecast_metrics(y, fitted_vals)
 
     forecast_vals, future_dates = _iterative_forecast(model, series, forecast_months)
     ci_offsets = _residual_ci(residuals, forecast_months)
@@ -1773,13 +1856,20 @@ def generate_gradient_boosting_prediction(category_name, station_name, start_dat
         "Gradient Boosting Forecast", station_name, category_name, accent_color="#16a085"
     )
 
+    importances = dict(zip(feature_cols, model.feature_importances_.round(3)))
+    top_features = ", ".join(f"{k}={v}" for k, v in sorted(importances.items(), key=lambda x: -x[1])[:3])
+
     model_info = {
         "station": station_display(station_name),
         "category": category_name,
         "historical_months": int(len(series)),
-        "model_type": "Gradient Boosting (n=200, lr=0.05, depth=4)",
+        "model_type": "Gradient Boosting (n=240, lr=0.045, depth=3, subsample=0.85)",
         "forecast_months": int(forecast_months),
-        "rmse": round(rmse, 4),
+        "rmse": metrics["rmse"],
+        "mae": metrics["mae"],
+        "mape": metrics["mape"],
+        "bias": metrics["bias"],
+        "top_features": top_features,
         "last_historical": series.index[-1].strftime("%Y-%m"),
         "forecast_end": future_dates[-1].strftime("%Y-%m"),
     }
@@ -1800,6 +1890,7 @@ def generate_linear_seasonal_prediction(category_name, station_name, start_date,
     def make_X(t_vals, month_vals):
         return np.column_stack([
             t_vals,
+            t_vals ** 2,
             np.sin(2 * np.pi * month_vals / 12),
             np.cos(2 * np.pi * month_vals / 12),
             np.sin(4 * np.pi * month_vals / 12),
@@ -1814,7 +1905,7 @@ def generate_linear_seasonal_prediction(category_name, station_name, start_date,
 
     fitted_vals = model.predict(X_train)
     residuals = y_train - fitted_vals
-    rmse = float(np.sqrt(np.mean(residuals ** 2)))
+    metrics = _forecast_metrics(y_train, fitted_vals)
     sigma = float(np.std(residuals))
 
     future_dates = pd.date_range(series.index[-1] + pd.DateOffset(months=1),
@@ -1833,16 +1924,19 @@ def generate_linear_seasonal_prediction(category_name, station_name, start_date,
         "Linear Trend + Seasonality Forecast", station_name, category_name, accent_color="#2980b9"
     )
 
-    coef_labels = ["Trend", "sin(2π/12)", "cos(2π/12)", "sin(4π/12)", "cos(4π/12)"]
+    coef_labels = ["Trend", "Trend^2", "sin(2pi/12)", "cos(2pi/12)", "sin(4pi/12)", "cos(4pi/12)"]
     coef_str = ", ".join(f"{l}={round(c,3)}" for l, c in zip(coef_labels, model.coef_))
 
     model_info = {
         "station": station_display(station_name),
         "category": category_name,
         "historical_months": int(n),
-        "model_type": "Linear Regression with Fourier Seasonal Terms",
+        "model_type": "Linear Regression with Polynomial Trend + Fourier Seasonal Terms",
         "forecast_months": int(forecast_months),
-        "rmse": round(rmse, 4),
+        "rmse": metrics["rmse"],
+        "mae": metrics["mae"],
+        "mape": metrics["mape"],
+        "bias": metrics["bias"],
         "r2": round(float(model.score(X_train, y_train)), 4),
         "coefficients": coef_str,
         "last_historical": series.index[-1].strftime("%Y-%m"),
@@ -1868,15 +1962,14 @@ def generate_svr_prediction(category_name, station_name, start_date, end_date, f
     X = scaler_X.fit_transform(X_raw)
     y_scaled = scaler_y.fit_transform(y.reshape(-1, 1)).ravel()
 
-    model = SVR(kernel="rbf", C=100, gamma="scale", epsilon=0.01)
+    model = SVR(kernel="rbf", C=60, gamma="scale", epsilon=0.03)
     model.fit(X, y_scaled)
 
     fitted_scaled = model.predict(X)
     fitted_vals = scaler_y.inverse_transform(fitted_scaled.reshape(-1, 1)).ravel()
     residuals = y - fitted_vals
-    rmse = float(np.sqrt(np.mean(residuals ** 2)))
+    metrics = _forecast_metrics(y, fitted_vals)
 
-    # Wrap model + scalers so _iterative_forecast works on original scale
     class _ScaledSVR:
         def predict(self_inner, X_new):
             X_sc = scaler_X.transform(X_new)
@@ -1902,9 +1995,13 @@ def generate_svr_prediction(category_name, station_name, start_date, end_date, f
         "station": station_display(station_name),
         "category": category_name,
         "historical_months": int(len(series)),
-        "model_type": "Support Vector Regression (RBF kernel, C=100)",
+        "model_type": "Support Vector Regression (RBF kernel, C=60, epsilon=0.03)",
         "forecast_months": int(forecast_months),
-        "rmse": round(rmse, 4),
+        "rmse": metrics["rmse"],
+        "mae": metrics["mae"],
+        "mape": metrics["mape"],
+        "bias": metrics["bias"],
+        "kernel": "RBF",
         "last_historical": series.index[-1].strftime("%Y-%m"),
         "forecast_end": future_dates[-1].strftime("%Y-%m"),
     }

@@ -536,6 +536,26 @@
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
             Holt-Winters
           </button>
+          <button class="model-tab" data-model="sarima">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg>
+            SARIMA
+          </button>
+          <button class="model-tab" data-model="random_forest">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22V12"/><path d="M7 12c-2.8 0-5-2.2-5-5 0-1.9 1-3.5 2.6-4.4"/><path d="M17 12c2.8 0 5-2.2 5-5 0-1.9-1-3.5-2.6-4.4"/><path d="M8 7c0-2.2 1.8-4 4-4s4 1.8 4 4"/><path d="M7 12h10"/></svg>
+            Random Forest
+          </button>
+          <button class="model-tab" data-model="gradient_boosting">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 8 14 12 20 6"/><path d="M20 11V6h-5"/></svg>
+            Gradient Boosting
+          </button>
+          <button class="model-tab" data-model="linear_seasonal">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12c2-6 4-6 6 0s4 6 6 0 4-6 6 0"/><line x1="3" y1="19" x2="21" y2="19"/></svg>
+            Linear Seasonal
+          </button>
+          <button class="model-tab" data-model="svr">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="12" r="3"/><circle cx="17" cy="12" r="3"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
+            SVR
+          </button>
           <div class="model-tab-divider"></div>
           <button class="model-tab ml-model-tab" data-model="LSTM">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="10" rx="2"/><path d="M7 7V5a2 2 0 0 1 4 0v2"/><path d="M13 7V5a2 2 0 0 1 4 0v2"/></svg>
@@ -569,6 +589,29 @@
         </div>
 
         <div class="form-card">
+          <div class="pred-control-strip">
+            <div class="pred-control-card">
+              <span class="pred-control-label">Selected mode</span>
+              <span id="pred-mode-chip" class="pred-mode-chip">Statistical Forecast</span>
+            </div>
+            <div class="pred-control-card pred-control-card-wide">
+              <div class="pred-ai-toggle-row">
+                <div>
+                  <span class="pred-control-label">AI forecast report</span>
+                  <p id="pred-ai-toggle-copy" class="pred-control-copy">Turn on AI interpretation for the selected model. Leave it off when you want the chart and metrics as fast as possible.</p>
+                </div>
+                <label class="pred-switch">
+                  <input type="checkbox" id="pred-ai-toggle" />
+                  <span class="pred-switch-slider"></span>
+                </label>
+              </div>
+            </div>
+            <div class="pred-control-card">
+              <span class="pred-control-label">Speed</span>
+              <span id="pred-speed-chip" class="pred-speed-chip">Fast chart-only mode</span>
+            </div>
+          </div>
+
           <div class="two-column-grid">
             <div class="form-group">
               <label class="menu-title" for="pred-station-select">Station</label>
@@ -610,6 +653,7 @@
         </div>
 
         <div id="pred-model-info" class="pred-model-info hidden"></div>
+        <div id="pred-highlights" class="pred-highlights hidden"></div>
 
         <div id="pred-chart-container" class="pred-chart-container hidden">
           <div id="pred-chart" style="width:100%;height:520px;"></div>
@@ -880,22 +924,147 @@
       <section class="panel export-section hidden">
         <div class="panel-heading">
           <div>
-            <p class="section-label">Coming Soon</p>
+            <p class="section-label">Research Output Toolkit</p>
             <h2>Data Export</h2>
           </div>
         </div>
-        <div class="coming-soon-panel">
-          <div class="coming-soon-icon">
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <div class="export-hero">
+          <div class="export-hero-copy">
+            <h3>Package Mekong results for research, presentations, and external analysis</h3>
+            <p>Download raw filtered records as structured CSV, turn interactive Plotly outputs into high-resolution PNG figures, or assemble a formatted analytical session that can be saved as PDF for academic submission.</p>
+            <div class="export-hero-flow">
+              <span class="export-flow-step">1. Select data</span>
+              <span class="export-flow-step">2. Choose an output</span>
+              <span class="export-flow-step">3. Export for research use</span>
+            </div>
           </div>
-          <h3>Data Export</h3>
-          <p>Export any station's data, generated visualisations, and AI analytical reports into portable formats suitable for academic submission, research presentations, or further analysis in external tools. Download raw filtered records as structured CSV, save charts as high-resolution PNG, or compile a complete analytical session into a formatted PDF report.</p>
-          <div class="coming-soon-features">
-            <span class="coming-soon-tag">CSV data download</span>
-            <span class="coming-soon-tag">Chart PNG export</span>
-            <span class="coming-soon-tag">PDF report generation</span>
-            <span class="coming-soon-tag">AI report export</span>
-            <span class="coming-soon-tag">Forecast data export</span>
+          <div class="export-hero-note">
+            <span class="export-hero-note-label">Best for:</span>
+            <strong>academic submissions, slides, and external analysis tools</strong>
+          </div>
+        </div>
+
+        <div class="export-grid">
+          <div class="form-card export-card">
+            <div class="export-card-head">
+              <div>
+                <p class="section-label">Raw Data</p>
+                <h3>Filtered CSV Download</h3>
+              </div>
+            </div>
+            <p class="helper-text">Export the exact date-filtered records behind a station-variable analysis, including imputation flags and units for downstream work in Excel, R, Python, or GIS pipelines.</p>
+
+            <div class="form-row export-form-row">
+              <div class="form-group">
+                <label class="menu-title" for="export-station-select">Station</label>
+                <select id="export-station-select" class="dropdown"></select>
+              </div>
+              <div class="form-group">
+                <label class="menu-title" for="export-category-select">Category</label>
+                <select id="export-category-select" class="dropdown"></select>
+              </div>
+            </div>
+
+            <div class="form-row export-form-row">
+              <div class="form-group">
+                <label class="menu-title" for="export-start-date">Start Date</label>
+                <input id="export-start-date" class="date-input" type="text" placeholder="DD-MM-YYYY" />
+              </div>
+              <div class="form-group">
+                <label class="menu-title" for="export-end-date">End Date</label>
+                <input id="export-end-date" class="date-input" type="text" placeholder="DD-MM-YYYY" />
+              </div>
+            </div>
+
+            <div class="export-inline-meta">
+              <span class="export-inline-label">Coverage window</span>
+              <strong id="export-date-preview">Select a station and category</strong>
+            </div>
+
+            <div class="button-row export-actions">
+              <button type="button" id="export-csv-btn" class="primary-btn export-primary-btn">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Download Filtered CSV
+              </button>
+            </div>
+            <p id="export-csv-alert" class="warning-alert">Choose a station, category, and valid date range before exporting.</p>
+          </div>
+
+          <div class="form-card export-card">
+            <div class="export-card-head">
+              <div>
+                <p class="section-label">Figures and Reports</p>
+                <h3>Current Analysis Export</h3>
+              </div>
+            </div>
+            <p class="helper-text">Pick any generated workspace and export its charts as publication-ready figures or save the associated analysis text in simple portable formats.</p>
+
+            <div class="form-row export-form-row export-form-row-single">
+              <div class="form-group">
+                <label class="menu-title" for="export-source-select">Generated Output</label>
+                <select id="export-source-select" class="dropdown"></select>
+              </div>
+            </div>
+
+            <div class="export-session-snapshot">
+              <div class="export-snapshot-card">
+                <span class="export-snapshot-label">Status</span>
+                <span id="export-source-status" class="export-snapshot-value">No output generated yet</span>
+              </div>
+              <div class="export-snapshot-card">
+                <span class="export-snapshot-label">Charts</span>
+                <span id="export-source-chart-count" class="export-snapshot-value">0</span>
+              </div>
+              <div class="export-snapshot-card">
+                <span class="export-snapshot-label">Report</span>
+                <span id="export-source-report-status" class="export-snapshot-value">Unavailable</span>
+              </div>
+            </div>
+
+            <div class="export-action-stack">
+              <button type="button" id="export-chart-png-btn" class="secondary-btn export-secondary-btn">
+                <span class="export-action-title">Download Chart PNGs</span>
+                <span class="export-action-subtitle">High-resolution figure export for slides and papers</span>
+              </button>
+              <button type="button" id="export-report-html-btn" class="secondary-btn export-secondary-btn">
+                <span class="export-action-title">Download Report HTML</span>
+                <span class="export-action-subtitle">Formatted narrative report with reusable structure</span>
+              </button>
+              <button type="button" id="export-report-txt-btn" class="secondary-btn export-secondary-btn">
+                <span class="export-action-title">Download Report TXT</span>
+                <span class="export-action-subtitle">Plain-text version for notes, appendices, and quick sharing</span>
+              </button>
+            </div>
+            <p id="export-session-alert" class="warning-alert">Generate the selected output first so there is something meaningful to export.</p>
+          </div>
+
+          <div class="form-card export-card export-card-wide">
+            <div class="export-card-head">
+              <div>
+                <p class="section-label">Submission Mode</p>
+                <h3>Print-Ready Analytical Report</h3>
+              </div>
+            </div>
+            <p class="helper-text">Compile the selected output into a clean formatted report with metadata, interpretation text, and embedded figures. The report opens in a print-friendly window so it can be saved directly as PDF from the browser.</p>
+
+            <div class="export-publish-layout">
+              <div class="export-report-note">
+                <strong>Recommended academic workflow:</strong> Generate the chart or analysis first, review the wording on screen, then use the button below to open a print-ready report and choose <em>Save as PDF</em> in the browser print dialog.
+              </div>
+              <div class="export-publish-checklist">
+                <div class="export-check-item">Includes metadata and section headings</div>
+                <div class="export-check-item">Embeds generated figures into the report</div>
+                <div class="export-check-item">Optimized for browser print-to-PDF export</div>
+              </div>
+            </div>
+
+            <div class="button-row export-actions">
+              <button type="button" id="export-pdf-btn" class="primary-btn export-primary-btn export-pdf-btn">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h9l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2z"/><path d="M14 2v6h6"/><path d="M8 13h8"/><path d="M8 17h8"/></svg>
+                Open Print-Ready PDF Report
+              </button>
+            </div>
+            <p id="export-pdf-alert" class="warning-alert">Generate a chart or report first so the PDF export has content to compile.</p>
           </div>
         </div>
       </section>
