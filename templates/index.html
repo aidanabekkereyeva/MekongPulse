@@ -68,6 +68,10 @@
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           <span>Export</span>
         </div>
+        <div class="nav-item research-icon" data-label="Research Lab">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6"/><path d="M10 9h4"/><path d="M8 3v4l-5 9a3 3 0 0 0 2.6 4.5h12.8A3 3 0 0 0 21 16L16 7V3"/><path d="M7 14h10"/></svg>
+          <span>Research Lab</span>
+        </div>
         <div class="nav-item about-us-icon" data-label="About Project">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
           <span>About Project</span>
@@ -144,6 +148,7 @@
             <button class="secondary-btn correlation-icon">Correlation</button>
             <button class="secondary-btn seasonal-icon">Seasonal</button>
             <button class="secondary-btn export-icon">Export</button>
+            <button class="secondary-btn research-icon">Research Lab</button>
           </div>
         </div>
 
@@ -1065,6 +1070,282 @@
               </button>
             </div>
             <p id="export-pdf-alert" class="warning-alert">Generate a chart or report first so the PDF export has content to compile.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel research-section hidden">
+        <div class="panel-heading">
+          <div>
+            <p class="section-label">Advanced Analytics</p>
+            <h2>Research Lab</h2>
+          </div>
+        </div>
+
+        <div class="research-hero">
+          <div>
+            <h3>Deeper tools for data quality, hydrological links, extremes, scenario testing, and saved research sessions.</h3>
+            <p>These tools add a more research-grade layer on top of the existing dashboard so users can evaluate reliability, compare stations, study threshold events, diagnose forecast trust, and keep working sessions for later reporting.</p>
+          </div>
+          <div class="research-pill-row">
+            <span class="research-pill">Quality diagnostics</span>
+            <span class="research-pill">Upstream-downstream linkage</span>
+            <span class="research-pill">Extreme event analysis</span>
+            <span class="research-pill">Scenario comparison</span>
+            <span class="research-pill">Saved sessions</span>
+          </div>
+        </div>
+
+        <div class="research-tabs">
+          <button type="button" class="research-tab active" data-research-tab="quality">Data Quality</button>
+          <button type="button" class="research-tab" data-research-tab="linkage">Station Linkage</button>
+          <button type="button" class="research-tab" data-research-tab="extremes">Extreme Events</button>
+          <button type="button" class="research-tab" data-research-tab="scenario">Scenario Compare</button>
+          <button type="button" class="research-tab" data-research-tab="forecast">Forecast Diagnostics</button>
+          <button type="button" class="research-tab" data-research-tab="sessions">Saved Sessions</button>
+        </div>
+
+        <div class="research-panels">
+          <div class="research-panel active" data-research-panel="quality">
+            <div class="form-card">
+              <div class="form-row research-form-grid">
+                <div class="form-group">
+                  <label class="menu-title" for="rq-station-select">Station</label>
+                  <select id="rq-station-select" class="dropdown"></select>
+                </div>
+                <div class="form-group">
+                  <label class="menu-title" for="rq-category-select">Category</label>
+                  <select id="rq-category-select" class="dropdown"></select>
+                </div>
+                <div class="form-group">
+                  <label class="menu-title" for="rq-start-date">Start Date</label>
+                  <input id="rq-start-date" class="dropdown" type="text" placeholder="DD-MM-YYYY" />
+                </div>
+                <div class="form-group">
+                  <label class="menu-title" for="rq-end-date">End Date</label>
+                  <input id="rq-end-date" class="dropdown" type="text" placeholder="DD-MM-YYYY" />
+                </div>
+              </div>
+              <div class="button-row">
+                <button type="button" id="rq-run-btn" class="primary-btn">Run Quality Explorer</button>
+              </div>
+              <p id="rq-alert" class="warning-alert">Select a valid station, category, and date window.</p>
+            </div>
+            <div id="rq-results" class="research-results hidden">
+              <div id="rq-summary" class="research-summary-grid"></div>
+              <div class="research-chart-grid">
+                <div id="rq-chart-coverage" class="research-plot"></div>
+                <div id="rq-chart-availability" class="research-plot"></div>
+              </div>
+              <div id="rq-findings" class="info-panel research-findings"></div>
+            </div>
+          </div>
+
+          <div class="research-panel" data-research-panel="linkage">
+            <div class="form-card">
+              <div class="form-row research-form-grid">
+                <div class="form-group">
+                  <label class="menu-title" for="rl-station-a-select">Station A</label>
+                  <select id="rl-station-a-select" class="dropdown"></select>
+                </div>
+                <div class="form-group">
+                  <label class="menu-title" for="rl-station-b-select">Station B</label>
+                  <select id="rl-station-b-select" class="dropdown"></select>
+                </div>
+                <div class="form-group">
+                  <label class="menu-title" for="rl-category-select">Category</label>
+                  <select id="rl-category-select" class="dropdown"></select>
+                </div>
+              </div>
+              <div class="button-row">
+                <button type="button" id="rl-run-btn" class="primary-btn">Run Station Linkage</button>
+              </div>
+              <p id="rl-alert" class="warning-alert">Choose two different stations and a category.</p>
+            </div>
+            <div id="rl-results" class="research-results hidden">
+              <div id="rl-summary" class="research-summary-grid"></div>
+              <div class="research-chart-grid research-chart-grid-wide">
+                <div id="rl-chart-timeline" class="research-plot"></div>
+                <div id="rl-chart-scatter" class="research-plot"></div>
+                <div id="rl-chart-lag" class="research-plot research-plot-wide"></div>
+              </div>
+              <div id="rl-findings" class="info-panel research-findings"></div>
+            </div>
+          </div>
+
+          <div class="research-panel" data-research-panel="extremes">
+            <div class="form-card">
+              <div class="form-row research-form-grid">
+                <div class="form-group">
+                  <label class="menu-title" for="re-station-select">Station</label>
+                  <select id="re-station-select" class="dropdown"></select>
+                </div>
+                <div class="form-group">
+                  <label class="menu-title" for="re-category-select">Category</label>
+                  <select id="re-category-select" class="dropdown"></select>
+                </div>
+                <div class="form-group">
+                  <label class="menu-title" for="re-threshold-mode">Threshold Mode</label>
+                  <select id="re-threshold-mode" class="dropdown">
+                    <option value="percentile">Percentile</option>
+                    <option value="absolute">Absolute value</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="menu-title" for="re-threshold-value">Threshold Value</label>
+                  <input id="re-threshold-value" class="dropdown" type="number" value="90" />
+                </div>
+                <div class="form-group">
+                  <label class="menu-title" for="re-direction">Direction</label>
+                  <select id="re-direction" class="dropdown">
+                    <option value="above">Above threshold</option>
+                    <option value="below">Below threshold</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="menu-title" for="re-start-date">Start Date</label>
+                  <input id="re-start-date" class="dropdown" type="text" placeholder="DD-MM-YYYY" />
+                </div>
+                <div class="form-group">
+                  <label class="menu-title" for="re-end-date">End Date</label>
+                  <input id="re-end-date" class="dropdown" type="text" placeholder="DD-MM-YYYY" />
+                </div>
+              </div>
+              <div class="button-row">
+                <button type="button" id="re-run-btn" class="primary-btn">Run Extreme Event Analysis</button>
+              </div>
+              <p id="re-alert" class="warning-alert">Complete the station, category, threshold, and date inputs.</p>
+            </div>
+            <div id="re-results" class="research-results hidden">
+              <div id="re-summary" class="research-summary-grid"></div>
+              <div class="research-chart-grid research-chart-grid-wide">
+                <div id="re-chart-timeline" class="research-plot research-plot-wide"></div>
+                <div id="re-chart-annual" class="research-plot"></div>
+                <div id="re-chart-monthly" class="research-plot"></div>
+              </div>
+              <div id="re-findings" class="info-panel research-findings"></div>
+            </div>
+          </div>
+
+          <div class="research-panel" data-research-panel="scenario">
+            <div class="form-card">
+              <div class="form-row research-form-grid">
+                <div class="form-group">
+                  <label class="menu-title" for="rs-station-select">Station</label>
+                  <select id="rs-station-select" class="dropdown"></select>
+                </div>
+                <div class="form-group">
+                  <label class="menu-title" for="rs-category-select">Category</label>
+                  <select id="rs-category-select" class="dropdown"></select>
+                </div>
+                <div class="form-group">
+                  <label class="menu-title" for="rs-start-a">Window A Start</label>
+                  <input id="rs-start-a" class="dropdown" type="text" placeholder="DD-MM-YYYY" />
+                </div>
+                <div class="form-group">
+                  <label class="menu-title" for="rs-end-a">Window A End</label>
+                  <input id="rs-end-a" class="dropdown" type="text" placeholder="DD-MM-YYYY" />
+                </div>
+                <div class="form-group">
+                  <label class="menu-title" for="rs-start-b">Window B Start</label>
+                  <input id="rs-start-b" class="dropdown" type="text" placeholder="DD-MM-YYYY" />
+                </div>
+                <div class="form-group">
+                  <label class="menu-title" for="rs-end-b">Window B End</label>
+                  <input id="rs-end-b" class="dropdown" type="text" placeholder="DD-MM-YYYY" />
+                </div>
+              </div>
+              <div class="button-row">
+                <button type="button" id="rs-run-btn" class="primary-btn">Run Scenario Compare</button>
+              </div>
+              <p id="rs-alert" class="warning-alert">Provide both comparison windows before running.</p>
+            </div>
+            <div id="rs-results" class="research-results hidden">
+              <div id="rs-summary" class="research-summary-grid"></div>
+              <div class="research-chart-grid">
+                <div id="rs-chart-distribution" class="research-plot"></div>
+                <div id="rs-chart-profile" class="research-plot"></div>
+              </div>
+              <div id="rs-findings" class="info-panel research-findings"></div>
+            </div>
+          </div>
+
+          <div class="research-panel" data-research-panel="forecast">
+            <div class="form-card">
+              <div class="form-row research-form-grid">
+                <div class="form-group">
+                  <label class="menu-title" for="rf-station-select">Station</label>
+                  <select id="rf-station-select" class="dropdown"></select>
+                </div>
+                <div class="form-group">
+                  <label class="menu-title" for="rf-category-select">Category</label>
+                  <select id="rf-category-select" class="dropdown"></select>
+                </div>
+                <div class="form-group">
+                  <label class="menu-title" for="rf-model-select">Model</label>
+                  <select id="rf-model-select" class="dropdown">
+                    <option value="holt_winters">Holt-Winters</option>
+                    <option value="sarima">SARIMA</option>
+                    <option value="random_forest">Random Forest</option>
+                    <option value="gradient_boosting">Gradient Boosting</option>
+                    <option value="linear_seasonal">Linear Seasonal</option>
+                    <option value="svr">SVR</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="menu-title" for="rf-horizon-select">Holdout Months</label>
+                  <select id="rf-horizon-select" class="dropdown">
+                    <option value="6">6</option>
+                    <option value="9">9</option>
+                    <option value="12" selected>12</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="menu-title" for="rf-start-date">Start Date</label>
+                  <input id="rf-start-date" class="dropdown" type="text" placeholder="DD-MM-YYYY" />
+                </div>
+                <div class="form-group">
+                  <label class="menu-title" for="rf-end-date">End Date</label>
+                  <input id="rf-end-date" class="dropdown" type="text" placeholder="DD-MM-YYYY" />
+                </div>
+              </div>
+              <div class="button-row">
+                <button type="button" id="rf-run-btn" class="primary-btn">Run Forecast Diagnostics</button>
+              </div>
+              <p id="rf-alert" class="warning-alert">Select station, category, model, and valid dates.</p>
+            </div>
+            <div id="rf-results" class="research-results hidden">
+              <div id="rf-summary" class="research-summary-grid"></div>
+              <div class="research-chart-grid research-chart-grid-wide">
+                <div id="rf-chart-backtest" class="research-plot research-plot-wide"></div>
+                <div id="rf-chart-residuals" class="research-plot"></div>
+                <div id="rf-chart-seasonal" class="research-plot"></div>
+              </div>
+              <div id="rf-findings" class="info-panel research-findings"></div>
+            </div>
+          </div>
+
+          <div class="research-panel" data-research-panel="sessions">
+            <div class="form-card">
+              <div class="form-row research-form-grid research-form-grid-sessions">
+                <div class="form-group">
+                  <label class="menu-title" for="rsave-name">Session Name</label>
+                  <input id="rsave-name" class="dropdown" type="text" placeholder="e.g. Kratie monsoon review" />
+                </div>
+                <div class="form-group">
+                  <label class="menu-title">&nbsp;</label>
+                  <button type="button" id="rsave-btn" class="primary-btn research-session-btn">Save Current Exportable Session</button>
+                </div>
+              </div>
+              <p class="helper-text">This stores the current generated charts and report packages in your browser so you can revisit them later without rebuilding your export set immediately.</p>
+            </div>
+            <div class="info-panel research-sessions-panel">
+              <div class="research-sessions-head">
+                <h3>Saved Sessions</h3>
+                <button type="button" id="rclear-sessions-btn" class="secondary-btn">Clear All</button>
+              </div>
+              <div id="research-sessions-list" class="research-sessions-list"></div>
+            </div>
           </div>
         </div>
       </section>

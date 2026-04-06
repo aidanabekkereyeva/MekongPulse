@@ -1,6 +1,7 @@
 ﻿from __future__ import annotations
 
 import json
+import re
 from typing import Optional
 
 import pandas as pd
@@ -58,8 +59,13 @@ def get_feature_series_df(category_name: str, station_name: str, start_date: str
     if not feature or repo is None:
         return None
     try:
-        start_iso = pd.to_datetime(start_date, dayfirst=True).strftime('%Y-%m-%d')
-        end_iso = pd.to_datetime(end_date, dayfirst=True).strftime('%Y-%m-%d')
+        def _to_iso(value: str) -> str:
+            text = str(value or "").strip()
+            if re.match(r"^\d{4}-\d{2}-\d{2}$", text):
+                return pd.to_datetime(text).strftime('%Y-%m-%d')
+            return pd.to_datetime(text, dayfirst=True).strftime('%Y-%m-%d')
+        start_iso = _to_iso(start_date)
+        end_iso = _to_iso(end_date)
         request = SeriesRequest(station=station_key(station_name), feature=feature, start_date=start_iso, end_date=end_iso)
         return repo.get_feature_series(request)
     except Exception:
@@ -1338,6 +1344,474 @@ def build_station_ranking_for_category(category_name: str, top_n: int = 5):
 
     ranking_rows.sort(key=lambda r: r["average_value"], reverse=True)
     return ranking_rows[:top_n]
+
+
+# ------------------------------
+# ADVANCED RESEARCH HELPERS
+# ------------------------------
+
+def _feature_key_for_category(category_name: str) -> Optional[str]:
+    return CATEGORY_TO_FEATURE.get(category_name)
+
+
+def _default_range_for_station_category(station_name: str, category_name: str):
+    if repo is None:
+        return None, None
+    sk = station_key(station_name)
+    feature = _feature_key_for_category(category_name)
+    if sk not in repo.station_index or not feature:
+        return None, None
+    detail = repo.station_index[sk].get("feature_details", {}).get(feature, {})
+    return detail.get("start_date"), detail.get("end_date")
+
+
+def _resolve_station_category_range(station_name: str, category_name: str, start_date=None, end_date=None):
+    default_start, default_end = _default_range_for_station_category(station_name, category_name)
+    start = start_date or default_start
+    end = end_date or default_end
+    if not start or not end:
+        raise ValueError("No valid date range available for the selected station and category.")
+    return (
+        pd.to_datetime(start, dayfirst=True).strftime('%Y-%m-%d'),
+        pd.to_datetime(end, dayfirst=True).strftime('%Y-%m-%d'),
+    )
+
+
+def _series_from_df(df: pd.DataFrame) -> pd.Series:
+    series = df.copy()
+    series["Timestamp"] = pd.to_datetime(series["Timestamp"])
+    return series.set_index("Timestamp")["Value"].sort_index()
+
+
+def _quality_label(coverage_pct: float, imputed_pct: float) -> str:
+    score = coverage_pct - (imputed_pct * 0.6)
+    if score >= 85:
+        return "High confidence"
+    if score >= 60:
+        return "Moderate confidence"
+    return "Caution required"
+
+
+def generate_data_quality_explorer(station_name: str, category_name: str, start_date=None, end_date=None) -> dict:
+    if repo is None:
+        raise RuntimeError("Repository not initialized.")
+
+    start_iso, end_iso = _resolve_station_category_range(station_name, category_name, start_date, end_date)
+    df = get_feature_series_df(category_name, station_name, start_iso, end_iso)
+    if df is None or df.empty:
+        raise ValueError("No data available for quality analysis.")
+
+    sk = station_key(station_name)
+    feature = _feature_key_for_category(category_name)
+    detail = repo.station_index[sk]["feature_details"][feature]
+    freq = detail.get("frequency", "daily")
+    expected_freq = "MS" if freq == "monthly" else "D"
+
+    observed = df.copy()
+    observed["Timestamp"] = pd.to_datetime(observed["Timestamp"])
+    observed["ObservedPeriod"] = observed["Timestamp"].dt.to_period("M").dt.to_timestamp() if expected_freq == "MS" else observed["Timestamp"].dt.normalize()
+    observed["IsImputed"] = observed["Imputed"].astype(str).str.lower().eq("yes")
+
+    expected_idx = pd.date_range(start_iso, end_iso, freq=expected_freq)
+    observed_idx = pd.Index(sorted(observed["ObservedPeriod"].unique()))
+    availability = pd.Series(expected_idx.isin(observed_idx), index=expected_idx)
+    missing_count = int((~availability).sum())
+
+    longest_gap = 0
+    current_gap = 0
+    for available in availability.tolist():
+        if available:
+            current_gap = 0
+        else:
+            current_gap += 1
+            longest_gap = max(longest_gap, current_gap)
+
+    monthly = pd.DataFrame({"ExpectedDate": expected_idx})
+    monthly["Month"] = monthly["ExpectedDate"].dt.to_period("M").dt.to_timestamp()
+    monthly_expected = monthly.groupby("Month").size().rename("expected_count")
+    monthly_observed = observed.groupby(observed["ObservedPeriod"].dt.to_period("M").dt.to_timestamp()).size().rename("observed_count")
+    monthly_imputed = observed.groupby(observed["ObservedPeriod"].dt.to_period("M").dt.to_timestamp())["IsImputed"].sum().rename("imputed_count")
+    monthly_stats = pd.concat([monthly_expected, monthly_observed, monthly_imputed], axis=1).fillna(0).reset_index().rename(columns={"index": "Month"})
+    monthly_stats["coverage_pct"] = np.where(
+        monthly_stats["expected_count"] > 0,
+        monthly_stats["observed_count"] / monthly_stats["expected_count"] * 100,
+        0
+    )
+
+    coverage_pct = round(float(len(observed_idx) / max(len(expected_idx), 1) * 100), 1)
+    imputed_count = int(observed["IsImputed"].sum())
+    imputed_pct = round(float(imputed_count / max(len(observed), 1) * 100), 1)
+    quality_label = _quality_label(coverage_pct, imputed_pct)
+
+    fig_cov = go.Figure()
+    fig_cov.add_trace(go.Bar(
+        x=monthly_stats["Month"], y=monthly_stats["coverage_pct"],
+        marker=dict(color=np.where(monthly_stats["coverage_pct"] >= 80, "#16a34a", np.where(monthly_stats["coverage_pct"] >= 50, "#f59e0b", "#dc2626"))),
+        name="Coverage"
+    ))
+    fig_cov.add_trace(go.Scatter(
+        x=monthly_stats["Month"], y=monthly_stats["imputed_count"],
+        mode="lines+markers", yaxis="y2", name="Imputed points",
+        line=dict(color="#2563eb", width=2)
+    ))
+    apply_clean_layout(fig_cov, f"Data Quality Coverage - {station_name} · {category_name}", "Coverage (%)", "Month")
+    fig_cov.update_layout(yaxis=dict(range=[0, 105]), yaxis2=dict(title="Imputed points", overlaying="y", side="right", showgrid=False))
+
+    avail_df = pd.DataFrame({"Timestamp": expected_idx, "Available": availability.values.astype(int)})
+    avail_df["Status"] = np.where(avail_df["Available"] == 1, "Observed", "Missing")
+    fig_av = px.scatter(
+        avail_df, x="Timestamp", y="Available", color="Status",
+        color_discrete_map={"Observed": "#0ea5e9", "Missing": "#ef4444"},
+        title=f"Availability Timeline - {station_name} · {category_name}"
+    )
+    fig_av.update_traces(marker=dict(size=7, opacity=0.75))
+    fig_av.update_yaxes(tickvals=[0, 1], ticktext=["Missing", "Observed"])
+    apply_clean_layout(fig_av, f"Availability Timeline - {station_name} · {category_name}", "Availability", "Date")
+
+    findings = [
+        f"{category_name} at {station_name} covers {coverage_pct}% of the expected {freq} record in the selected window.",
+        f"{imputed_count} observations are flagged as imputed ({imputed_pct}% of usable records).",
+        f"The longest continuous gap spans {longest_gap} {'months' if expected_freq == 'MS' else 'days'}, which affects trend and forecast confidence."
+    ]
+
+    summary = {
+        "station": station_name,
+        "category": category_name,
+        "coverage_pct": coverage_pct,
+        "missing_count": missing_count,
+        "imputed_count": imputed_count,
+        "imputed_pct": imputed_pct,
+        "longest_gap": longest_gap,
+        "quality_label": quality_label,
+        "frequency": freq,
+        "start_date": start_iso,
+        "end_date": end_iso,
+    }
+    return {
+        "summary": summary,
+        "findings": findings,
+        "charts": {
+            "coverage": fig_to_json(fig_cov),
+            "availability": fig_to_json(fig_av),
+        }
+    }
+
+
+def generate_station_linkage_explorer(station_a: str, station_b: str, category_name: str, start_date=None, end_date=None) -> dict:
+    start_a, end_a = _resolve_station_category_range(station_a, category_name, start_date, end_date)
+    start_b, end_b = _resolve_station_category_range(station_b, category_name, start_date, end_date)
+    overlap_start = max(pd.to_datetime(start_a), pd.to_datetime(start_b))
+    overlap_end = min(pd.to_datetime(end_a), pd.to_datetime(end_b))
+    if overlap_end <= overlap_start:
+        raise ValueError("The selected stations do not overlap for this category.")
+
+    overlap_days = (overlap_end - overlap_start).days
+    use_monthly = overlap_days > 720
+    df_a = get_feature_series_df(category_name, station_a, overlap_start.strftime('%Y-%m-%d'), overlap_end.strftime('%Y-%m-%d'))
+    df_b = get_feature_series_df(category_name, station_b, overlap_start.strftime('%Y-%m-%d'), overlap_end.strftime('%Y-%m-%d'))
+    if df_a is None or df_b is None or df_a.empty or df_b.empty:
+        raise ValueError("Insufficient data to compare these stations.")
+
+    series_a = _series_from_df(df_a)
+    series_b = _series_from_df(df_b)
+    if use_monthly:
+        series_a = series_a.resample("MS").mean().dropna()
+        series_b = series_b.resample("MS").mean().dropna()
+
+    aligned = pd.concat([series_a.rename(station_a), series_b.rename(station_b)], axis=1).dropna()
+    if len(aligned) < 8:
+        raise ValueError("Not enough aligned observations for station linkage analysis.")
+
+    pearson = float(aligned[station_a].corr(aligned[station_b]))
+    max_lag = 12 if use_monthly else 30
+    lag_rows = []
+    for lag in range(-max_lag, max_lag + 1):
+        shifted = aligned[station_b].shift(lag)
+        merged = pd.concat([aligned[station_a], shifted.rename("shifted")], axis=1).dropna()
+        if len(merged) < 5:
+            continue
+        lag_rows.append((lag, float(merged[station_a].corr(merged["shifted"]))))
+    lag_df = pd.DataFrame(lag_rows, columns=["lag", "corr"])
+    best_lag_row = lag_df.iloc[lag_df["corr"].abs().idxmax()]
+
+    norm = aligned.copy()
+    norm[station_a] = normalize_series(norm[station_a])
+    norm[station_b] = normalize_series(norm[station_b])
+    fig_time = go.Figure()
+    fig_time.add_trace(go.Scatter(x=norm.index, y=norm[station_a], mode="lines", name=station_a, line=dict(color="#2563eb", width=2)))
+    fig_time.add_trace(go.Scatter(x=norm.index, y=norm[station_b], mode="lines", name=station_b, line=dict(color="#f59e0b", width=2)))
+    apply_clean_layout(fig_time, f"Station Linkage Timeline - {category_name}", "Normalized value", "Date")
+
+    fig_scatter = px.scatter(aligned.reset_index(), x=station_a, y=station_b, trendline="ols",
+                             title=f"Station Linkage Scatter - {category_name}")
+    apply_clean_layout(fig_scatter, f"Station Linkage Scatter - {category_name}", station_b, station_a)
+
+    fig_lag = go.Figure()
+    fig_lag.add_trace(go.Bar(x=lag_df["lag"], y=lag_df["corr"], marker_color=np.where(lag_df["corr"] >= 0, "#16a34a", "#dc2626")))
+    apply_clean_layout(fig_lag, f"Lag Correlation Scan - {category_name}", "Correlation", "Lag")
+
+    findings = [
+        f"{station_a} and {station_b} have a Pearson correlation of {pearson:.3f} for {category_name}.",
+        f"The strongest station-to-station linkage appears at lag {int(best_lag_row['lag'])} with correlation {best_lag_row['corr']:.3f}.",
+        f"{'Monthly' if use_monthly else 'Daily'} alignment was used to emphasise comparable basin-scale timing."
+    ]
+    return {
+        "summary": {
+            "station_a": station_a,
+            "station_b": station_b,
+            "category": category_name,
+            "pearson": round(pearson, 3),
+            "best_lag": int(best_lag_row["lag"]),
+            "best_lag_corr": round(float(best_lag_row["corr"]), 3),
+            "alignment": "monthly" if use_monthly else "daily",
+            "n_obs": int(len(aligned)),
+        },
+        "findings": findings,
+        "charts": {
+            "timeline": fig_to_json(fig_time),
+            "scatter": fig_to_json(fig_scatter),
+            "lag": fig_to_json(fig_lag),
+        }
+    }
+
+
+def generate_extreme_event_explorer(station_name: str, category_name: str, start_date: str, end_date: str,
+                                    threshold_mode: str = "percentile", threshold_value: float = 90,
+                                    direction: str = "above") -> dict:
+    df = get_feature_series_df(category_name, station_name, start_date, end_date)
+    if df is None or df.empty:
+        raise ValueError("No data available for extreme event analysis.")
+    df = df.copy()
+    df["Timestamp"] = pd.to_datetime(df["Timestamp"])
+    values = df["Value"].astype(float)
+
+    if threshold_mode == "absolute":
+        threshold = float(threshold_value)
+    else:
+        threshold = float(np.nanpercentile(values, float(threshold_value)))
+
+    if direction == "below":
+        flag = values <= threshold
+        label = "Low-extreme"
+    else:
+        flag = values >= threshold
+        label = "High-extreme"
+
+    df["Extreme"] = flag
+    df["Year"] = df["Timestamp"].dt.year
+    df["Month"] = df["Timestamp"].dt.month_name().str.slice(0, 3)
+    exceedance_count = int(flag.sum())
+
+    event_id = (flag.ne(flag.shift()) & flag).cumsum()
+    event_durations = df.loc[flag].groupby(event_id).size().reset_index(name="duration")
+    longest_event = int(event_durations["duration"].max()) if not event_durations.empty else 0
+
+    annual_counts = df.groupby("Year")["Extreme"].sum().reset_index(name="count")
+    month_counts = df.groupby("Month")["Extreme"].sum().reindex(["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]).fillna(0).reset_index()
+
+    fig_time = go.Figure()
+    fig_time.add_trace(go.Scatter(x=df["Timestamp"], y=df["Value"], mode="lines", name=category_name, line=dict(color="#2563eb", width=1.8)))
+    fig_time.add_trace(go.Scatter(x=df.loc[flag, "Timestamp"], y=df.loc[flag, "Value"], mode="markers", name=label,
+                                  marker=dict(color="#dc2626" if direction == "above" else "#0f766e", size=8)))
+    fig_time.add_hline(y=threshold, line_dash="dash", line_color="#f59e0b", annotation_text=f"Threshold {threshold:.2f}")
+    apply_clean_layout(fig_time, f"Extreme Event Timeline - {station_name} · {category_name}", get_category_units(category_name), "Date")
+
+    fig_annual = px.bar(annual_counts, x="Year", y="count", title=f"Annual Extreme Event Counts - {station_name}")
+    apply_clean_layout(fig_annual, f"Annual Extreme Event Counts - {station_name}", "Extreme observations", "Year")
+
+    fig_month = px.bar(month_counts, x="Month", y="Extreme", title=f"Seasonality of Extremes - {station_name}")
+    fig_month.update_traces(marker_color="#8b5cf6")
+    apply_clean_layout(fig_month, f"Seasonality of Extremes - {station_name}", "Extreme observations", "Month")
+
+    findings = [
+        f"The {label.lower()} threshold is {threshold:.2f} based on {'an absolute value' if threshold_mode == 'absolute' else f'the {threshold_value}th percentile'}.",
+        f"{exceedance_count} observations exceed the selected criterion across the chosen window.",
+        f"The longest continuous extreme spell lasts {longest_event} observations."
+    ]
+    return {
+        "summary": {
+            "station": station_name,
+            "category": category_name,
+            "threshold": round(threshold, 4),
+            "mode": threshold_mode,
+            "direction": direction,
+            "count": exceedance_count,
+            "longest_event": longest_event,
+        },
+        "findings": findings,
+        "charts": {
+            "timeline": fig_to_json(fig_time),
+            "annual": fig_to_json(fig_annual),
+            "monthly": fig_to_json(fig_month),
+        }
+    }
+
+
+def generate_scenario_compare(station_name: str, category_name: str,
+                              start_a: str, end_a: str, start_b: str, end_b: str) -> dict:
+    df_a = get_feature_series_df(category_name, station_name, start_a, end_a)
+    df_b = get_feature_series_df(category_name, station_name, start_b, end_b)
+    if df_a is None or df_b is None or df_a.empty or df_b.empty:
+        raise ValueError("Both comparison windows need valid data.")
+
+    df_a = df_a.copy(); df_b = df_b.copy()
+    df_a["Timestamp"] = pd.to_datetime(df_a["Timestamp"]); df_b["Timestamp"] = pd.to_datetime(df_b["Timestamp"])
+    df_a["Window"] = "Window A"; df_b["Window"] = "Window B"
+    combo = pd.concat([df_a, df_b], ignore_index=True)
+
+    summary_a = {
+        "mean": float(df_a["Value"].mean()), "max": float(df_a["Value"].max()), "min": float(df_a["Value"].min()),
+        "std": float(df_a["Value"].std() or 0), "records": int(len(df_a))
+    }
+    summary_b = {
+        "mean": float(df_b["Value"].mean()), "max": float(df_b["Value"].max()), "min": float(df_b["Value"].min()),
+        "std": float(df_b["Value"].std() or 0), "records": int(len(df_b))
+    }
+    mean_change_pct = ((summary_b["mean"] - summary_a["mean"]) / abs(summary_a["mean"]) * 100) if summary_a["mean"] else 0.0
+
+    fig_box = px.box(combo, x="Window", y="Value", color="Window",
+                     color_discrete_map={"Window A": "#2563eb", "Window B": "#d4863a"},
+                     title=f"Scenario Distribution Compare - {station_name} · {category_name}")
+    apply_clean_layout(fig_box, f"Scenario Distribution Compare - {station_name} · {category_name}", get_category_units(category_name), "Window")
+
+    def _monthly_profile(df_local, label):
+        s = df_local.set_index("Timestamp")["Value"].resample("MS").mean().dropna()
+        m = s.groupby(s.index.month).mean().reindex(range(1, 13))
+        return pd.DataFrame({"month": range(1, 13), "value": m.values, "window": label})
+
+    profile = pd.concat([_monthly_profile(df_a, "Window A"), _monthly_profile(df_b, "Window B")], ignore_index=True)
+    fig_profile = px.line(profile, x="month", y="value", color="window",
+                          color_discrete_map={"Window A": "#2563eb", "Window B": "#d4863a"},
+                          title=f"Monthly Regime Compare - {station_name} · {category_name}")
+    fig_profile.update_xaxes(tickvals=list(range(1, 13)), ticktext=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"])
+    apply_clean_layout(fig_profile, f"Monthly Regime Compare - {station_name} · {category_name}", get_category_units(category_name), "Month")
+
+    findings = [
+        f"Mean {category_name} changes by {mean_change_pct:.1f}% between Window A and Window B.",
+        f"Window A contains {summary_a['records']} records, while Window B contains {summary_b['records']} records.",
+        f"This comparison is useful for pre/post intervention analysis, decadal shifts, or wet-versus-dry period benchmarking."
+    ]
+    return {
+        "summary": {
+            "station": station_name,
+            "category": category_name,
+            "mean_a": round(summary_a["mean"], 3),
+            "mean_b": round(summary_b["mean"], 3),
+            "mean_change_pct": round(mean_change_pct, 1),
+            "records_a": summary_a["records"],
+            "records_b": summary_b["records"],
+        },
+        "findings": findings,
+        "charts": {
+            "distribution": fig_to_json(fig_box),
+            "profile": fig_to_json(fig_profile),
+        }
+    }
+
+
+def generate_forecast_diagnostics(category_name: str, station_name: str, start_date: str, end_date: str,
+                                  model_key: str = "holt_winters", horizon: int = 12) -> dict:
+    series = _prepare_ml_series(category_name, station_name, start_date, end_date)
+    holdout = min(max(int(horizon), 6), max(6, min(12, len(series) // 3)))
+    if len(series) <= holdout + 12:
+        raise ValueError("Not enough historical data for forecast diagnostics. Use a wider range.")
+
+    train = series.iloc[:-holdout]
+    test = series.iloc[-holdout:]
+
+    if model_key == "holt_winters":
+        use_seasonal = len(train) >= 24
+        model = ExponentialSmoothing(train, trend="add", seasonal="add" if use_seasonal else None,
+                                     seasonal_periods=12 if use_seasonal else None,
+                                     damped_trend=False).fit(optimized=True)
+        preds = pd.Series(model.forecast(holdout), index=test.index)
+    elif model_key == "sarima":
+        fit = SARIMAX(train, order=(1, 1, 1), seasonal_order=(1, 1, 0, 12) if len(train) >= 24 else (0, 0, 0, 0),
+                      enforce_stationarity=False, enforce_invertibility=False).fit(disp=False)
+        preds = fit.get_forecast(steps=holdout).predicted_mean.reindex(test.index)
+    elif model_key in ("random_forest", "gradient_boosting", "svr"):
+        feat_df = _make_lag_features(train)
+        feature_cols = sorted([c for c in feat_df.columns if c != "value"])
+        X = feat_df[feature_cols].values
+        y = feat_df["value"].values
+        scaler = None
+        if model_key == "random_forest":
+            model = RandomForestRegressor(n_estimators=120, max_depth=8, min_samples_leaf=2, random_state=42, n_jobs=-1)
+            model.fit(X, y)
+        elif model_key == "gradient_boosting":
+            model = GradientBoostingRegressor(n_estimators=180, max_depth=3, learning_rate=0.05, random_state=42)
+            model.fit(X, y)
+        else:
+            scaler_X = StandardScaler()
+            scaler_y = StandardScaler()
+            X_sc = scaler_X.fit_transform(X)
+            y_sc = scaler_y.fit_transform(y.reshape(-1, 1)).ravel()
+            base = SVR(kernel="rbf", C=40, gamma="scale", epsilon=0.03)
+            base.fit(X_sc, y_sc)
+            class _DiagSVR:
+                def predict(self_inner, X_new):
+                    return scaler_y.inverse_transform(base.predict(scaler_X.transform(X_new)).reshape(-1, 1)).ravel()
+            model = _DiagSVR()
+        pred_vals, future_dates = _iterative_forecast(model, train, holdout)
+        preds = pd.Series(pred_vals, index=future_dates).reindex(test.index)
+    else:
+        n = len(train)
+        t = np.arange(n)
+        def make_X(t_vals, month_vals):
+            return np.column_stack([
+                t_vals,
+                t_vals ** 2,
+                np.sin(2 * np.pi * month_vals / 12),
+                np.cos(2 * np.pi * month_vals / 12),
+                np.sin(4 * np.pi * month_vals / 12),
+                np.cos(4 * np.pi * month_vals / 12),
+            ])
+        model = LinearRegression().fit(make_X(t, train.index.month), train.values)
+        t_future = np.arange(n, n + holdout)
+        preds = pd.Series(np.maximum(model.predict(make_X(t_future, test.index.month)), 0), index=test.index)
+
+    metrics = _forecast_metrics(test.values, preds.values)
+    diagnostics = pd.DataFrame({"actual": test.values, "pred": preds.values, "residual": test.values - preds.values}, index=test.index)
+    diagnostics["abs_error"] = diagnostics["residual"].abs()
+    monthly_error = diagnostics.groupby(diagnostics.index.month)["abs_error"].mean().reindex(range(1, 13))
+
+    fig_backtest = go.Figure()
+    fig_backtest.add_trace(go.Scatter(x=train.index, y=train.values, mode="lines", name="Training", line=dict(color="#94a3b8", width=1.5)))
+    fig_backtest.add_trace(go.Scatter(x=test.index, y=test.values, mode="lines+markers", name="Observed holdout", line=dict(color="#2563eb", width=2.2)))
+    fig_backtest.add_trace(go.Scatter(x=preds.index, y=preds.values, mode="lines+markers", name="Predicted holdout", line=dict(color="#d4863a", width=2.2)))
+    apply_clean_layout(fig_backtest, f"Forecast Backtest - {station_name} · {category_name}", get_category_units(category_name), "Date")
+
+    fig_res = px.bar(diagnostics.reset_index(), x="Timestamp", y="residual", title=f"Forecast Residuals - {station_name}")
+    fig_res.update_traces(marker_color=np.where(diagnostics["residual"] >= 0, "#16a34a", "#dc2626"))
+    apply_clean_layout(fig_res, f"Forecast Residuals - {station_name}", "Residual", "Date")
+
+    fig_month = px.bar(x=list(range(1, 13)), y=monthly_error.fillna(0).values, title=f"Seasonal Absolute Error - {station_name}")
+    fig_month.update_xaxes(tickvals=list(range(1, 13)), ticktext=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"])
+    apply_clean_layout(fig_month, f"Seasonal Absolute Error - {station_name}", "Mean absolute error", "Month")
+
+    findings = [
+        f"{model_key.replace('_', ' ').title()} was backtested on the last {holdout} monthly observations.",
+        f"Backtest RMSE is {metrics['rmse']} and MAPE is {metrics['mape']}%, which helps users judge forecast trust before projecting forward.",
+        "The seasonal absolute error chart highlights whether wet-season or dry-season behaviour is harder for the model to capture."
+    ]
+    return {
+        "summary": {
+            "station": station_name,
+            "category": category_name,
+            "model": model_key,
+            "holdout_months": holdout,
+            "rmse": metrics["rmse"],
+            "mape": metrics["mape"],
+            "mae": metrics["mae"],
+            "bias": metrics["bias"],
+        },
+        "findings": findings,
+        "charts": {
+            "backtest": fig_to_json(fig_backtest),
+            "residuals": fig_to_json(fig_res),
+            "seasonal_error": fig_to_json(fig_month),
+        }
+    }
 
 
 # ------------------------------

@@ -229,6 +229,7 @@ const analyzeSection      = document.querySelector(".analyze-section");
 const correlationSection  = document.querySelector(".correlation-section");
 const seasonalSection     = document.querySelector(".seasonal-section");
 const exportSection       = document.querySelector(".export-section");
+const researchSection     = document.querySelector(".research-section");
 
 // ------------------------------
 // HELPERS
@@ -267,7 +268,7 @@ function getSelectedGraphConfig() {
 }
 
 function setSectionVisible(section) {
-  [overviewSection, builderSection, dashboardSection, aboutSection, predictionSection, analyzeSection, correlationSection, seasonalSection, exportSection].forEach(sec => {
+  [overviewSection, builderSection, dashboardSection, aboutSection, predictionSection, analyzeSection, correlationSection, seasonalSection, exportSection, researchSection].forEach(sec => {
     if (!sec) return;
     sec.classList.add("hidden");
   });
@@ -1492,6 +1493,7 @@ function setupNavigation() {
   bindSectionTriggers(".correlation-icon", correlationSection);
   bindSectionTriggers(".seasonal-icon", seasonalSection);
   bindSectionTriggers(".export-icon", exportSection);
+  bindSectionTriggers(".research-icon", researchSection);
   bindSectionTriggers(".about-us-icon", aboutSection);
 }
 
@@ -3704,6 +3706,324 @@ function setupExportEvents() {
 }
 
 // ------------------------------
+// RESEARCH LAB
+// ------------------------------
+const RESEARCH_STORAGE_KEY = 'mekongpulse_research_sessions_v1';
+
+function _fillStationSelect(selectId) {
+  const sel = document.getElementById(selectId);
+  if (!sel) return;
+  const prev = sel.value;
+  sel.innerHTML = '<option value="">Select a station...</option>';
+  stationNameList.forEach(name => {
+    const opt = document.createElement('option');
+    opt.value = name;
+    opt.textContent = name;
+    sel.appendChild(opt);
+  });
+  if (prev && stationNameList.includes(prev)) sel.value = prev;
+}
+
+function _fillCategorySelect(selectId, stationName) {
+  const sel = document.getElementById(selectId);
+  if (!sel) return;
+  const prev = sel.value;
+  const available = stationName
+    ? categoryNameList.filter(name => (categoryDetailsMap[name] || []).some(row => row.station_name === stationName))
+    : categoryNameList;
+  sel.innerHTML = '<option value="">Select a category...</option>';
+  available.forEach(name => {
+    const opt = document.createElement('option');
+    opt.value = name;
+    opt.textContent = name;
+    sel.appendChild(opt);
+  });
+  if (prev && available.includes(prev)) sel.value = prev;
+}
+
+function _fillCommonCategorySelect(selectId, stationA, stationB) {
+  const sel = document.getElementById(selectId);
+  if (!sel) return;
+  const prev = sel.value;
+  const availableA = stationA
+    ? categoryNameList.filter(name => (categoryDetailsMap[name] || []).some(row => row.station_name === stationA))
+    : [];
+  const availableB = stationB
+    ? categoryNameList.filter(name => (categoryDetailsMap[name] || []).some(row => row.station_name === stationB))
+    : [];
+  const common = availableA.filter(name => availableB.includes(name));
+  sel.innerHTML = '<option value="">Select a category...</option>';
+  common.forEach(name => {
+    const opt = document.createElement('option');
+    opt.value = name;
+    opt.textContent = name;
+    sel.appendChild(opt);
+  });
+  if (prev && common.includes(prev)) sel.value = prev;
+}
+
+function _autofillResearchDates(stationId, categoryId, startId, endId) {
+  const station = document.getElementById(stationId)?.value;
+  const category = document.getElementById(categoryId)?.value;
+  const startEl = document.getElementById(startId);
+  const endEl = document.getElementById(endId);
+  if (!station || !category) {
+    if (startEl) startEl.value = '';
+    if (endEl) endEl.value = '';
+    return;
+  }
+  const detail = getCategoryDateRange(category, station);
+  if (!detail) return;
+  if (startEl) startEl.value = formatDateToDDMMYYYY(detail.start_date);
+  if (endEl) endEl.value = formatDateToDDMMYYYY(detail.end_date);
+}
+
+function _renderResearchSummary(containerId, summary) {
+  const el = document.getElementById(containerId);
+  if (!el || !summary) return;
+  el.innerHTML = Object.entries(summary).map(([key, value]) => `
+    <div class="research-summary-card">
+      <span class="research-summary-label">${key.replace(/_/g, ' ')}</span>
+      <span class="research-summary-value">${value ?? '--'}</span>
+    </div>
+  `).join('');
+}
+
+function _renderResearchFindings(containerId, findings, title = 'Key Findings') {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  el.innerHTML = `
+    <h3>${title}</h3>
+    <ul class="corr-findings-list">${(findings || []).map(item => `<li>${item}</li>`).join('')}</ul>
+  `;
+}
+
+function _plotResearchChart(id, chartJson) {
+  if (!chartJson) return;
+  Plotly.newPlot(id, JSON.parse(chartJson), {}, { responsive: true });
+}
+
+function _readResearchSessions() {
+  try {
+    return JSON.parse(localStorage.getItem(RESEARCH_STORAGE_KEY) || '[]');
+  } catch {
+    return [];
+  }
+}
+
+function _writeResearchSessions(items) {
+  localStorage.setItem(RESEARCH_STORAGE_KEY, JSON.stringify(items));
+}
+
+function renderResearchSessions() {
+  const list = document.getElementById('research-sessions-list');
+  if (!list) return;
+  const sessions = _readResearchSessions();
+  if (!sessions.length) {
+    list.innerHTML = '<p class="helper-text">No saved sessions yet. Generate charts or reports elsewhere in the app, then save them here.</p>';
+    return;
+  }
+  list.innerHTML = sessions.map((item, index) => `
+    <div class="research-session-item">
+      <div>
+        <strong>${item.name}</strong>
+        <p>${new Date(item.savedAt).toLocaleString()} · ${item.availableCount} export bundle(s)</p>
+      </div>
+      <div class="research-session-actions">
+        <button type="button" class="secondary-btn research-load-session" data-index="${index}">Load</button>
+        <button type="button" class="secondary-btn research-delete-session" data-index="${index}">Delete</button>
+      </div>
+    </div>
+  `).join('');
+
+  list.querySelectorAll('.research-load-session').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const session = _readResearchSessions()[parseInt(btn.dataset.index, 10)];
+      if (!session) return;
+      exportSessions = session.payload;
+      populateExportControls();
+      refreshExportSourceSnapshot();
+      setSectionVisible(exportSection);
+      setActiveNav('.export-icon');
+    });
+  });
+  list.querySelectorAll('.research-delete-session').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const sessionsLocal = _readResearchSessions();
+      sessionsLocal.splice(parseInt(btn.dataset.index, 10), 1);
+      _writeResearchSessions(sessionsLocal);
+      renderResearchSessions();
+    });
+  });
+}
+
+function setupResearchLabEvents() {
+  ['rq-station-select','rl-station-a-select','rl-station-b-select','re-station-select','rs-station-select','rf-station-select'].forEach(_fillStationSelect);
+  ['rq-category-select','re-category-select','rs-category-select','rf-category-select'].forEach(id => _fillCategorySelect(id, document.getElementById(id.replace('category','station'))?.value));
+  _fillCommonCategorySelect('rl-category-select', document.getElementById('rl-station-a-select')?.value, document.getElementById('rl-station-b-select')?.value);
+
+  document.querySelectorAll('.research-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.research-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.research-panel').forEach(panel => panel.classList.remove('active'));
+      tab.classList.add('active');
+      document.querySelector(`.research-panel[data-research-panel="${tab.dataset.researchTab}"]`)?.classList.add('active');
+    });
+  });
+
+  [['rq-station-select','rq-category-select','rq-start-date','rq-end-date'],['re-station-select','re-category-select','re-start-date','re-end-date'],['rs-station-select','rs-category-select','rs-start-a','rs-end-a'],['rf-station-select','rf-category-select','rf-start-date','rf-end-date']].forEach(([sta,cat,start,end]) => {
+    document.getElementById(sta)?.addEventListener('change', function() {
+      _fillCategorySelect(cat, this.value);
+      _autofillResearchDates(sta, cat, start, end);
+      if (sta === 'rs-station-select') {
+        const endB = document.getElementById('rs-end-b');
+        const startB = document.getElementById('rs-start-b');
+        if (startB && endB && document.getElementById(start)?.value && document.getElementById(end)?.value) {
+          startB.value = document.getElementById(start).value;
+          endB.value = document.getElementById(end).value;
+        }
+      }
+    });
+    document.getElementById(cat)?.addEventListener('change', () => _autofillResearchDates(sta, cat, start, end));
+  });
+
+  document.getElementById('rl-station-a-select')?.addEventListener('change', () => _fillCommonCategorySelect('rl-category-select', document.getElementById('rl-station-a-select')?.value, document.getElementById('rl-station-b-select')?.value));
+  document.getElementById('rl-station-b-select')?.addEventListener('change', () => _fillCommonCategorySelect('rl-category-select', document.getElementById('rl-station-a-select')?.value, document.getElementById('rl-station-b-select')?.value));
+
+  document.getElementById('rq-run-btn')?.addEventListener('click', async function() {
+    const station = document.getElementById('rq-station-select')?.value;
+    const category = document.getElementById('rq-category-select')?.value;
+    const start = document.getElementById('rq-start-date')?.value;
+    const end = document.getElementById('rq-end-date')?.value;
+    if (!station || !category || !start || !end) return showAlert(document.getElementById('rq-alert'));
+    this.disabled = true; this.textContent = 'Running...';
+    try {
+      const res = await fetch('/generate_quality', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ station_name: station, category_name: category, start_date: start, end_date: end })});
+      const data = await res.json(); if (data.error) throw new Error(data.error);
+      _renderResearchSummary('rq-summary', data.summary);
+      _plotResearchChart('rq-chart-coverage', data.charts.coverage);
+      _plotResearchChart('rq-chart-availability', data.charts.availability);
+      _renderResearchFindings('rq-findings', data.findings, 'Data Quality Interpretation');
+      document.getElementById('rq-results')?.classList.remove('hidden');
+    } catch (err) {
+      const el = document.getElementById('rq-alert'); if (el) { el.textContent = err.message; showAlert(el); }
+    } finally { this.disabled = false; this.textContent = 'Run Quality Explorer'; }
+  });
+
+  document.getElementById('rl-run-btn')?.addEventListener('click', async function() {
+    const stationA = document.getElementById('rl-station-a-select')?.value;
+    const stationB = document.getElementById('rl-station-b-select')?.value;
+    const category = document.getElementById('rl-category-select')?.value;
+    if (!stationA || !stationB || stationA === stationB || !category) return showAlert(document.getElementById('rl-alert'));
+    this.disabled = true; this.textContent = 'Running...';
+    try {
+      const res = await fetch('/generate_station_linkage', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ station_a: stationA, station_b: stationB, category_name: category })});
+      const data = await res.json(); if (data.error) throw new Error(data.error);
+      _renderResearchSummary('rl-summary', data.summary);
+      _plotResearchChart('rl-chart-timeline', data.charts.timeline);
+      _plotResearchChart('rl-chart-scatter', data.charts.scatter);
+      _plotResearchChart('rl-chart-lag', data.charts.lag);
+      _renderResearchFindings('rl-findings', data.findings, 'Station Linkage Interpretation');
+      document.getElementById('rl-results')?.classList.remove('hidden');
+    } catch (err) {
+      const el = document.getElementById('rl-alert'); if (el) { el.textContent = err.message; showAlert(el); }
+    } finally { this.disabled = false; this.textContent = 'Run Station Linkage'; }
+  });
+
+  document.getElementById('re-run-btn')?.addEventListener('click', async function() {
+    const payload = {
+      station_name: document.getElementById('re-station-select')?.value,
+      category_name: document.getElementById('re-category-select')?.value,
+      threshold_mode: document.getElementById('re-threshold-mode')?.value,
+      threshold_value: document.getElementById('re-threshold-value')?.value,
+      direction: document.getElementById('re-direction')?.value,
+      start_date: document.getElementById('re-start-date')?.value,
+      end_date: document.getElementById('re-end-date')?.value,
+    };
+    if (!payload.station_name || !payload.category_name || !payload.start_date || !payload.end_date) return showAlert(document.getElementById('re-alert'));
+    this.disabled = true; this.textContent = 'Running...';
+    try {
+      const res = await fetch('/generate_extremes', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+      const data = await res.json(); if (data.error) throw new Error(data.error);
+      _renderResearchSummary('re-summary', data.summary);
+      _plotResearchChart('re-chart-timeline', data.charts.timeline);
+      _plotResearchChart('re-chart-annual', data.charts.annual);
+      _plotResearchChart('re-chart-monthly', data.charts.monthly);
+      _renderResearchFindings('re-findings', data.findings, 'Extreme Event Interpretation');
+      document.getElementById('re-results')?.classList.remove('hidden');
+    } catch (err) {
+      const el = document.getElementById('re-alert'); if (el) { el.textContent = err.message; showAlert(el); }
+    } finally { this.disabled = false; this.textContent = 'Run Extreme Event Analysis'; }
+  });
+
+  document.getElementById('rs-run-btn')?.addEventListener('click', async function() {
+    const payload = {
+      station_name: document.getElementById('rs-station-select')?.value,
+      category_name: document.getElementById('rs-category-select')?.value,
+      start_a: document.getElementById('rs-start-a')?.value,
+      end_a: document.getElementById('rs-end-a')?.value,
+      start_b: document.getElementById('rs-start-b')?.value,
+      end_b: document.getElementById('rs-end-b')?.value,
+    };
+    if (!payload.station_name || !payload.category_name || !payload.start_a || !payload.end_a || !payload.start_b || !payload.end_b) return showAlert(document.getElementById('rs-alert'));
+    this.disabled = true; this.textContent = 'Running...';
+    try {
+      const res = await fetch('/generate_scenario_compare', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+      const data = await res.json(); if (data.error) throw new Error(data.error);
+      _renderResearchSummary('rs-summary', data.summary);
+      _plotResearchChart('rs-chart-distribution', data.charts.distribution);
+      _plotResearchChart('rs-chart-profile', data.charts.profile);
+      _renderResearchFindings('rs-findings', data.findings, 'Scenario Comparison Interpretation');
+      document.getElementById('rs-results')?.classList.remove('hidden');
+    } catch (err) {
+      const el = document.getElementById('rs-alert'); if (el) { el.textContent = err.message; showAlert(el); }
+    } finally { this.disabled = false; this.textContent = 'Run Scenario Compare'; }
+  });
+
+  document.getElementById('rf-run-btn')?.addEventListener('click', async function() {
+    const payload = {
+      station_name: document.getElementById('rf-station-select')?.value,
+      category_name: document.getElementById('rf-category-select')?.value,
+      model_key: document.getElementById('rf-model-select')?.value,
+      horizon: document.getElementById('rf-horizon-select')?.value,
+      start_date: document.getElementById('rf-start-date')?.value,
+      end_date: document.getElementById('rf-end-date')?.value,
+    };
+    if (!payload.station_name || !payload.category_name || !payload.start_date || !payload.end_date) return showAlert(document.getElementById('rf-alert'));
+    this.disabled = true; this.textContent = 'Running...';
+    try {
+      const res = await fetch('/generate_forecast_diagnostics', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+      const data = await res.json(); if (data.error) throw new Error(data.error);
+      _renderResearchSummary('rf-summary', data.summary);
+      _plotResearchChart('rf-chart-backtest', data.charts.backtest);
+      _plotResearchChart('rf-chart-residuals', data.charts.residuals);
+      _plotResearchChart('rf-chart-seasonal', data.charts.seasonal_error);
+      _renderResearchFindings('rf-findings', data.findings, 'Forecast Reliability Interpretation');
+      document.getElementById('rf-results')?.classList.remove('hidden');
+    } catch (err) {
+      const el = document.getElementById('rf-alert'); if (el) { el.textContent = err.message; showAlert(el); }
+    } finally { this.disabled = false; this.textContent = 'Run Forecast Diagnostics'; }
+  });
+
+  document.getElementById('rsave-btn')?.addEventListener('click', () => {
+    const name = document.getElementById('rsave-name')?.value?.trim() || `Research Session ${new Date().toLocaleString()}`;
+    const availableCount = Object.values(exportSessions).filter(item => item?.available).length;
+    const sessions = _readResearchSessions();
+    sessions.unshift({ name, savedAt: new Date().toISOString(), availableCount, payload: exportSessions });
+    _writeResearchSessions(sessions.slice(0, 12));
+    document.getElementById('rsave-name').value = '';
+    renderResearchSessions();
+  });
+
+  document.getElementById('rclear-sessions-btn')?.addEventListener('click', () => {
+    _writeResearchSessions([]);
+    renderResearchSessions();
+  });
+
+  renderResearchSessions();
+}
+
+// ------------------------------
 // INIT
 // ------------------------------
 document.addEventListener("DOMContentLoaded", async function() {
@@ -3728,6 +4048,7 @@ document.addEventListener("DOMContentLoaded", async function() {
     setupCorrelationEvents();
     setupSeasonalEvents();
     setupExportEvents();
+    setupResearchLabEvents();
     setupSidebarToggle();
     setupThemeToggle();
     setupAiAnalysis();

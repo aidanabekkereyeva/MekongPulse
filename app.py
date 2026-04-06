@@ -654,5 +654,98 @@ def generate_correlation():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/generate_quality', methods=['POST'])
+def generate_quality():
+    import traceback
+    try:
+        data = request.json
+        result = visualization.generate_data_quality_explorer(
+            station_name=data['station_name'],
+            category_name=data['category_name'],
+            start_date=data.get('start_date'),
+            end_date=data.get('end_date'),
+        )
+        return jsonify(result)
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/generate_station_linkage', methods=['POST'])
+def generate_station_linkage():
+    import traceback
+    try:
+        data = request.json
+        result = visualization.generate_station_linkage_explorer(
+            station_a=data['station_a'],
+            station_b=data['station_b'],
+            category_name=data['category_name'],
+            start_date=data.get('start_date'),
+            end_date=data.get('end_date'),
+        )
+        return jsonify(result)
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/generate_extremes', methods=['POST'])
+def generate_extremes():
+    import traceback
+    try:
+        data = request.json
+        result = visualization.generate_extreme_event_explorer(
+            station_name=data['station_name'],
+            category_name=data['category_name'],
+            start_date=data['start_date'],
+            end_date=data['end_date'],
+            threshold_mode=data.get('threshold_mode', 'percentile'),
+            threshold_value=float(data.get('threshold_value', 90)),
+            direction=data.get('direction', 'above'),
+        )
+        return jsonify(result)
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/generate_scenario_compare', methods=['POST'])
+def generate_scenario_compare():
+    import traceback
+    try:
+        data = request.json
+        result = visualization.generate_scenario_compare(
+            station_name=data['station_name'],
+            category_name=data['category_name'],
+            start_a=data['start_a'],
+            end_a=data['end_a'],
+            start_b=data['start_b'],
+            end_b=data['end_b'],
+        )
+        return jsonify(result)
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/generate_forecast_diagnostics', methods=['POST'])
+def generate_forecast_diagnostics():
+    import traceback
+    try:
+        data = request.json
+        result = visualization.generate_forecast_diagnostics(
+            category_name=data['category_name'],
+            station_name=data['station_name'],
+            start_date=data['start_date'],
+            end_date=data['end_date'],
+            model_key=data.get('model_key', 'holt_winters'),
+            horizon=int(data.get('horizon', 12)),
+        )
+        return jsonify(result)
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
 if __name__ == '__main__':
     app.run(debug=True)
