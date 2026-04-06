@@ -637,22 +637,149 @@
       <section class="panel correlation-section hidden">
         <div class="panel-heading">
           <div>
-            <p class="section-label">Coming Soon</p>
+            <p class="section-label">Relationship Analysis</p>
             <h2>Correlation Explorer</h2>
           </div>
         </div>
-        <div class="coming-soon-panel">
-          <div class="coming-soon-icon">
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="17" r="2"/><circle cx="17" cy="7" r="2"/><circle cx="17" cy="17" r="2"/><circle cx="7" cy="7" r="2"/><line x1="9" y1="7" x2="15" y2="7"/><line x1="9" y1="17" x2="15" y2="17"/><line x1="7" y1="9" x2="7" y2="15"/><line x1="17" y1="9" x2="17" y2="15"/></svg>
+
+        <p class="seasonal-intro">
+          Compare two hydrological variables at a single monitoring station and inspect how their relationship behaves through time. The explorer combines aligned time-series comparison, scatter-regression structure, seasonal co-movement, rolling correlation stability, and lead-lag diagnostics so users can judge whether a relationship is direct, delayed, seasonal, or unstable.
+        </p>
+
+        <div class="form-card">
+          <div class="two-column-grid">
+            <div class="form-group">
+              <label class="menu-title" for="corr-station-select">Station</label>
+              <select id="corr-station-select" class="dropdown"><option value="">Select a station...</option></select>
+            </div>
+            <div class="form-group">
+              <label class="menu-title" for="corr-category-a-select">Primary variable</label>
+              <select id="corr-category-a-select" class="dropdown"><option value="">Select first variable...</option></select>
+            </div>
           </div>
-          <h3>Correlation Explorer</h3>
-          <p>Explore statistical relationships between hydrological variables across monitoring stations. Generate scatter plots, Pearson correlation matrices, and lag-correlation analyses to identify whether upstream rainfall drives downstream discharge, or how sediment load responds to water level changes across the basin.</p>
-          <div class="coming-soon-features">
-            <span class="coming-soon-tag">Scatter plots</span>
-            <span class="coming-soon-tag">Correlation matrix</span>
-            <span class="coming-soon-tag">Lag correlation</span>
-            <span class="coming-soon-tag">Cross-station comparison</span>
-            <span class="coming-soon-tag">Variable pair analysis</span>
+
+          <div class="two-column-grid" style="margin-top:18px;">
+            <div class="form-group">
+              <label class="menu-title" for="corr-category-b-select">Comparison variable</label>
+              <select id="corr-category-b-select" class="dropdown"><option value="">Select second variable...</option></select>
+            </div>
+            <div class="form-group">
+              <label class="menu-title" for="corr-frequency-note">Alignment</label>
+              <div id="corr-frequency-note" class="corr-note-card">
+                Alignment is chosen automatically: daily for daily-daily pairs, monthly when a monthly variable is involved.
+              </div>
+            </div>
+          </div>
+
+          <div class="two-column-grid" style="margin-top:18px;">
+            <div class="form-group">
+              <label class="menu-title" for="corr-start-date">From</label>
+              <input type="text" id="corr-start-date" class="dropdown" placeholder="DD-MM-YYYY" />
+            </div>
+            <div class="form-group">
+              <label class="menu-title" for="corr-end-date">To</label>
+              <input type="text" id="corr-end-date" class="dropdown" placeholder="DD-MM-YYYY" />
+            </div>
+          </div>
+
+          <div class="corr-range-meta">
+            <div class="summary-box">
+              <p class="card-label">Common overlap</p>
+              <p id="corr-overlap-preview">Select a station and two variables</p>
+            </div>
+            <div class="summary-box">
+              <p class="card-label">Relationship focus</p>
+              <p id="corr-focus-preview">Correlation structure, seasonal co-movement, and lag behavior</p>
+            </div>
+          </div>
+
+          <div class="action-row">
+            <button id="corr-generate-btn" class="primary-btn">Run Correlation Explorer</button>
+          </div>
+          <p class="warning-alert" id="corr-alert">Please select one station, two different variables, and a valid date range.</p>
+        </div>
+
+        <div id="corr-stats-grid" class="seasonal-stats-grid hidden">
+          <div class="seasonal-stat-card">
+            <span class="seasonal-stat-label">Pearson r</span>
+            <span id="corr-stat-pearson" class="seasonal-stat-value">—</span>
+          </div>
+          <div class="seasonal-stat-card">
+            <span class="seasonal-stat-label">Spearman rho</span>
+            <span id="corr-stat-spearman" class="seasonal-stat-value">—</span>
+          </div>
+          <div class="seasonal-stat-card">
+            <span class="seasonal-stat-label">Strength</span>
+            <span id="corr-stat-strength" class="seasonal-stat-value">—</span>
+          </div>
+          <div class="seasonal-stat-card">
+            <span class="seasonal-stat-label">Aligned observations</span>
+            <span id="corr-stat-obs" class="seasonal-stat-value">—</span>
+          </div>
+          <div class="seasonal-stat-card">
+            <span class="seasonal-stat-label">Best lag</span>
+            <span id="corr-stat-lag" class="seasonal-stat-value">—</span>
+          </div>
+          <div class="seasonal-stat-card">
+            <span class="seasonal-stat-label">Seasonal correlation</span>
+            <span id="corr-stat-seasonal" class="seasonal-stat-value">—</span>
+          </div>
+        </div>
+
+        <div id="corr-chart-grid" class="corr-chart-grid hidden">
+          <div class="info-panel corr-chart-panel corr-chart-panel-wide">
+            <div class="corr-chart-header">
+              <h3>Aligned Time Series</h3>
+              <span class="corr-chart-tag">Context</span>
+            </div>
+            <p class="corr-chart-copy">Shows both variables over the same overlap window so users can visually compare peaks, troughs, and synchrony before interpreting the correlation numbers.</p>
+            <div id="corr-chart-timeline" class="corr-plot"></div>
+          </div>
+
+          <div class="info-panel corr-chart-panel">
+            <div class="corr-chart-header">
+              <h3>Scatter and Regression</h3>
+              <span class="corr-chart-tag">Structure</span>
+            </div>
+            <p class="corr-chart-copy">Displays the direct relationship between paired observations, including a fitted line and time-ordered point colouring.</p>
+            <div id="corr-chart-scatter" class="corr-plot corr-plot-compact"></div>
+          </div>
+
+          <div class="info-panel corr-chart-panel">
+            <div class="corr-chart-header">
+              <h3>Lead-Lag Scan</h3>
+              <span class="corr-chart-tag">Timing</span>
+            </div>
+            <p class="corr-chart-copy">Tests whether the strongest relationship appears immediately or after a delay, which is useful for rainfall-discharge or sediment-response questions.</p>
+            <div id="corr-chart-lag" class="corr-plot corr-plot-compact"></div>
+          </div>
+
+          <div class="info-panel corr-chart-panel">
+            <div class="corr-chart-header">
+              <h3>Seasonal Co-Movement</h3>
+              <span class="corr-chart-tag">Seasonality</span>
+            </div>
+            <p class="corr-chart-copy">Summarises the mean annual cycle by calendar month to show whether both variables rise and fall together during the Mekong monsoon regime.</p>
+            <div id="corr-chart-seasonal" class="corr-plot corr-plot-compact"></div>
+          </div>
+
+          <div class="info-panel corr-chart-panel">
+            <div class="corr-chart-header">
+              <h3>Rolling Stability</h3>
+              <span class="corr-chart-tag">Persistence</span>
+            </div>
+            <p class="corr-chart-copy">Tracks whether the relationship stays stable through time or changes across wet and dry periods, data-quality shifts, or structural basin changes.</p>
+            <div id="corr-chart-rolling" class="corr-plot corr-plot-compact"></div>
+          </div>
+        </div>
+
+        <div id="corr-analysis-panel" class="az-analysis-panel hidden">
+          <div class="az-analysis-header">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+            <span>Correlation Interpretation</span>
+          </div>
+          <div id="corr-analysis-body" class="az-analysis-body">
+            <p class="az-placeholder">Run the explorer to generate a structured interpretation of the relationship.</p>
           </div>
         </div>
       </section>

@@ -480,31 +480,25 @@ def plot_correlation_scatter(station_name, categories_data):
         return create_no_data_chart("Correlation Scatter Plot", "Two categories are required for this chart.")
 
     data_a, data_b = categories_data[0], categories_data[1]
-    cat_a, cat_b = data_a["category_name"], data_b["category_name"]
-    chart_title = f"Correlation: {cat_a} vs {cat_b} at {station_name}"
-
-    df_a = get_feature_series_df(cat_a, station_name, data_a["start_date"], data_a["end_date"])
-    df_b = get_feature_series_df(cat_b, station_name, data_b["start_date"], data_b["end_date"])
-
-    if df_a is None or df_b is None or df_a.empty or df_b.empty:
-        return create_no_data_chart(chart_title)
-
-    series_a = df_a.set_index(df_a["Timestamp"].dt.date)["Value"].rename(cat_a)
-    series_b = df_b.set_index(df_b["Timestamp"].dt.date)["Value"].rename(cat_b)
-    merged = pd.concat([series_a, series_b], axis=1).dropna()
-
-    if merged.empty:
-        return create_no_data_chart(chart_title, "No overlapping dates found between the two categories.")
-
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(
-        x=merged[cat_a], y=merged[cat_b], mode="markers",
-        marker=dict(color="#2f6da3", size=5, opacity=0.65),
-        hovertemplate=f"{cat_a}: %{{x:.2f}}<br>{cat_b}: %{{y:.2f}}<extra></extra>",
-    ))
-    fig = apply_clean_layout(fig, chart_title, get_category_units(cat_b), get_category_units(cat_a))
-    fig.update_layout(hovermode="closest")
-    return fig_to_json(fig)
+    start_date = max(
+        pd.to_datetime(data_a["start_date"], dayfirst=True),
+        pd.to_datetime(data_b["start_date"], dayfirst=True),
+    ).strftime("%d-%m-%Y")
+    end_date = min(
+        pd.to_datetime(data_a["end_date"], dayfirst=True),
+        pd.to_datetime(data_b["end_date"], dayfirst=True),
+    ).strftime("%d-%m-%Y")
+    result = generate_correlation_explorer(
+        station_name=station_name,
+        category_a=data_a["category_name"],
+        category_b=data_b["category_name"],
+        start_date=start_date,
+        end_date=end_date,
+    )
+    charts = result.get("charts", {})
+    return charts.get("scatter") or create_no_data_chart(
+        f"Correlation: {data_a['category_name']} vs {data_b['category_name']} at {station_name}"
+    )
 
 
 def generate_correlation_scatter_visualizations(selected_data):
@@ -515,6 +509,478 @@ def generate_correlation_scatter_visualizations(selected_data):
     for station_name, categories_data in grouped.items():
         charts.append(plot_correlation_scatter(station_name, categories_data))
     return charts
+
+
+def _get_feature_frequency(category_name: str) -> str:
+    if repo is None:
+        return "daily"
+    feature_key = CATEGORY_TO_FEATURE.get(category_name)
+    if not feature_key:
+        return "daily"
+    return str(repo.feature_frequency.get(feature_key, "daily")).lower()
+
+
+def _corr_strength_label(value: float | None) -> str:
+    if value is None or pd.isna(value):
+        return "Unavailable"
+    abs_val = abs(float(value))
+    if abs_val >= 0.85:
+        return "Very strong"
+    if abs_val >= 0.65:
+        return "Strong"
+    if abs_val >= 0.4:
+        return "Moderate"
+    if abs_val >= 0.2:
+        return "Weak"
+    return "Very weak"
+
+
+def _corr_direction_label(value: float | None) -> str:
+    if value is None or pd.isna(value):
+        return "undetermined"
+    if value > 0.05:
+        return "positive"
+    if value < -0.05:
+        return "negative"
+    return "near-zero"
+
+
+def _format_corr_value(value: float | None, digits: int = 3) -> str:
+    if value is None or pd.isna(value):
+        return "n/a"
+    return f"{float(value):.{digits}f}"
+
+
+def _format_lag_label(lag: int, frequency: str) -> str:
+    unit = "months" if frequency == "monthly" else "days"
+    if lag == 0:
+        return f"0 {unit}"
+    return f"{lag:+d} {unit}"
+
+
+def _format_frequency_label(frequency: str) -> str:
+    return "Monthly aligned series" if frequency == "monthly" else "Daily aligned series"
+
+
+def _prepare_correlation_dataset(
+    station_name: str,
+    category_a: str,
+    category_b: str,
+    start_date: str,
+    end_date: str,
+) -> dict:
+    chart_title = f"Correlation Explorer - {category_a} vs {category_b} at {station_name}"
+    df_a = get_feature_series_df(category_a, station_name, start_date, end_date)
+    df_b = get_feature_series_df(category_b, station_name, start_date, end_date)
+
+    if df_a is None or df_b is None or df_a.empty or df_b.empty:
+        raise ValueError("Selected categories do not have enough data for the chosen station and date range.")
+
+    freq_a = _get_feature_frequency(category_a)
+    freq_b = _get_feature_frequency(category_b)
+    align_frequency = "monthly" if "monthly" in (freq_a, freq_b) else "daily"
+
+    ser_a = df_a.set_index("Timestamp")["Value"].sort_index()
+    ser_b = df_b.set_index("Timestamp")["Value"].sort_index()
+
+    if align_frequency == "monthly":
+        ser_a = ser_a.resample("MS").mean()
+        ser_b = ser_b.resample("MS").mean()
+    else:
+        ser_a = ser_a.resample("D").mean()
+        ser_b = ser_b.resample("D").mean()
+
+    merged = pd.concat([ser_a.rename(category_a), ser_b.rename(category_b)], axis=1).dropna()
+    if len(merged) < 8:
+        raise ValueError(
+            f"Only {len(merged)} overlapping observations are available after alignment. "
+            "Choose a wider date range or another variable pair."
+        )
+
+    merged["Month"] = merged.index.month
+    merged["DateLabel"] = merged.index.strftime("%Y-%m-%d")
+    return {
+        "title": chart_title,
+        "aligned": merged,
+        "align_frequency": align_frequency,
+        "freq_label": _format_frequency_label(align_frequency),
+    }
+
+
+def _compute_lag_correlation(aligned: pd.DataFrame, x_col: str, y_col: str, align_frequency: str) -> tuple[pd.DataFrame, dict]:
+    max_lag = 12 if align_frequency == "monthly" else 30
+    min_pairs = 6 if align_frequency == "monthly" else 10
+    lag_rows = []
+
+    for lag in range(-max_lag, max_lag + 1):
+        compare = pd.concat(
+            [
+                aligned[x_col].rename("x"),
+                aligned[y_col].shift(-lag).rename("y"),
+            ],
+            axis=1,
+        ).dropna()
+        corr = compare["x"].corr(compare["y"]) if len(compare) >= min_pairs else np.nan
+        lag_rows.append({
+            "lag": lag,
+            "correlation": corr,
+            "pair_count": int(len(compare)),
+        })
+
+    lag_df = pd.DataFrame(lag_rows)
+    valid_lags = lag_df.dropna(subset=["correlation"])
+    if valid_lags.empty:
+        return lag_df, {
+            "best_lag": 0,
+            "best_corr": np.nan,
+            "pair_count": 0,
+            "lead_label": "Lag analysis unavailable",
+        }
+
+    best_row = valid_lags.iloc[valid_lags["correlation"].abs().argmax()]
+    best_lag = int(best_row["lag"])
+    if best_lag > 0:
+        lead_label = f"{x_col} leads {y_col} by {abs(best_lag)} {'months' if align_frequency == 'monthly' else 'days'}"
+    elif best_lag < 0:
+        lead_label = f"{y_col} leads {x_col} by {abs(best_lag)} {'months' if align_frequency == 'monthly' else 'days'}"
+    else:
+        lead_label = "The strongest relationship is synchronous"
+
+    return lag_df, {
+        "best_lag": best_lag,
+        "best_corr": float(best_row["correlation"]),
+        "pair_count": int(best_row["pair_count"]),
+        "lead_label": lead_label,
+    }
+
+
+def _build_correlation_charts(
+    station_name: str,
+    category_a: str,
+    category_b: str,
+    aligned: pd.DataFrame,
+    align_frequency: str,
+    lag_df: pd.DataFrame,
+    stats: dict,
+) -> dict:
+    x_vals = aligned[category_a].astype(float)
+    y_vals = aligned[category_b].astype(float)
+    date_values = aligned.index
+    month_labels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+
+    slope = intercept = r_squared = np.nan
+    if x_vals.nunique() > 1 and len(aligned) >= 3:
+        slope, intercept = np.polyfit(x_vals.values, y_vals.values, 1)
+        predicted = slope * x_vals.values + intercept
+        ss_res = float(np.sum((y_vals.values - predicted) ** 2))
+        ss_tot = float(np.sum((y_vals.values - y_vals.mean()) ** 2))
+        r_squared = 1 - ss_res / ss_tot if ss_tot > 0 else np.nan
+    else:
+        predicted = np.repeat(y_vals.mean(), len(y_vals))
+
+    scatter_fig = go.Figure()
+    scatter_fig.add_trace(go.Scatter(
+        x=x_vals,
+        y=y_vals,
+        mode="markers",
+        name="Aligned observations",
+        marker=dict(
+            size=8,
+            color=np.arange(len(aligned)),
+            colorscale="Turbo",
+            showscale=True,
+            colorbar=dict(title="Time order"),
+            opacity=0.72,
+            line=dict(color="rgba(255,255,255,0.55)", width=0.5),
+        ),
+        customdata=np.column_stack([date_values.strftime("%Y-%m-%d")]),
+        hovertemplate=(
+            f"Date: %{{customdata[0]}}<br>{category_a}: %{{x:.3f}}<br>{category_b}: %{{y:.3f}}<extra></extra>"
+        ),
+    ))
+    scatter_fig.add_trace(go.Scatter(
+        x=x_vals,
+        y=predicted,
+        mode="lines",
+        name="Linear fit",
+        line=dict(color="#c2410c", width=2.5, dash="dash"),
+        hovertemplate="Trend line<extra></extra>",
+    ))
+    apply_clean_layout(
+        scatter_fig,
+        title=f"Correlation Structure - {category_a} vs {category_b}",
+        yaxis_title=get_category_units(category_b),
+        xaxis_title=get_category_units(category_a),
+    )
+    scatter_fig.update_layout(
+        hovermode="closest",
+        annotations=[
+            dict(
+                x=0.01,
+                y=0.99,
+                xref="paper",
+                yref="paper",
+                showarrow=False,
+                align="left",
+                bgcolor="rgba(255,255,255,0.84)",
+                bordercolor="rgba(0,0,0,0.08)",
+                borderwidth=1,
+                text=(
+                    f"Pearson r = {_format_corr_value(stats['pearson'])}<br>"
+                    f"Spearman rho = {_format_corr_value(stats['spearman'])}<br>"
+                    f"R² = {_format_corr_value(r_squared)}"
+                ),
+            )
+        ],
+    )
+
+    timeline_fig = make_subplots(specs=[[{"secondary_y": True}]])
+    timeline_fig.add_trace(go.Scatter(
+        x=date_values,
+        y=x_vals,
+        mode="lines",
+        name=category_a,
+        line=dict(color="#2563eb", width=2.1),
+        hovertemplate=f"%{{x|%Y-%m-%d}}<br>{category_a}: %{{y:.3f}}<extra></extra>",
+    ), secondary_y=False)
+    timeline_fig.add_trace(go.Scatter(
+        x=date_values,
+        y=y_vals,
+        mode="lines",
+        name=category_b,
+        line=dict(color="#d97706", width=2.1),
+        hovertemplate=f"%{{x|%Y-%m-%d}}<br>{category_b}: %{{y:.3f}}<extra></extra>",
+    ), secondary_y=True)
+    apply_clean_layout(
+        timeline_fig,
+        title=f"Aligned Time Series Comparison - {station_name}",
+        yaxis_title=get_category_units(category_a),
+        xaxis_title="Date",
+    )
+    timeline_fig.update_layout(hovermode="x unified")
+    timeline_fig.update_yaxes(title_text=get_category_units(category_b), secondary_y=True)
+
+    monthly_profile = (
+        aligned.groupby("Month")[[category_a, category_b]]
+        .mean()
+        .reindex(range(1, 13))
+    )
+    seasonal_fig = make_subplots(specs=[[{"secondary_y": True}]])
+    seasonal_fig.add_trace(go.Bar(
+        x=month_labels,
+        y=monthly_profile[category_a],
+        name=f"{category_a} monthly mean",
+        marker_color="rgba(37,99,235,0.72)",
+        hovertemplate=f"Month: %{{x}}<br>{category_a}: %{{y:.3f}}<extra></extra>",
+    ), secondary_y=False)
+    seasonal_fig.add_trace(go.Scatter(
+        x=month_labels,
+        y=monthly_profile[category_b],
+        name=f"{category_b} monthly mean",
+        mode="lines+markers",
+        line=dict(color="#d97706", width=2.4),
+        marker=dict(size=7),
+        hovertemplate=f"Month: %{{x}}<br>{category_b}: %{{y:.3f}}<extra></extra>",
+    ), secondary_y=True)
+    apply_clean_layout(
+        seasonal_fig,
+        title="Seasonal Co-Movement by Calendar Month",
+        yaxis_title=get_category_units(category_a),
+        xaxis_title="Month",
+    )
+    seasonal_fig.update_yaxes(title_text=get_category_units(category_b), secondary_y=True)
+
+    lag_fig = go.Figure()
+    lag_fig.add_trace(go.Scatter(
+        x=lag_df["lag"],
+        y=lag_df["correlation"],
+        mode="lines+markers",
+        name="Lag correlation",
+        line=dict(color="#7c3aed", width=2.2),
+        marker=dict(size=7, color=lag_df["correlation"].fillna(0), colorscale="RdBu", cmin=-1, cmax=1),
+        customdata=np.column_stack([lag_df["pair_count"]]),
+        hovertemplate=(
+            "Lag: %{x}<br>"
+            "Correlation: %{y:.3f}<br>"
+            "Overlapping pairs: %{customdata[0]}<extra></extra>"
+        ),
+    ))
+    best_lag = stats["best_lag"]
+    best_corr = stats["best_lag_corr"]
+    lag_fig.add_vline(x=best_lag, line_width=1.5, line_dash="dash", line_color="#7c3aed")
+    lag_fig.add_hline(y=0, line_width=1, line_dash="dot", line_color="rgba(0,0,0,0.3)")
+    lag_fig.add_annotation(
+        x=best_lag,
+        y=best_corr if not pd.isna(best_corr) else 0,
+        text=f"Peak at {_format_lag_label(best_lag, align_frequency)}",
+        showarrow=True,
+        arrowhead=2,
+        ax=0,
+        ay=-35,
+        bgcolor="rgba(255,255,255,0.85)",
+    )
+    apply_clean_layout(
+        lag_fig,
+        title="Lead-Lag Correlation Scan",
+        yaxis_title="Pearson correlation",
+        xaxis_title="Lag (positive means first variable leads)",
+    )
+    lag_fig.update_yaxes(range=[-1.05, 1.05])
+
+    rolling_window = 6 if align_frequency == "monthly" else 90
+    rolling_fig = go.Figure()
+    rolling_corr = aligned[category_a].rolling(rolling_window).corr(aligned[category_b]).dropna()
+    if rolling_corr.empty:
+        rolling_fig = go.Figure()
+        rolling_fig.add_annotation(
+            text="Not enough overlapping observations for rolling correlation.",
+            x=0.5,
+            y=0.5,
+            xref="paper",
+            yref="paper",
+            showarrow=False,
+            font=dict(size=15, color="#5f7082"),
+        )
+        rolling_fig.update_xaxes(visible=False)
+        rolling_fig.update_yaxes(visible=False)
+        apply_clean_layout(rolling_fig, "Rolling Correlation Stability", "", "")
+    else:
+        rolling_fig.add_trace(go.Scatter(
+            x=rolling_corr.index,
+            y=rolling_corr.values,
+            mode="lines",
+            name="Rolling correlation",
+            line=dict(color="#0f766e", width=2.3),
+            fill="tozeroy",
+            fillcolor="rgba(15,118,110,0.12)",
+            hovertemplate="%{x|%Y-%m-%d}<br>Rolling r: %{y:.3f}<extra></extra>",
+        ))
+        rolling_fig.add_hline(y=0, line_width=1, line_dash="dot", line_color="rgba(0,0,0,0.3)")
+        apply_clean_layout(
+            rolling_fig,
+            title=f"Rolling Correlation Stability ({rolling_window} {'months' if align_frequency == 'monthly' else 'days'})",
+            yaxis_title="Rolling Pearson r",
+            xaxis_title="Date",
+        )
+        rolling_fig.update_yaxes(range=[-1.05, 1.05])
+
+    return {
+        "scatter": fig_to_json(scatter_fig),
+        "timeline": fig_to_json(timeline_fig),
+        "seasonal": fig_to_json(seasonal_fig),
+        "lag": fig_to_json(lag_fig),
+        "rolling": fig_to_json(rolling_fig),
+    }
+
+
+def _build_correlation_findings(
+    station_name: str,
+    category_a: str,
+    category_b: str,
+    stats: dict,
+) -> list[str]:
+    findings = []
+    findings.append(
+        f"{category_a} and {category_b} at {station_name} show a {stats['strength_label'].lower()} "
+        f"{stats['direction_label']} relationship overall (Pearson r = {stats['pearson_str']}, "
+        f"Spearman rho = {stats['spearman_str']})."
+    )
+    findings.append(
+        f"The explorer is based on {stats['n_obs']} overlapping {stats['freq_label'].lower()} observations "
+        f"between {stats['start_date']} and {stats['end_date']}."
+    )
+    findings.append(
+        f"The strongest lead-lag signal occurs at {_format_lag_label(stats['best_lag'], stats['align_frequency'])}, "
+        f"where correlation reaches {stats['best_lag_corr_str']}. "
+        f"{stats['lead_label']}."
+    )
+    findings.append(
+        f"Rolling correlation ranges from {stats['rolling_min_str']} to {stats['rolling_max_str']}, "
+        "which helps show whether the relationship is persistent or shifts across hydrological periods."
+    )
+    return findings
+
+
+def generate_correlation_explorer(
+    station_name: str,
+    category_a: str,
+    category_b: str,
+    start_date: str,
+    end_date: str,
+) -> dict:
+    prepared = _prepare_correlation_dataset(
+        station_name=station_name,
+        category_a=category_a,
+        category_b=category_b,
+        start_date=start_date,
+        end_date=end_date,
+    )
+    aligned = prepared["aligned"]
+    align_frequency = prepared["align_frequency"]
+
+    pearson = float(aligned[category_a].corr(aligned[category_b]))
+    spearman = float(aligned[category_a].rank().corr(aligned[category_b].rank()))
+
+    lag_df, lag_meta = _compute_lag_correlation(aligned, category_a, category_b, align_frequency)
+
+    rolling_window = 6 if align_frequency == "monthly" else 90
+    rolling_corr = aligned[category_a].rolling(rolling_window).corr(aligned[category_b]).dropna()
+    rolling_min = float(rolling_corr.min()) if not rolling_corr.empty else np.nan
+    rolling_max = float(rolling_corr.max()) if not rolling_corr.empty else np.nan
+
+    seasonal_profile = (
+        aligned.groupby("Month")[[category_a, category_b]]
+        .mean()
+        .reindex(range(1, 13))
+        .dropna()
+    )
+    seasonal_corr = (
+        float(seasonal_profile[category_a].corr(seasonal_profile[category_b]))
+        if len(seasonal_profile) >= 3 else np.nan
+    )
+
+    stats = {
+        "station": station_name,
+        "category_a": category_a,
+        "category_b": category_b,
+        "n_obs": int(len(aligned)),
+        "start_date": aligned.index.min().strftime("%Y-%m-%d"),
+        "end_date": aligned.index.max().strftime("%Y-%m-%d"),
+        "align_frequency": align_frequency,
+        "freq_label": prepared["freq_label"],
+        "pearson": pearson,
+        "spearman": spearman,
+        "pearson_str": _format_corr_value(pearson),
+        "spearman_str": _format_corr_value(spearman),
+        "strength_label": _corr_strength_label(pearson),
+        "direction_label": _corr_direction_label(pearson),
+        "best_lag": lag_meta["best_lag"],
+        "best_lag_corr": lag_meta["best_corr"],
+        "best_lag_corr_str": _format_corr_value(lag_meta["best_corr"]),
+        "lead_label": lag_meta["lead_label"],
+        "seasonal_corr": seasonal_corr,
+        "seasonal_corr_str": _format_corr_value(seasonal_corr),
+        "rolling_min": rolling_min,
+        "rolling_max": rolling_max,
+        "rolling_min_str": _format_corr_value(rolling_min),
+        "rolling_max_str": _format_corr_value(rolling_max),
+    }
+
+    charts = _build_correlation_charts(
+        station_name=station_name,
+        category_a=category_a,
+        category_b=category_b,
+        aligned=aligned,
+        align_frequency=align_frequency,
+        lag_df=lag_df,
+        stats=stats,
+    )
+
+    return {
+        "summary": stats,
+        "charts": charts,
+        "findings": _build_correlation_findings(station_name, category_a, category_b, stats),
+    }
 
 
 # ------------------------------

@@ -2412,6 +2412,234 @@ function setupPredictionEvents() {
 }
 
 // ------------------------------
+// CORRELATION EXPLORER
+// ------------------------------
+function populateCorrelationDropdowns() {
+  const stationSel = document.getElementById('corr-station-select');
+  if (!stationSel) return;
+
+  const previousStation = stationSel.value;
+  stationSel.innerHTML = '<option value="">Select a station...</option>';
+  stationNameList.forEach(name => {
+    const opt = document.createElement('option');
+    opt.value = name;
+    opt.textContent = name;
+    stationSel.appendChild(opt);
+  });
+  if (previousStation && stationNameList.includes(previousStation)) {
+    stationSel.value = previousStation;
+  }
+
+  updateCorrelationCategoryOptions(stationSel.value);
+}
+
+function updateCorrelationCategoryOptions(stationName) {
+  const catA = document.getElementById('corr-category-a-select');
+  const catB = document.getElementById('corr-category-b-select');
+  if (!catA || !catB) return;
+
+  const previousA = catA.value;
+  const previousB = catB.value;
+  const available = stationName
+    ? categoryNameList.filter(name =>
+        (categoryDetailsMap[name] || []).some(row => row.station_name === stationName)
+      )
+    : categoryNameList;
+
+  catA.innerHTML = '<option value="">Select first variable...</option>';
+  catB.innerHTML = '<option value="">Select second variable...</option>';
+
+  available.forEach(name => {
+    const optA = document.createElement('option');
+    optA.value = name;
+    optA.textContent = name;
+    catA.appendChild(optA);
+
+    const optB = document.createElement('option');
+    optB.value = name;
+    optB.textContent = name;
+    catB.appendChild(optB);
+  });
+
+  if (previousA && available.includes(previousA)) catA.value = previousA;
+  if (previousB && available.includes(previousB)) catB.value = previousB;
+  updateCorrelationOverlap();
+}
+
+function getCorrelationOverlap(stationName, categoryA, categoryB) {
+  const detailA = getCategoryDateRange(categoryA, stationName);
+  const detailB = getCategoryDateRange(categoryB, stationName);
+  if (!detailA || !detailB) return null;
+
+  const startA = new Date(detailA.start_date);
+  const endA = new Date(detailA.end_date);
+  const startB = new Date(detailB.start_date);
+  const endB = new Date(detailB.end_date);
+
+  const overlapStart = new Date(Math.max(startA.getTime(), startB.getTime()));
+  const overlapEnd = new Date(Math.min(endA.getTime(), endB.getTime()));
+  if (overlapStart > overlapEnd) return null;
+
+  const toIso = (d) => d.toISOString().slice(0, 10);
+  return { start_date: toIso(overlapStart), end_date: toIso(overlapEnd) };
+}
+
+function updateCorrelationOverlap() {
+  const station = document.getElementById('corr-station-select')?.value;
+  const categoryA = document.getElementById('corr-category-a-select')?.value;
+  const categoryB = document.getElementById('corr-category-b-select')?.value;
+  const startEl = document.getElementById('corr-start-date');
+  const endEl = document.getElementById('corr-end-date');
+  const overlapPreview = document.getElementById('corr-overlap-preview');
+  const focusPreview = document.getElementById('corr-focus-preview');
+
+  if (!station || !categoryA || !categoryB || categoryA === categoryB) {
+    if (startEl) startEl.value = '';
+    if (endEl) endEl.value = '';
+    if (overlapPreview) overlapPreview.textContent = 'Select a station and two different variables';
+    if (focusPreview) focusPreview.textContent = 'Correlation structure, seasonal co-movement, and lag behavior';
+    return;
+  }
+
+  const overlap = getCorrelationOverlap(station, categoryA, categoryB);
+  if (!overlap) {
+    if (startEl) startEl.value = '';
+    if (endEl) endEl.value = '';
+    if (overlapPreview) overlapPreview.textContent = 'No overlapping date range found';
+  } else {
+    if (startEl) startEl.value = formatDateToDDMMYYYY(overlap.start_date);
+    if (endEl) endEl.value = formatDateToDDMMYYYY(overlap.end_date);
+    if (overlapPreview) overlapPreview.textContent = `${formatDateToDDMMYYYY(overlap.start_date)} to ${formatDateToDDMMYYYY(overlap.end_date)}`;
+  }
+
+  if (focusPreview) {
+    focusPreview.textContent = `${categoryA} against ${categoryB} at ${station}`;
+  }
+}
+
+function formatCorrelationLag(lag, frequency) {
+  const unit = frequency === 'monthly' ? 'months' : 'days';
+  if (lag === 0) return `0 ${unit}`;
+  return `${lag > 0 ? '+' : ''}${lag} ${unit}`;
+}
+
+function renderCorrelationFindings(findings, summary) {
+  const body = document.getElementById('corr-analysis-body');
+  if (!body) return;
+
+  const bullets = (findings || []).map(item => `<li>${item}</li>`).join('');
+  body.innerHTML = `
+    <span class="analysis-source-tag fallback-tag">Deterministic Analysis</span>
+    <div class="az-section">
+      <h4 class="az-section-title">Relationship Summary</h4>
+      <p class="az-para">
+        ${summary.category_a} and ${summary.category_b} at ${summary.station} were aligned on a ${summary.freq_label.toLowerCase()}
+        basis across ${summary.n_obs} overlapping observations. This lets the explorer compare direct association,
+        seasonal co-movement, and delayed response patterns inside the same station context.
+      </p>
+    </div>
+    <div class="az-section">
+      <h4 class="az-section-title">Key Findings</h4>
+      <ul class="corr-findings-list">${bullets}</ul>
+    </div>
+    <div class="az-section">
+      <h4 class="az-section-title">Interpretation Guide</h4>
+      <p class="az-para">
+        Pearson r reflects linear association, while Spearman rho checks whether the variables still move together in ranked order
+        even when the response is non-linear. The lag scan is especially useful for hydrological systems where rainfall, water level,
+        discharge, and sediment response may be offset rather than synchronous.
+      </p>
+    </div>
+  `;
+}
+
+function setupCorrelationEvents() {
+  populateCorrelationDropdowns();
+
+  document.getElementById('corr-station-select')?.addEventListener('change', function() {
+    updateCorrelationCategoryOptions(this.value);
+  });
+
+  document.getElementById('corr-category-a-select')?.addEventListener('change', updateCorrelationOverlap);
+  document.getElementById('corr-category-b-select')?.addEventListener('change', updateCorrelationOverlap);
+
+  document.getElementById('corr-generate-btn')?.addEventListener('click', function() {
+    const station = document.getElementById('corr-station-select')?.value;
+    const categoryA = document.getElementById('corr-category-a-select')?.value;
+    const categoryB = document.getElementById('corr-category-b-select')?.value;
+    const startDate = document.getElementById('corr-start-date')?.value;
+    const endDate = document.getElementById('corr-end-date')?.value;
+
+    if (!station || !categoryA || !categoryB || categoryA === categoryB || !startDate || !endDate) {
+      showAlert(document.getElementById('corr-alert'));
+      return;
+    }
+
+    const btn = this;
+    btn.disabled = true;
+    btn.textContent = 'Running...';
+
+    document.getElementById('corr-stats-grid')?.classList.add('hidden');
+    document.getElementById('corr-chart-grid')?.classList.add('hidden');
+    document.getElementById('corr-analysis-panel')?.classList.add('hidden');
+
+    fetch('/generate_correlation', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        station_name: station,
+        category_a: categoryA,
+        category_b: categoryB,
+        start_date: startDate,
+        end_date: endDate,
+      }),
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.error) {
+        const el = document.getElementById('corr-alert');
+        if (el) {
+          el.textContent = 'Correlation explorer error: ' + data.error;
+          showAlert(el);
+        }
+        return;
+      }
+
+      const s = data.summary || {};
+      document.getElementById('corr-stat-pearson').textContent = s.pearson_str || 'n/a';
+      document.getElementById('corr-stat-spearman').textContent = s.spearman_str || 'n/a';
+      document.getElementById('corr-stat-strength').textContent = `${s.strength_label || 'Unknown'} ${s.direction_label || ''}`.trim();
+      document.getElementById('corr-stat-obs').textContent = `${s.n_obs || 0} obs`;
+      document.getElementById('corr-stat-lag').textContent = `${formatCorrelationLag(s.best_lag || 0, s.align_frequency)} (${s.best_lag_corr_str || 'n/a'})`;
+      document.getElementById('corr-stat-seasonal').textContent = s.seasonal_corr_str || 'n/a';
+      document.getElementById('corr-stats-grid').classList.remove('hidden');
+
+      const charts = data.charts || {};
+      Plotly.newPlot('corr-chart-timeline', JSON.parse(charts.timeline), {}, { responsive: true });
+      Plotly.newPlot('corr-chart-scatter', JSON.parse(charts.scatter), {}, { responsive: true });
+      Plotly.newPlot('corr-chart-lag', JSON.parse(charts.lag), {}, { responsive: true });
+      Plotly.newPlot('corr-chart-seasonal', JSON.parse(charts.seasonal), {}, { responsive: true });
+      Plotly.newPlot('corr-chart-rolling', JSON.parse(charts.rolling), {}, { responsive: true });
+      document.getElementById('corr-chart-grid').classList.remove('hidden');
+
+      renderCorrelationFindings(data.findings, s);
+      document.getElementById('corr-analysis-panel').classList.remove('hidden');
+    })
+    .catch(err => {
+      const el = document.getElementById('corr-alert');
+      if (el) {
+        el.textContent = 'Error: ' + err.message;
+        showAlert(el);
+      }
+    })
+    .finally(() => {
+      btn.disabled = false;
+      btn.textContent = 'Run Correlation Explorer';
+    });
+  });
+}
+
+// ------------------------------
 // SEASONAL DECOMPOSITION
 // ------------------------------
 function populateSeasonalDropdowns() {
@@ -2582,6 +2810,7 @@ document.addEventListener("DOMContentLoaded", async function() {
     setupModalEvents();
     populatePredictionDropdowns();
     setupPredictionEvents();
+    setupCorrelationEvents();
     setupSeasonalEvents();
     setupSidebarToggle();
     setupThemeToggle();
