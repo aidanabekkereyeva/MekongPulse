@@ -375,6 +375,44 @@ def compare_models():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/generate_stacking_ensemble', methods=['POST'])
+def generate_stacking_ensemble():
+    import traceback
+    try:
+        data = request.json
+        include_analysis = bool(data.get('include_analysis', False))
+        result = ml_prediction_service.generate_stacking_ensemble(
+            category_name=data['category_name'],
+            station_name=data['station_name'],
+            horizon=int(data.get('horizon_days', 14)),
+        )
+        info = result['model_info']
+        result['analysis'] = None
+        result['analysis_source'] = None
+        if include_analysis:
+            analysis, source = _generate_prediction_analysis(
+                station=data['station_name'],
+                category=data['category_name'],
+                model=info['model'],
+                horizon=info['horizon_days'],
+                rmse='n/a',
+                mape='n/a',
+                last_historical=info['last_historical'],
+                forecast_end=info['forecast_end'],
+                source_type='ensemble',
+                extra_info={
+                    'base_models': info.get('base_models'),
+                    'meta_weights': info.get('meta_weights'),
+                },
+            )
+            result['analysis'] = analysis
+            result['analysis_source'] = source
+        return jsonify(result)
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
 def _build_fallback_analysis(station, category, graph_type, first_year, last_year,
                               record_count, coverage_pct, mean_val, min_val, max_val,
                               std_val, trend, ranking_text=""):

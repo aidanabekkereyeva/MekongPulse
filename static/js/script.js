@@ -2246,6 +2246,19 @@ const MODEL_META = {
       ["Forecast end", info.forecast_end],
     ],
   },
+  stacking_ensemble: {
+    label: "Advanced Stacking Ensemble",
+    desc: "<strong>Stacking Ensemble with Ridge Meta-Model</strong> — Level-0: 5 diverse base models (LSTM, GRU, PatchTST, DLinear, iTransformer). Level-1: Ridge Regression meta-model learns optimal combination of base predictions. Shows all base models + ensemble result. <em>More complex than simple weighted average.</em>",
+    ml: true,
+    infoCards: (info) => [
+      ["Model", info.model],
+      ["Base Models", info.base_models],
+      ["Horizon", `${info.horizon_days} days`],
+      ["Meta Coefficients", info.meta_weights],
+      ["Meta-Model", info.meta_intercept],
+      ["Forecast Period", `${info.last_historical} → ${info.forecast_end}`],
+    ],
+  },
   ml_compare: {
     label: "Multi-Model Comparison",
     desc: "<strong>Compare All</strong> — Overlays LSTM, GRU, PatchTST, DLinear, and iTransformer forecasts on one chart with a ranked RMSE/MAPE table to identify the best-performing model for this station and feature.",
@@ -2442,6 +2455,7 @@ function setupPredictionEvents() {
     const category = document.getElementById('pred-category-select')?.value;
     const horizon  = parseInt(document.getElementById('pred-horizon-select')?.value || '12');
     const isML     = _isMLModel(selectedPredModel);
+    const includeAnalysis = !!document.getElementById('pred-ai-toggle')?.checked && _modelSupportsAi(selectedPredModel);
     const startDate = document.getElementById('pred-start-date')?.value;
     const endDate   = document.getElementById('pred-end-date')?.value;
 
@@ -2501,6 +2515,44 @@ function setupPredictionEvents() {
       return;
     }
 
+    // ── ML: stacking ensemble ──────────────────────────────────────────────
+    if (selectedPredModel === 'stacking_ensemble') {
+      fetch('/generate_stacking_ensemble', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          station_name: station,
+          category_name: category,
+          horizon_days: horizon,
+          include_analysis: includeAnalysis,
+        }),
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.error) {
+          const el = document.getElementById('pred-alert');
+          if (el) { el.textContent = 'Forecast error: ' + data.error; showAlert(el); }
+          return;
+        }
+        const info = data.model_info;
+        const meta = MODEL_META[selectedPredModel];
+        const cards = meta.infoCards(info).map(([label, val]) =>
+          `<div class="pred-info-card"><span class="pred-info-label">${label}</span><span class="pred-info-value">${val ?? '--'}</span></div>`
+        ).join('');
+        document.getElementById('pred-model-info').innerHTML = `<div class="pred-info-grid">${cards}</div>`;
+        document.getElementById('pred-model-info').classList.remove('hidden');
+        document.getElementById('pred-chart-container').classList.remove('hidden');
+        Plotly.newPlot('pred-chart', JSON.parse(data.chart), {}, { responsive: true });
+        showPredictionAnalysis(data.analysis, data.analysis_source);
+      })
+      .catch(err => {
+        const el = document.getElementById('pred-alert');
+        if (el) { el.textContent = 'Error: ' + err.message; showAlert(el); }
+      })
+      .finally(() => { btn.disabled = false; btn.textContent = 'Generate Forecast'; });
+      return;
+    }
+
     // ── ML: single model ───────────────────────────────────────────────────
     if (isML) {
       fetch('/generate_ml_prediction', {
@@ -2511,6 +2563,7 @@ function setupPredictionEvents() {
           station_name: station,
           category_name: category,
           horizon_days: horizon,
+          include_analysis: includeAnalysis,
         }),
       })
       .then(r => r.json())
@@ -2683,6 +2736,55 @@ function setupPredictionEvents() {
             { label: 'Best model', value: info.best_model || '--' },
           ],
         });
+      })
+      .catch(err => {
+        const el = document.getElementById('pred-alert');
+        if (el) { el.textContent = 'Error: ' + err.message; showAlert(el); }
+      })
+      .finally(() => {
+        btn.disabled = false;
+        btn.textContent = 'Generate Forecast';
+        _syncPredictionMetaUi(selectedPredModel);
+      });
+      return;
+    }
+
+    // ── Stacking ensemble ──────────────────────────────────────────────────
+    if (selectedPredModel === 'stacking_ensemble') {
+      fetch('/generate_stacking_ensemble', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          station_name: station,
+          category_name: category,
+          horizon_days: horizon,
+          include_analysis: includeAnalysis,
+        }),
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.error) {
+          const el = document.getElementById('pred-alert');
+          if (el) { el.textContent = 'Forecast error: ' + data.error; showAlert(el); }
+          return;
+        }
+        _renderPredictionInfo(data.model_info, selectedPredModel);
+        document.getElementById('pred-chart-container').classList.remove('hidden');
+        Plotly.newPlot('pred-chart', JSON.parse(data.chart), {}, { responsive: true });
+        setExportSessionPayload('forecast', {
+          charts: data.chart ? [data.chart] : [],
+          title: 'Forecast Workspace',
+          reportHtml: '',
+          reportText: '',
+          meta: [
+            { label: 'Model', value: 'Stacking Ensemble' },
+            { label: 'Base Models', value: data.model_info?.base_models || '--' },
+            { label: 'Station', value: station },
+            { label: 'Category', value: category },
+            { label: 'Horizon', value: `${horizon} days` },
+          ],
+        });
+        if (includeAnalysis) showPredictionAnalysis(data.analysis, data.analysis_source);
       })
       .catch(err => {
         const el = document.getElementById('pred-alert');
