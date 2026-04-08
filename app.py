@@ -1011,11 +1011,89 @@ def generate_seasonal():
         return jsonify({'error': str(e)}), 500
 
 
+def _build_correlation_fallback_analysis(station, category_a, category_b,
+                                          start_date, end_date, n_obs, align_frequency,
+                                          pearson_str, spearman_str, strength_label,
+                                          direction_label, best_lag, best_lag_corr_str,
+                                          lead_label, seasonal_corr_str,
+                                          rolling_min_str, rolling_max_str):
+    """Structured correlation analysis report used when Gemini is unavailable."""
+    freq_label = "monthly" if align_frequency == "monthly" else "daily"
+    lag_sent = (
+        f"The lead-lag scan identifies {category_a} as leading {category_b} by {best_lag} {freq_label} "
+        f"periods (r={best_lag_corr_str}), suggesting a lagged hydrological response."
+        if best_lag != 0 else
+        f"No systematic lag was detected between {category_a} and {category_b}; the strongest "
+        f"association (r={best_lag_corr_str}) occurs at zero lag, indicating a synchronous relationship."
+    )
+
+    report = f"""Correlation Overview:
+A {freq_label}-aligned correlation analysis was conducted between {category_a} and {category_b} at {station} across {n_obs} paired observations spanning {start_date} to {end_date}. Pearson r and Spearman rho were computed to capture both linear and monotonic association. The relationship is classified as {strength_label.lower()} and {direction_label.lower()}, providing the foundational context for the remaining statistical and temporal investigations.
+
+Statistical Association:
+The Pearson correlation coefficient of {pearson_str} quantifies the linear co-movement of the two variables under the assumption of normality and homoscedasticity. The Spearman rank correlation of {spearman_str} provides a non-parametric complement that is robust to outliers and monotonic but non-linear relationships. Where Pearson and Spearman values diverge substantially, it suggests non-linearity or the presence of influential extreme observations that warrant further investigation.
+
+Lead-Lag Structure:
+{lag_sent} In Mekong basin hydrology, lagged relationships are physically meaningful: precipitation events propagate downstream as discharge over hours to days, while fine sediment responses may lag water-level changes by weeks. Identifying the optimal lag is therefore an important step before constructing predictive or causal models.
+
+Seasonal Co-Movement:
+The seasonal correlation coefficient of {seasonal_corr_str} summarises how closely the mean annual cycles of {category_a} and {category_b} align across calendar months. A high seasonal correlation indicates that both variables are driven by the same monsoon forcing at the annual scale, even if their sub-seasonal dynamics differ. Comparisons between the overall Pearson r and the seasonal correlation can reveal whether the observed association is primarily a seasonal artefact or persists after seasonal adjustment.
+
+Rolling Stability:
+The rolling window correlation ranged from {rolling_min_str} to {rolling_max_str} across the study period, indicating the degree to which the relationship is stable or evolves through time. Periods of reduced correlation may reflect ENSO-driven hydrological regime shifts, upstream infrastructure changes, or data quality issues. Analysts should cross-reference correlation troughs with known basin events before drawing causal conclusions from any single time window."""
+
+    return report
+
+
+def _generate_correlation_analysis(station, category_a, category_b,
+                                    start_date, end_date, n_obs, align_frequency,
+                                    pearson_str, spearman_str, strength_label,
+                                    direction_label, best_lag, best_lag_corr_str,
+                                    lead_label, seasonal_corr_str,
+                                    rolling_min_str, rolling_max_str):
+    """Try Gemini; fall back to structured static report on any failure."""
+    api_key = os.getenv('GEMINI_API_KEY', '').strip()
+    freq_label = "monthly" if align_frequency == "monthly" else "daily"
+
+    prompt = f"""Mekong basin hydrological analyst. Write a detailed structured correlation analysis report using these section headers on their own line followed by a colon. No markdown symbols.
+
+Data: Correlation Explorer | {station} | {category_a} vs {category_b} | {start_date} to {end_date} | {n_obs} {freq_label} obs | Pearson r={pearson_str} | Spearman rho={spearman_str} | strength={strength_label} {direction_label} | best_lag={best_lag} {freq_label} periods (r={best_lag_corr_str}, {lead_label}) | seasonal_corr={seasonal_corr_str} | rolling_range={rolling_min_str} to {rolling_max_str}
+
+Length requirements:
+- Write 5-7 sentences per section.
+- Make the full response approximately 400-650 words.
+- Provide interpretive discussion, not brief summaries.
+- Use only the numbers and facts provided in the Data line.
+
+Sections to write:
+
+Correlation Overview:
+Statistical Association:
+Lead-Lag Structure:
+Seasonal Co-Movement:
+Rolling Stability:
+
+Academic language. Only use the numbers provided."""
+
+    result = gemini_generate_safe(api_key, prompt)
+    if result is not None:
+        print('[AI] Correlation analysis from Gemini.')
+        return result, 'gemini'
+
+    print('[AI] Using fallback correlation analysis.')
+    return _build_correlation_fallback_analysis(
+        station, category_a, category_b, start_date, end_date, n_obs, align_frequency,
+        pearson_str, spearman_str, strength_label, direction_label, best_lag,
+        best_lag_corr_str, lead_label, seasonal_corr_str, rolling_min_str, rolling_max_str,
+    ), 'fallback'
+
+
 @app.route('/generate_correlation', methods=['POST'])
 def generate_correlation():
     import traceback
     try:
         data = request.json
+        include_analysis = bool(data.get('include_analysis', False))
         result = visualization.generate_correlation_explorer(
             station_name=data['station_name'],
             category_a=data['category_a'],
@@ -1023,6 +1101,31 @@ def generate_correlation():
             start_date=data['start_date'],
             end_date=data['end_date'],
         )
+        result['analysis'] = None
+        result['analysis_source'] = None
+        if include_analysis:
+            s = result['summary']
+            analysis, source = _generate_correlation_analysis(
+                station=s['station'],
+                category_a=s['category_a'],
+                category_b=s['category_b'],
+                start_date=s['start_date'],
+                end_date=s['end_date'],
+                n_obs=s['n_obs'],
+                align_frequency=s['align_frequency'],
+                pearson_str=s['pearson_str'],
+                spearman_str=s['spearman_str'],
+                strength_label=s['strength_label'],
+                direction_label=s['direction_label'],
+                best_lag=s['best_lag'],
+                best_lag_corr_str=s['best_lag_corr_str'],
+                lead_label=s['lead_label'],
+                seasonal_corr_str=s['seasonal_corr_str'],
+                rolling_min_str=s['rolling_min_str'],
+                rolling_max_str=s['rolling_max_str'],
+            )
+            result['analysis'] = analysis
+            result['analysis_source'] = source
         return jsonify(result)
     except Exception as e:
         traceback.print_exc()

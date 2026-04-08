@@ -4216,6 +4216,18 @@ function formatCorrelationLag(lag, frequency) {
   return `${lag > 0 ? '+' : ''}${lag} ${unit}`;
 }
 
+function _showCorrAnalysis(analysis, source) {
+  const panel = document.getElementById('corr-analysis-panel');
+  const body  = document.getElementById('corr-analysis-body');
+  if (!panel || !body || !analysis) return;
+  const tag = source === 'gemini'
+    ? '<span class="analysis-source-tag gemini-tag">Gemini AI</span>'
+    : '<span class="analysis-source-tag fallback-tag">Pre-plan Analysis</span>';
+  body.innerHTML = tag + azBuildAnalysisReport(analysis);
+  panel.classList.remove('hidden');
+  setExportSessionReport('correlation', analysis, body.innerHTML);
+}
+
 function renderCorrelationFindings(findings, summary) {
   const body = document.getElementById('corr-analysis-body');
   if (!body) return;
@@ -4263,6 +4275,7 @@ function setupCorrelationEvents() {
     const categoryB = document.getElementById('corr-category-b-select')?.value;
     const startDate = document.getElementById('corr-start-date')?.value;
     const endDate = document.getElementById('corr-end-date')?.value;
+    const includeAnalysis = !!document.getElementById('corr-ai-toggle')?.checked;
 
     if (!station || !categoryA || !categoryB || categoryA === categoryB || !startDate || !endDate) {
       showAlert(document.getElementById('corr-alert'));
@@ -4271,7 +4284,7 @@ function setupCorrelationEvents() {
 
     const btn = this;
     btn.disabled = true;
-    btn.textContent = 'Running...';
+    btn.textContent = includeAnalysis ? 'Running + AI report...' : 'Running...';
 
     document.getElementById('corr-stats-grid')?.classList.add('hidden');
     document.getElementById('corr-chart-grid')?.classList.add('hidden');
@@ -4286,6 +4299,7 @@ function setupCorrelationEvents() {
         category_b: categoryB,
         start_date: startDate,
         end_date: endDate,
+        include_analysis: includeAnalysis,
       }),
     })
     .then(r => r.json())
@@ -4333,8 +4347,12 @@ function setupCorrelationEvents() {
         ],
       });
 
-      renderCorrelationFindings(data.findings, s);
-      document.getElementById('corr-analysis-panel').classList.remove('hidden');
+      if (includeAnalysis && data.analysis) {
+        _showCorrAnalysis(data.analysis, data.analysis_source);
+      } else {
+        renderCorrelationFindings(data.findings, s);
+        document.getElementById('corr-analysis-panel').classList.remove('hidden');
+      }
     })
     .catch(err => {
       const el = document.getElementById('corr-alert');
