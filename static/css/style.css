@@ -1456,6 +1456,18 @@ button {
   color: var(--text);
 }
 
+#graph-requirements-text,
+#az-graph-requirements-text {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background-color: var(--panel-soft);
+  border-left: 3px solid var(--accent);
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text);
+  border-radius: 3px;
+}
+
 .dropdown {
   width: 100%;
   padding: 10px 13px;

@@ -243,6 +243,27 @@ function showAlert(element) {
   }, 2500);
 }
 
+function createCustomAlert(message) {
+  const alert = document.createElement("div");
+  alert.className = "warning-alert";
+  alert.textContent = message;
+  alert.style.display = "block";
+  alert.style.position = "fixed";
+  alert.style.top = "20px";
+  alert.style.left = "50%";
+  alert.style.transform = "translateX(-50%)";
+  alert.style.zIndex = "9999";
+  alert.style.maxWidth = "500px";
+  alert.style.padding = "12px 16px";
+  document.body.appendChild(alert);
+
+  setTimeout(() => {
+    alert.remove();
+  }, 3000);
+
+  return alert;
+}
+
 function getPlaceholderOption(label = "Select an option...") {
   const option = document.createElement("option");
   option.value = "";
@@ -266,6 +287,96 @@ function formatDateToYYYYMMDD(dateString) {
 
 function getSelectedGraphConfig() {
   return graphTypeOptions.find(option => option.name === selectedGraphOption);
+}
+
+function validateGraphRequirements() {
+  const config = getSelectedGraphConfig();
+  if (!config) {
+    return { valid: false, error: "Please select a visualization type first." };
+  }
+
+  // Check categories
+  if (config.number_of_categories_allow !== "All") {
+    if (selectedCategories.length < config.number_of_categories_allow) {
+      return {
+        valid: false,
+        error: `This visualization requires ${config.number_of_categories_allow} categor${config.number_of_categories_allow === 1 ? 'y' : 'ies'}, but you selected ${selectedCategories.length}.`
+      };
+    }
+  }
+
+  // Check stations
+  const uniqueStations = new Set(selectedStationEntries.map(e => e.station_name));
+  if (config.number_of_stations_allow !== "All") {
+    if (uniqueStations.size < config.number_of_stations_allow) {
+      return {
+        valid: false,
+        error: `This visualization requires ${config.number_of_stations_allow} station${config.number_of_stations_allow === 1 ? '' : 's'}, but you selected ${uniqueStations.size}.`
+      };
+    }
+  }
+
+  return { valid: true };
+}
+
+function displayGraphRequirements(requirementsElId = "graph-requirements-text") {
+  const config = getSelectedGraphConfig();
+  const requirementsEl = document.getElementById(requirementsElId);
+  if (!config || !requirementsEl) return;
+
+  let requirementText = "Requires: ";
+
+  // Categories requirement
+  if (config.number_of_categories_allow === "All") {
+    requirementText += "any number of categories";
+  } else if (config.number_of_categories_allow === 1) {
+    requirementText += "1 category";
+  } else {
+    requirementText += `${config.number_of_categories_allow} categories`;
+  }
+
+  requirementText += " • ";
+
+  // Stations requirement
+  if (config.number_of_stations_allow === "All") {
+    requirementText += "any number of stations";
+  } else if (config.number_of_stations_allow === 1) {
+    requirementText += "1 station";
+  } else {
+    requirementText += `${config.number_of_stations_allow} stations`;
+  }
+
+  requirementsEl.textContent = requirementText;
+}
+
+function displayGraphRequirementsForAnalyze(graphName) {
+  const config = graphTypeOptions.find(o => o.name === graphName);
+  const requirementsEl = document.getElementById("az-graph-requirements-text");
+  if (!config || !requirementsEl) return;
+
+  let requirementText = "Requires: ";
+
+  // Categories requirement
+  if (config.number_of_categories_allow === "All") {
+    requirementText += "any number of categories";
+  } else if (config.number_of_categories_allow === 1) {
+    requirementText += "1 category";
+  } else {
+    requirementText += `${config.number_of_categories_allow} categories`;
+  }
+
+  requirementText += " • ";
+
+  // Stations requirement
+  if (config.number_of_stations_allow === "All") {
+    requirementText += "any number of stations";
+  } else if (config.number_of_stations_allow === 1) {
+    requirementText += "1 station";
+  } else {
+    requirementText += `${config.number_of_stations_allow} stations`;
+  }
+
+  requirementsEl.textContent = requirementText;
 }
 
 function setSectionVisible(section) {
@@ -2548,6 +2659,7 @@ function setupBuilderEvents() {
   graphOptionsDropdown.addEventListener("change", function() {
     selectedGraphOption = graphOptionsDropdown.value;
     updateBuilderSummary();
+    displayGraphRequirements();
 
     const graphConfig = getSelectedGraphConfig();
     if (!graphConfig) return;
@@ -2680,6 +2792,13 @@ addStationBtn.addEventListener("click", function() {
       return;
     }
 
+    // Validate graph requirements
+    const validation = validateGraphRequirements();
+    if (!validation.valid) {
+      showAlert(createCustomAlert(validation.error));
+      return;
+    }
+
     const newVisualization = buildVisualizationFromCurrentSelections();
     selectedVisualizations.push(newVisualization);
     updateVisualizationQueueUI();
@@ -2730,7 +2849,13 @@ function setupAiAnalysis() {
       const res = await fetch('/analyze_with_ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ summary: lastSummaryForAI, ranking: lastRankingForAI })
+        body: JSON.stringify({
+          summary: lastSummaryForAI,
+          ranking: lastRankingForAI,
+          graph_type: azSelectedGraph || 'Unknown',
+          stations: azSelectedStations || [],
+          categories: azSelectedCategories || []
+        })
       });
       const data = await res.json();
       if (data.error) throw new Error(data.error);
@@ -2889,6 +3014,7 @@ function setupAnalyzeEvents() {
     azSelectedGraph = this.value;
     azSelectedCategories = [];
     azSelectedStations = [];
+    displayGraphRequirementsForAnalyze(azSelectedGraph);
     azUpdateGraphConstraints();
   });
 
@@ -2936,6 +3062,19 @@ function setupAnalyzeEvents() {
     if (!azSelectedGraph || azSelectedCategories.length === 0 || azSelectedStations.length === 0) {
       showAlert(document.getElementById('az-no-selection-alert'));
       return;
+    }
+
+    // Validate graph requirements for Analyze section
+    const config = graphTypeOptions.find(o => o.name === azSelectedGraph);
+    if (config) {
+      if (config.number_of_categories_allow !== "All" && azSelectedCategories.length < config.number_of_categories_allow) {
+        createCustomAlert(`This visualization requires ${config.number_of_categories_allow} categor${config.number_of_categories_allow === 1 ? 'y' : 'ies'}, but you selected ${azSelectedCategories.length}.`);
+        return;
+      }
+      if (config.number_of_stations_allow !== "All" && azSelectedStations.length < config.number_of_stations_allow) {
+        createCustomAlert(`This visualization requires ${config.number_of_stations_allow} station${config.number_of_stations_allow === 1 ? '' : 's'}, but you selected ${azSelectedStations.length}.`);
+        return;
+      }
     }
 
     generateBtn.disabled = true;

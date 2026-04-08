@@ -17,7 +17,7 @@ from statsmodels.tsa.holtwinters import ExponentialSmoothing
 # Set by app.py at startup
 repo: Optional[DataRepository] = None
 
-# Maps display category name (used by frontend) â†’ schema feature key
+# Maps display category name (used by frontend) â†' schema feature key
 CATEGORY_TO_FEATURE = {
     "Water Level": "Water_Level",
     "Discharge": "Discharge",
@@ -362,7 +362,7 @@ def generate_annual_monthly_totals_visualizations(selected_data):
 # ------------------------------
 
 def plot_flow_duration_curve(station_name, category_name, start_date, end_date):
-    chart_title = f"Flow Duration Curve â€” {category_name} at {station_name}"
+    chart_title = f"Flow Duration Curve - {category_name} at {station_name}"
     df = get_feature_series_df(category_name, station_name, start_date, end_date)
     if df is None or df.empty:
         return create_no_data_chart(chart_title)
@@ -394,7 +394,7 @@ def generate_flow_duration_curve_visualizations(selected_data):
 # ------------------------------
 
 def plot_monthly_distribution_boxplot(station_name, category_name, start_date, end_date):
-    chart_title = f"Monthly Distribution â€” {category_name} at {station_name}"
+    chart_title = f"Monthly Distribution - {category_name} at {station_name}"
     df = get_feature_series_df(category_name, station_name, start_date, end_date)
     if df is None or df.empty:
         return create_no_data_chart(chart_title)
@@ -429,7 +429,7 @@ def generate_monthly_distribution_boxplot_visualizations(selected_data):
 # ------------------------------
 
 def plot_multi_station_temporal_heatmap(category_name, stations_data):
-    chart_title = f"{category_name} â€” Multi-Station Temporal Heatmap"
+    chart_title = f"{category_name} - Multi-Station Temporal Heatmap"
     station_names = []
     year_values: dict = {}
 
@@ -989,7 +989,7 @@ def generate_correlation_explorer(
 # ------------------------------
 
 def plot_anomaly_detection_chart(station_name, category_name, start_date, end_date):
-    chart_title = f"Anomaly Detection â€” {category_name} at {station_name}"
+    chart_title = f"Anomaly Detection - {category_name} at {station_name}"
     df = get_feature_series_df(category_name, station_name, start_date, end_date)
     if df is None or df.empty:
         return create_no_data_chart(chart_title)
@@ -1031,7 +1031,7 @@ def generate_anomaly_detection_visualizations(selected_data):
 # ------------------------------
 
 def plot_rolling_average_trend(station_name, category_name, start_date, end_date):
-    chart_title = f"Rolling Average Trend â€” {category_name} at {station_name}"
+    chart_title = f"Rolling Average Trend - {category_name} at {station_name}"
     df = get_feature_series_df(category_name, station_name, start_date, end_date)
     if df is None or df.empty:
         return create_no_data_chart(chart_title)
@@ -1072,7 +1072,7 @@ def generate_rolling_average_trend_visualizations(selected_data):
 # ------------------------------
 
 def plot_cumulative_departure(station_name, category_name, start_date, end_date):
-    chart_title = f"Cumulative Departure from Mean â€” {category_name} at {station_name}"
+    chart_title = f"Cumulative Departure from Mean - {category_name} at {station_name}"
     df = get_feature_series_df(category_name, station_name, start_date, end_date)
     if df is None or df.empty:
         return create_no_data_chart(chart_title)
@@ -1113,7 +1113,7 @@ def generate_cumulative_departure_visualizations(selected_data):
 # ------------------------------
 
 def plot_monthly_climatology(station_name, category_name, start_date, end_date):
-    chart_title = f"Monthly Climatology â€” {category_name} at {station_name}"
+    chart_title = f"Monthly Climatology - {category_name} at {station_name}"
     df = get_feature_series_df(category_name, station_name, start_date, end_date)
     if df is None or df.empty:
         return create_no_data_chart(chart_title)
@@ -1139,7 +1139,7 @@ def plot_monthly_climatology(station_name, category_name, start_date, end_date):
     fig = apply_clean_layout(fig, chart_title, get_category_units(category_name), "Month")
     fig.add_annotation(
         x=0.01, y=0.97, xref="paper", yref="paper",
-        text=f"Based on {years} years of data â€” error bars show Â±1 std dev",
+        text=f"Based on {years} years of data - error bars show +/- 1 std dev",
         showarrow=False, font=dict(size=11, color="#666"), xanchor="left",
     )
     fig.update_layout(showlegend=False)
@@ -1158,7 +1158,7 @@ def generate_monthly_climatology_visualizations(selected_data):
 # ------------------------------
 
 def plot_decade_comparison(station_name, category_name, start_date, end_date):
-    chart_title = f"Decade-by-Decade Comparison â€” {category_name} at {station_name}"
+    chart_title = f"Decade-by-Decade Comparison - {category_name} at {station_name}"
     df = get_feature_series_df(category_name, station_name, start_date, end_date)
     if df is None or df.empty:
         return create_no_data_chart(chart_title)
@@ -1168,7 +1168,7 @@ def plot_decade_comparison(station_name, category_name, start_date, end_date):
     decades = sorted(df["Decade"].unique())
 
     if len(decades) < 2:
-        return create_no_data_chart(chart_title, "Not enough data â€” at least two decades required.")
+        return create_no_data_chart(chart_title, "Not enough data - at least two decades required.")
 
     colors = px.colors.qualitative.Plotly
     fig = go.Figure()
@@ -1231,7 +1231,7 @@ def plot_station_ranking_bar(category_name, stations_data):
         hovertemplate="Station: %{y}<br>Average: %{x:.2f}<extra></extra>",
     ))
     fig = apply_clean_layout(fig, chart_title, "", get_category_units(category_name))
-    # Override the date tickformat that apply_clean_layout sets â€” x-axis is numeric here
+    # Override the date tickformat that apply_clean_layout sets - x-axis is numeric here
     fig.update_xaxes(tickformat="", title=get_category_units(category_name))
     fig.update_layout(
         yaxis_title="",
@@ -1934,7 +1934,7 @@ def generate_holt_winters_prediction(
 
     apply_clean_layout(
         fig,
-        title=f"Holt-Winters Forecast â€” {station_display(station_name)} Â· {category_name}",
+        title=f"Holt-Winters Forecast - {station_display(station_name)}: {category_name}",
         yaxis_title=unit_label,
         xaxis_title="Date",
     )
@@ -2051,7 +2051,7 @@ def _make_forecast_chart(series, fitted_vals, forecast_vals, forecast_index, ci_
 
     apply_clean_layout(
         fig,
-        title=f"{model_label} â€” {station_display(station_name)} Â· {category_name}",
+        title=f"{model_label} - {station_display(station_name)}: {category_name}",
         yaxis_title=unit_label,
         xaxis_title="Date",
     )

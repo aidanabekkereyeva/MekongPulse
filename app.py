@@ -805,13 +805,13 @@ def analyze_with_ai():
         categories = data.get('categories', [])
         ranking = data.get('ranking', [])
 
-        station      = summary.get('station_name', ', '.join(stations) if stations else 'Unknown')
-        category     = summary.get('category_name', ', '.join(categories) if categories else 'Unknown')
+        station      = summary.get('station', ', '.join(stations) if stations else 'Unknown')
+        category     = summary.get('category', ', '.join(categories) if categories else 'Unknown')
         mean_val     = summary.get('mean', '--')
         min_val      = summary.get('min', '--')
         max_val      = summary.get('max', '--')
-        std_val      = summary.get('std', '--')
-        trend        = summary.get('trend', '--')
+        std_val      = summary.get('std_dev', '--')
+        trend        = summary.get('trend_direction', '--')
         first_year   = summary.get('first_year', '--')
         last_year    = summary.get('last_year', '--')
         record_count = summary.get('record_count', '--')
@@ -819,10 +819,12 @@ def analyze_with_ai():
 
         ranking_text = ""
         if ranking:
-            ranking_text = ", ".join(
-                f"{r.get('station_name','?')}={r.get('mean','?')}"
+            valid_rankings = [
+                f"{r.get('station_name')}={r.get('mean')}"
                 for r in ranking[:5]
-            )
+                if r.get('station_name') is not None and r.get('mean') is not None
+            ]
+            ranking_text = ", ".join(valid_rankings)
 
         # --- Attempt Gemini ---
         api_key = os.getenv("GEMINI_API_KEY", "").strip()
