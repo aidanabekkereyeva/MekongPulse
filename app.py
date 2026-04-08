@@ -84,12 +84,334 @@ generate_static_csvs(_repo)
 print("[startup] Ready.")
 
 
+DATASET_OVERVIEW_FEATURE_KEYS = [
+    "Water_Level",
+    "Discharge",
+    "Rainfall",
+    "Total_Suspended_Solids",
+]
+
+
+def _safe_int(value, default=0):
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _year_bounds(start_date: str, end_date: str):
+    start = pd.to_datetime(start_date)
+    end = pd.to_datetime(end_date)
+    return start.year, end.year
+
+
+def _overlap_years(start_a: int, end_a: int, start_b: int, end_b: int) -> int:
+    return max(0, min(end_a, end_b) - max(start_a, start_b) + 1)
+
+
+def _estimate_metadata_completeness(span_years: int, variable_max_span: int,
+                                    active_years_in_window: int, window_years: int,
+                                    station_variable_count: int) -> int:
+    """
+    Synthetic completeness estimator used for Dataset Overview APIs.
+    Replace this single function later if real record-level completeness becomes available.
+    """
+    if span_years <= 0 or window_years <= 0 or active_years_in_window <= 0:
+        return 0
+
+    span_ratio = span_years / max(variable_max_span, 1)
+    window_ratio = active_years_in_window / max(window_years, 1)
+    station_bonus = min(station_variable_count / max(len(DATASET_OVERVIEW_FEATURE_KEYS), 1), 1.0)
+
+    score = (
+        span_ratio * 52 +
+        window_ratio * 36 +
+        station_bonus * 12
+    )
+    return max(1, min(100, round(score)))
+
+
+def _build_dataset_overview_source():
+    station_records = []
+    countries = set()
+    variable_max_spans = {feature_to_display(key): 0 for key in DATASET_OVERVIEW_FEATURE_KEYS}
+    all_years = []
+
+    for station_name, meta in _repo.station_index.items():
+        feature_details = meta.get("feature_details", {})
+        variables = {}
+        for feature_key in DATASET_OVERVIEW_FEATURE_KEYS:
+            detail = feature_details.get(feature_key)
+            if not detail:
+                continue
+            display_name = feature_to_display(feature_key)
+            start_year, end_year = _year_bounds(detail["start_date"], detail["end_date"])
+            span_years = end_year - start_year + 1
+            variables[display_name] = {
+                "feature_key": feature_key,
+                "start_date": detail["start_date"],
+                "end_date": detail["end_date"],
+                "start_year": start_year,
+                "end_year": end_year,
+                "span_years": span_years,
+            }
+            variable_max_spans[display_name] = max(variable_max_spans[display_name], span_years)
+            all_years.extend([start_year, end_year])
+
+        countries.add(meta.get("country", "Unknown"))
+        station_records.append({
+            "station_name": station_name.replace("_", " "),
+            "station_code": station_name,
+            "country": meta.get("country", "Unknown"),
+            "variables": variables,
+        })
+
+    if not all_years:
+        return {
+            "decades": [],
+            "stations": [],
+            "countries": sorted(countries),
+            "variables": [feature_to_display(key) for key in DATASET_OVERVIEW_FEATURE_KEYS],
+        }
+
+    min_year = min(all_years)
+    max_year = max(all_years)
+    min_decade = (min_year // 10) * 10
+    max_decade = (max_year // 10) * 10
+    decades = []
+    for decade_start in range(min_decade, max_decade + 1, 10):
+        decade_end = min(decade_start + 9, max_year)
+        decades.append({
+            "key": str(decade_start),
+            "label": f"{decade_start}s",
+            "start_year": decade_start,
+            "end_year": decade_end,
+            "window_years": decade_end - decade_start + 1,
+        })
+
+    enriched_stations = []
+    for station in station_records:
+        station_variable_count = len(station["variables"])
+        per_decade = []
+        per_variable_badges = []
+        sparkline = []
+        overall_first = None
+        overall_last = None
+
+        for variable_name, variable in station["variables"].items():
+            overall_pct = _estimate_metadata_completeness(
+                variable["span_years"],
+                variable_max_spans.get(variable_name, variable["span_years"]),
+                variable["span_years"],
+                max_year - min_year + 1,
+                station_variable_count,
+            )
+            per_variable_badges.append({
+                "variable": variable_name,
+                "completeness_pct": overall_pct,
+                "years": variable["span_years"],
+                "start_year": variable["start_year"],
+                "end_year": variable["end_year"],
+            })
+            overall_first = variable["start_year"] if overall_first is None else min(overall_first, variable["start_year"])
+            overall_last = variable["end_year"] if overall_last is None else max(overall_last, variable["end_year"])
+
+        for decade in decades:
+            variable_scores = {}
+            active_variables = []
+            for variable_name, variable in station["variables"].items():
+                active_years = _overlap_years(
+                    variable["start_year"],
+                    variable["end_year"],
+                    decade["start_year"],
+                    decade["end_year"],
+                )
+                if active_years <= 0:
+                    variable_scores[variable_name] = None
+                    continue
+
+                score = _estimate_metadata_completeness(
+                    variable["span_years"],
+                    variable_max_spans.get(variable_name, variable["span_years"]),
+                    active_years,
+                    decade["window_years"],
+                    station_variable_count,
+                )
+                variable_scores[variable_name] = score
+                active_variables.append({"variable": variable_name, "score": score})
+
+            overall_pct = round(sum(v["score"] for v in active_variables) / len(active_variables)) if active_variables else None
+            dominant = max(active_variables, key=lambda item: item["score"])["variable"] if active_variables else None
+            per_decade.append({
+                "decade": decade["key"],
+                "overall_pct": overall_pct,
+                "active_variable_count": len(active_variables),
+                "dominant_variable": dominant,
+                "by_variable": variable_scores,
+            })
+            sparkline.append(overall_pct or 0)
+
+        enriched_stations.append({
+            **station,
+            "first_year": overall_first,
+            "last_year": overall_last,
+            "variable_count": station_variable_count,
+            "per_variable_badges": sorted(per_variable_badges, key=lambda item: item["variable"]),
+            "sparkline": sparkline,
+            "decades": per_decade,
+        })
+
+    return {
+        "decades": decades,
+        "stations": enriched_stations,
+        "countries": sorted(countries),
+        "variables": [feature_to_display(key) for key in DATASET_OVERVIEW_FEATURE_KEYS],
+        "completeness_source": "metadata_span_estimate",
+    }
+
+
 # ------------------------------
 # ROUTES
 # ------------------------------
 @app.route('/')
 def index():
     return render_template('index.html')
+
+
+@app.route('/api/coverage')
+def api_coverage():
+    source = _build_dataset_overview_source()
+    variable_filter = request.args.get('variable', '').strip()
+    country_filter = request.args.get('country', '').strip()
+    threshold = _safe_int(request.args.get('threshold', 0), 0)
+
+    stations = []
+    for station in source["stations"]:
+        if country_filter and station["country"] != country_filter:
+            continue
+
+        cells = []
+        for decade in station["decades"]:
+            if variable_filter:
+                score = decade["by_variable"].get(variable_filter)
+                overall_pct = score if score is not None else None
+                active_variable_count = 1 if score is not None else 0
+                dominant_variable = variable_filter if score is not None else None
+            else:
+                overall_pct = decade["overall_pct"]
+                active_variable_count = decade["active_variable_count"]
+                dominant_variable = decade["dominant_variable"]
+
+            if overall_pct is not None and overall_pct < threshold:
+                overall_pct = None
+                active_variable_count = 0
+                dominant_variable = None
+
+            cells.append({
+                "decade": decade["decade"],
+                "overall_pct": overall_pct,
+                "active_variable_count": active_variable_count,
+                "dominant_variable": dominant_variable,
+                "by_variable": decade["by_variable"],
+            })
+
+        stations.append({
+            "station_name": station["station_name"],
+            "station_code": station["station_code"],
+            "country": station["country"],
+            "variable_count": station["variable_count"],
+            "first_year": station["first_year"],
+            "last_year": station["last_year"],
+            "cells": cells,
+        })
+
+    return jsonify({
+        "decades": source["decades"],
+        "stations": stations,
+        "countries": source["countries"],
+        "variables": source["variables"],
+        "completeness_source": source["completeness_source"],
+    })
+
+
+@app.route('/api/availability')
+def api_availability():
+    source = _build_dataset_overview_source()
+    min_years = _safe_int(request.args.get('min_years', 0), 0)
+
+    rows = []
+    for station in source["stations"]:
+        variable_cells = {}
+        supported_years = []
+        for variable_name in source["variables"]:
+            match = next((badge for badge in station["per_variable_badges"] if badge["variable"] == variable_name), None)
+            years = match["years"] if match else 0
+            pct = match["completeness_pct"] if match else None
+            supported_years.append(years)
+            variable_cells[variable_name] = {
+                "available": bool(match and years >= min_years),
+                "years": years,
+                "density_pct": pct,
+                "start_year": match["start_year"] if match else None,
+                "end_year": match["end_year"] if match else None,
+                "builder_target": {
+                    "station_name": station["station_name"],
+                    "station_code": station["station_code"],
+                    "category_name": variable_name,
+                } if match else None,
+            }
+
+        rows.append({
+            "station_name": station["station_name"],
+            "station_code": station["station_code"],
+            "country": station["country"],
+            "total_supported_variables": sum(1 for cell in variable_cells.values() if cell["available"]),
+            "max_years": max(supported_years) if supported_years else 0,
+            "variables": variable_cells,
+        })
+
+    return jsonify({
+        "variables": source["variables"],
+        "rows": rows,
+        "min_years": min_years,
+        "completeness_source": source["completeness_source"],
+    })
+
+
+@app.route('/api/stations/overview')
+def api_stations_overview():
+    source = _build_dataset_overview_source()
+    rows = []
+
+    for station in source["stations"]:
+        strongest = max(
+            station["per_variable_badges"],
+            key=lambda item: item["completeness_pct"],
+            default=None,
+        )
+        rows.append({
+            "station_name": station["station_name"],
+            "station_code": station["station_code"],
+            "country": station["country"],
+            "first_year": station["first_year"],
+            "last_year": station["last_year"],
+            "variable_count": station["variable_count"],
+            "sparkline": station["sparkline"],
+            "strongest_variable": strongest["variable"] if strongest else None,
+            "per_variable_badges": station["per_variable_badges"],
+            "analysis_target": {
+                "station_name": station["station_name"],
+                "station_code": station["station_code"],
+                "preferred_category": strongest["variable"] if strongest else None,
+            },
+        })
+
+    return jsonify({
+        "rows": rows,
+        "decades": source["decades"],
+        "variables": source["variables"],
+        "completeness_source": source["completeness_source"],
+    })
 
 
 @app.route('/mekong_geojson')

@@ -68,6 +68,10 @@
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           <span>Export</span>
         </div>
+        <div class="nav-item dataset-overview-icon" data-label="Dataset Overview">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          <span>Dataset Overview</span>
+        </div>
         <div class="nav-item research-icon" data-label="Research Lab">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6"/><path d="M10 9h4"/><path d="M8 3v4l-5 9a3 3 0 0 0 2.6 4.5h12.8A3 3 0 0 0 21 16L16 7V3"/><path d="M7 14h10"/></svg>
           <span>Research Lab</span>
@@ -123,6 +127,12 @@
         <div id="map-view">
           <div id="map"></div>
           <div id="map-legend" class="map-legend"></div>
+          <button id="map-expand-btn" class="map-expand-btn" title="Click to expand map to fullscreen">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+            </svg>
+            <span class="expand-label">Expand</span>
+          </button>
           <div class="map-scroll-hint">
             <span>Scroll to explore</span>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -148,6 +158,7 @@
             <button class="secondary-btn correlation-icon">Correlation</button>
             <button class="secondary-btn seasonal-icon">Seasonal</button>
             <button class="secondary-btn export-icon">Export</button>
+            <button class="secondary-btn dataset-overview-icon">Dataset Overview</button>
             <button class="secondary-btn research-icon">Research Lab</button>
           </div>
         </div>
@@ -175,25 +186,25 @@
         <div class="three-column-grid">
           <div class="info-panel">
             <h3>Purpose</h3>
-           <p>
-  Mekong Pulse is not only a visualization dashboard, but also a lightweight analytical support platform for station-based hydrological exploration.
-</p>
+            <p>
+              Mekong Pulse is a specialized hydrological data exploration platform designed to serve researchers, water resource managers, and environmental analysts working with the Mekong River basin's monitoring network. Beyond being a traditional visualization dashboard, it functions as a lightweight but powerful analytical support system that enables station-based hydrological exploration. The platform integrates discharge, water level, rainfall, and sediment data from multiple monitoring stations across the basin, providing a unified interface to discover patterns, trends, and relationships in complex hydrological datasets. It's engineered to reduce the time spent on data preparation and visualization configuration, allowing analysts to focus on interpretation and insight extraction.
+            </p>
           </div>
 
           <div class="info-panel">
             <h3>Workflow</h3>
             <ol>
-              <li>Explore available stations</li>
-              <li>Select a visualization type</li>
-              <li>Choose categories and stations</li>
-              <li>Generate analytical graphs</li>
+              <li><strong>Explore available stations</strong> — Browse the interactive map to discover monitoring stations across the Mekong basin, filter by country, and view their geographical distribution</li>
+              <li><strong>Select a visualization type</strong> — Choose from six distinct graph templates designed for different analytical questions: single-station timelines, multi-station comparisons, year-over-year analysis, and seasonal patterns</li>
+              <li><strong>Choose categories and stations</strong> — Configure which measurement types (discharge, water level, rainfall, etc.) and which specific stations to analyze based on your research question</li>
+              <li><strong>Generate analytical graphs</strong> — Create publication-ready visualizations with customizable date ranges, interactive features, and statistical annotations that tell a complete analytical story</li>
             </ol>
           </div>
 
           <div class="info-panel">
             <h3>Presentation Value</h3>
             <p>
-              The platform is structured to communicate both technical capability and practical analytical value, making it suitable for demonstrations, research explanation, and comparative visual analysis.
+              The platform is strategically structured to communicate both technical rigor and practical analytical value. Every graph is designed to be presentation-ready, suitable for academic conferences, research publications, stakeholder briefings, and policy discussions. The visualization builder enables users to construct custom analytical narratives without requiring specialized data science expertise. The platform combines intuitive UI/UX design with sophisticated analytical options, making it suitable for diverse use cases: from quick exploratory analysis to formal research presentations. Integration of predictive modeling capabilities (Holt-Winters, LSTM, and ensemble methods) allows users to demonstrate forecasting capability and uncertainty quantification, adding another dimension to analytical credibility.
             </p>
           </div>
         </div>
@@ -508,21 +519,21 @@
     <div class="info-panel use-case-card">
       <h3>Station Comparison</h3>
       <p>
-        Compare how the same category behaves across multiple monitoring stations to identify differences in hydrological patterns across the basin.
+        Compare how the same category (e.g., discharge or water level) behaves across multiple monitoring stations to identify spatial differences in hydrological patterns throughout the Mekong basin. This approach helps determine whether upstream and downstream stations show correlated behavior, reveals the impact of tributary contributions, and identifies anomalous station behavior that might indicate equipment issues or localized flooding events. Useful for understanding basin-wide synchronization, evaluating regional water stress patterns, and assessing the representativeness of individual station data.
       </p>
     </div>
 
     <div class="info-panel use-case-card">
       <h3>Historical Trend Analysis</h3>
       <p>
-        Explore long-term changes in rainfall, discharge, sediment, or water-level records to better understand temporal environmental variation.
+        Explore long-term temporal changes in rainfall, discharge, sediment, or water-level records spanning decades of observations to better understand systematic environmental variation and potential climate-driven shifts. This analysis reveals seasonal patterns, identifies significant floods or droughts, detects trends that may indicate changing land use or climate impacts, and provides context for interpreting current conditions against historical baselines. Essential for water resource planning, understanding hydroclimatic variability, and establishing early warning thresholds for extreme events.
       </p>
     </div>
 
     <div class="info-panel use-case-card">
       <h3>Presentation and Research Support</h3>
       <p>
-        Use the platform to build presentation-ready graphs, summarize station behaviour, and support data-driven explanation during academic demonstrations.
+        Use the platform to rapidly construct publication-ready visualizations, generate summary statistics for reports, and create data-driven narratives during academic presentations and policy discussions. The interactive visualization builder enables non-technical stakeholders to explore data independently, while advanced users can leverage predictive models to demonstrate forecast capability and quantify uncertainty. Ideal for thesis presentations, journal manuscript support, NGO briefings, and climate adaptation planning discussions where stakeholder engagement with data is critical.
       </p>
     </div>
   </div>
@@ -1055,6 +1066,77 @@
             </div>
             <p id="export-pdf-alert" class="warning-alert">Generate a chart or report first so the PDF export has content to compile.</p>
           </div>
+        </div>
+      </section>
+
+      <section class="panel dataset-overview-section hidden">
+        <div class="panel-heading">
+          <div>
+            <p class="section-label">Data Reference</p>
+            <h2>Dataset Overview</h2>
+          </div>
+        </div>
+
+        <div class="dataset-overview-content">
+          <section class="dataset-page-hero">
+            <div>
+              <p class="section-label">Metadata Intelligence</p>
+              <h3>Find the strongest stations, the thinnest gaps, and the safest starting points before you build anything.</h3>
+            </div>
+            <p class="dataset-page-hero-copy">This page turns metadata into action. Use the interactive coverage tools below to inspect completeness, compare variable support across stations, and understand how suitable each part of the archive is for different analytical workflows.</p>
+          </section>
+
+          <section class="dataset-overview-block" id="dataset-coverage-section">
+            <div class="dataset-block-head">
+              <div>
+                <p class="section-label">Section 1</p>
+                <h3>Data Coverage Heatmap</h3>
+              </div>
+              <p>Interactive decade by station grid coloured by completeness percentage, with filters and a click-to-expand side panel.</p>
+            </div>
+            <div id="datasetCoverageApp" class="dataset-app-shell">
+              <div class="loading-placeholder">Loading coverage heatmap...</div>
+            </div>
+          </section>
+
+          <section class="dataset-overview-block" id="dataset-availability-section">
+            <div class="dataset-block-head">
+              <div>
+                <p class="section-label">Section 2</p>
+                <h3>Variable × Station Availability Matrix</h3>
+              </div>
+              <p>Sortable station-by-variable matrix coloured by data density, with minimum-years filtering and station-variable popups.</p>
+            </div>
+            <div id="datasetAvailabilityApp" class="dataset-app-shell">
+              <div class="loading-placeholder">Loading availability matrix...</div>
+            </div>
+          </section>
+
+          <section class="dataset-overview-block" id="dataset-station-records-section">
+            <div class="dataset-block-head">
+              <div>
+                <p class="section-label">Section 3</p>
+                <h3>Station Record Explorer</h3>
+              </div>
+              <p>Searchable, sortable station inventory with expandable rows, miniature sparklines, completeness badges, and analysis shortcuts.</p>
+            </div>
+            <div id="datasetStationExplorerApp" class="dataset-app-shell">
+              <div class="loading-placeholder">Loading station explorer...</div>
+            </div>
+          </section>
+
+          <section class="dataset-overview-block" id="dataset-provenance-section">
+            <div class="dataset-block-head">
+              <div>
+                <p class="section-label">Section 4</p>
+                <h3>Provenance &amp; Preprocessing Disclosure</h3>
+              </div>
+              <p>Source disclosure, preprocessing timeline, known limitations, and analytical suitability guidance in one place.</p>
+            </div>
+            <div id="datasetProvenanceApp" class="dataset-app-shell">
+              <div class="loading-placeholder">Loading provenance disclosure...</div>
+            </div>
+          </section>
         </div>
       </section>
 

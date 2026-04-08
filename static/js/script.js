@@ -229,6 +229,7 @@ const analyzeSection      = document.querySelector(".analyze-section");
 const correlationSection  = document.querySelector(".correlation-section");
 const seasonalSection     = document.querySelector(".seasonal-section");
 const exportSection       = document.querySelector(".export-section");
+const datasetOverviewSection = document.querySelector(".dataset-overview-section");
 const researchSection     = document.querySelector(".research-section");
 
 // ------------------------------
@@ -268,7 +269,7 @@ function getSelectedGraphConfig() {
 }
 
 function setSectionVisible(section) {
-  [overviewSection, builderSection, dashboardSection, aboutSection, predictionSection, analyzeSection, correlationSection, seasonalSection, exportSection, researchSection].forEach(sec => {
+  [overviewSection, builderSection, dashboardSection, aboutSection, predictionSection, analyzeSection, correlationSection, seasonalSection, exportSection, datasetOverviewSection, researchSection].forEach(sec => {
     if (!sec) return;
     sec.classList.add("hidden");
   });
@@ -1406,6 +1407,1046 @@ window.goToAnalyze = function() {
   setActiveNav(".analyze-section-icon");
 };
 
+window.goToDatasetOverview = function() {
+  generateAndDisplayDatasetOverview();
+  setSectionVisible(datasetOverviewSection);
+  setActiveNav(".dataset-overview-icon");
+};
+
+function formatDatasetMonthLabel(date) {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return "--";
+  return date.toLocaleDateString("en-GB", { month: "short", year: "numeric" });
+}
+
+function formatDatasetYearLabel(date) {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return "--";
+  return String(date.getFullYear());
+}
+
+function escapeDatasetHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function buildDatasetOverviewModel() {
+  const categories = Object.keys(categoryDetailsMap).sort();
+  const allStations = Array.from(new Set(
+    Object.values(categoryDetailsMap).flatMap(rows => rows.map(row => row.station_name))
+  )).sort();
+  const countries = Array.from(new Set(
+    allStations.map(station => stationDetailsMap[station]?.country).filter(Boolean)
+  )).sort();
+
+  const stationMap = {};
+  const categoryMap = {};
+  const yearlyActivity = {};
+  let globalStart = null;
+  let globalEnd = null;
+
+  allStations.forEach(station => {
+    stationMap[station] = {
+      station,
+      country: stationDetailsMap[station]?.country || "Unknown",
+      categories: [],
+      categoryDetails: {},
+      earliest: null,
+      latest: null,
+      longestSpan: 0,
+      avgSpan: 0,
+      readiness: 0,
+    };
+  });
+
+  categories.forEach(category => {
+    categoryMap[category] = {
+      category,
+      stations: [],
+      countries: new Set(),
+      earliest: null,
+      latest: null,
+    };
+
+    (categoryDetailsMap[category] || []).forEach(row => {
+      const start = new Date(row.start_date);
+      const end = new Date(row.end_date);
+      if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return;
+
+      const years = end.getFullYear() - start.getFullYear() + 1;
+      const stationEntry = stationMap[row.station_name];
+      if (!stationEntry) return;
+
+      if (!globalStart || start < globalStart) globalStart = start;
+      if (!globalEnd || end > globalEnd) globalEnd = end;
+
+      if (!stationEntry.categories.includes(category)) {
+        stationEntry.categories.push(category);
+      }
+      stationEntry.categoryDetails[category] = { start, end, years };
+      stationEntry.longestSpan = Math.max(stationEntry.longestSpan, years);
+      stationEntry.earliest = !stationEntry.earliest || start < stationEntry.earliest ? start : stationEntry.earliest;
+      stationEntry.latest = !stationEntry.latest || end > stationEntry.latest ? end : stationEntry.latest;
+
+      categoryMap[category].stations.push({
+        station: row.station_name,
+        country: stationEntry.country,
+        start,
+        end,
+        years,
+      });
+      categoryMap[category].countries.add(stationEntry.country);
+      categoryMap[category].earliest = !categoryMap[category].earliest || start < categoryMap[category].earliest ? start : categoryMap[category].earliest;
+      categoryMap[category].latest = !categoryMap[category].latest || end > categoryMap[category].latest ? end : categoryMap[category].latest;
+    });
+  });
+
+  const yearStart = globalStart ? globalStart.getFullYear() : null;
+  const yearEnd = globalEnd ? globalEnd.getFullYear() : null;
+
+  if (yearStart !== null && yearEnd !== null) {
+    for (let year = yearStart; year <= yearEnd; year += 1) {
+      yearlyActivity[year] = {
+        activePairs: 0,
+        activeStations: new Set(),
+        activeCategories: new Set(),
+      };
+    }
+
+    categories.forEach(category => {
+      (categoryDetailsMap[category] || []).forEach(row => {
+        const startYear = new Date(row.start_date).getFullYear();
+        const endYear = new Date(row.end_date).getFullYear();
+        for (let year = startYear; year <= endYear; year += 1) {
+          if (!yearlyActivity[year]) continue;
+          yearlyActivity[year].activePairs += 1;
+          yearlyActivity[year].activeStations.add(row.station_name);
+          yearlyActivity[year].activeCategories.add(category);
+        }
+      });
+    });
+  }
+
+  const stationSummaries = Object.values(stationMap)
+    .map(station => {
+      const spans = Object.values(station.categoryDetails);
+      const avgSpan = spans.length ? spans.reduce((sum, item) => sum + item.years, 0) / spans.length : 0;
+      const categoryCount = station.categories.length;
+      const readiness = Math.min(
+        100,
+        Math.round(
+          Math.min(categoryCount * 18, 45) +
+          Math.min(avgSpan * 1.3, 35) +
+          Math.min(station.longestSpan * 0.6, 20)
+        )
+      );
+
+      return {
+        ...station,
+        categories: [...station.categories].sort(),
+        categoryCount,
+        avgSpan: Math.round(avgSpan || 0),
+        readiness,
+      };
+    })
+    .sort((a, b) => b.readiness - a.readiness || b.longestSpan - a.longestSpan);
+
+  const categorySummaries = Object.values(categoryMap)
+    .map(category => ({
+      category: category.category,
+      stations: [...new Set(category.stations.map(item => item.station))].sort(),
+      stationCount: new Set(category.stations.map(item => item.station)).size,
+      countries: Array.from(category.countries).sort(),
+      countryCount: category.countries.size,
+      earliest: category.earliest,
+      latest: category.latest,
+      strongestStations: [...category.stations]
+        .sort((a, b) => b.years - a.years)
+        .slice(0, 5)
+        .map(item => ({ station: item.station, years: item.years, country: item.country })),
+      spanYears: category.earliest && category.latest
+        ? category.latest.getFullYear() - category.earliest.getFullYear() + 1
+        : 0,
+    }))
+    .sort((a, b) => b.stationCount - a.stationCount || b.spanYears - a.spanYears);
+
+  const categoryPairs = [];
+  for (let i = 0; i < categories.length; i += 1) {
+    for (let j = i + 1; j < categories.length; j += 1) {
+      const left = categories[i];
+      const right = categories[j];
+      const overlapStations = stationSummaries
+        .filter(station => station.categories.includes(left) && station.categories.includes(right))
+        .map(station => ({
+          station: station.station,
+          country: station.country,
+          sharedYears: Math.min(
+            station.categoryDetails[left]?.years || 0,
+            station.categoryDetails[right]?.years || 0
+          ),
+        }))
+        .sort((a, b) => b.sharedYears - a.sharedYears);
+
+      categoryPairs.push({
+        left,
+        right,
+        pair: `${left} x ${right}`,
+        overlapCount: overlapStations.length,
+        averageSharedYears: overlapStations.length
+          ? Math.round(overlapStations.reduce((sum, item) => sum + item.sharedYears, 0) / overlapStations.length)
+          : 0,
+        topStations: overlapStations.slice(0, 3),
+      });
+    }
+  }
+  categoryPairs.sort((a, b) => b.overlapCount - a.overlapCount || b.averageSharedYears - a.averageSharedYears);
+
+  const activeYears = Object.entries(yearlyActivity)
+    .map(([year, info]) => ({
+      year: Number(year),
+      activePairs: info.activePairs,
+      activeStations: info.activeStations.size,
+      activeCategories: info.activeCategories.size,
+    }))
+    .sort((a, b) => a.year - b.year);
+
+  const decadeSummary = {};
+  activeYears.forEach(entry => {
+    const decade = Math.floor(entry.year / 10) * 10;
+    if (!decadeSummary[decade]) {
+      decadeSummary[decade] = { decade, years: 0, totalPairs: 0, totalStations: 0 };
+    }
+    decadeSummary[decade].years += 1;
+    decadeSummary[decade].totalPairs += entry.activePairs;
+    decadeSummary[decade].totalStations += entry.activeStations;
+  });
+
+  const decadeCards = Object.values(decadeSummary)
+    .map(item => ({
+      label: `${item.decade}s`,
+      avgPairs: Math.round(item.totalPairs / Math.max(item.years, 1)),
+      avgStations: Math.round(item.totalStations / Math.max(item.years, 1)),
+    }))
+    .sort((a, b) => a.label.localeCompare(b.label));
+
+  const topActivity = activeYears.reduce((best, entry) => (
+    !best || entry.activePairs > best.activePairs ? entry : best
+  ), null);
+
+  return {
+    categories,
+    countries,
+    allStations,
+    stationSummaries,
+    categorySummaries,
+    categoryPairs,
+    activeYears,
+    decadeCards,
+    globalStart,
+    globalEnd,
+    topActivity,
+  };
+}
+
+function scoreStationForObjective(station, objective, selectedCategory) {
+  if (selectedCategory && !station.categories.includes(selectedCategory)) return -1;
+
+  if (objective === "trend") {
+    return station.longestSpan * 1.7 + station.avgSpan * 0.8 + station.categoryCount * 6;
+  }
+  if (objective === "correlation") {
+    return station.categoryCount * 24 + station.avgSpan * 0.7 + station.longestSpan * 0.4;
+  }
+  if (objective === "scarcity") {
+    return (100 - station.categoryCount * 10) + station.longestSpan * 0.9 + station.avgSpan * 0.5;
+  }
+  return station.readiness * 1.2 + station.categoryCount * 10 + station.longestSpan * 0.5;
+}
+
+function scoreCategoryForObjective(category, objective, selectedCountry) {
+  if (selectedCountry && !category.countries.includes(selectedCountry)) return -1;
+
+  if (objective === "trend") {
+    return category.spanYears * 1.5 + category.stationCount * 3;
+  }
+  if (objective === "correlation") {
+    return category.stationCount * 10 + category.countryCount * 8 + category.spanYears * 0.5;
+  }
+  if (objective === "scarcity") {
+    return (100 - category.stationCount) * 3 + category.spanYears * 0.6;
+  }
+  return category.stationCount * 14 + category.countryCount * 10;
+}
+
+function getDatasetObjectiveNarrative(objective) {
+  if (objective === "trend") return "Trend Analysis mode favors deep historical records and long continuous windows.";
+  if (objective === "correlation") return "Correlation Ready mode favors stations and variables that overlap well across the archive.";
+  if (objective === "scarcity") return "Scarcity Scan mode helps users inspect the thin or specialized edges of the archive.";
+  return "Broad Coverage mode favors robust, high-footprint data that is easiest to work with across the network.";
+}
+
+function renderDatasetOverviewWorkbench(model, state) {
+  const recommendationEl = document.getElementById("datasetRecommendationPanel");
+  const stationListEl = document.getElementById("datasetStationResults");
+  const pairListEl = document.getElementById("datasetPairResults");
+  const diagnosticsEl = document.getElementById("datasetDiagnostics");
+  if (!recommendationEl || !stationListEl || !pairListEl || !diagnosticsEl) return;
+
+  const query = state.search.trim().toLowerCase();
+
+  const filteredStations = model.stationSummaries
+    .filter(station => !state.country || station.country === state.country)
+    .filter(station => !state.category || station.categories.includes(state.category))
+    .filter(station => station.longestSpan >= state.minYears)
+    .filter(station => {
+      if (!query) return true;
+      return station.station.toLowerCase().includes(query)
+        || station.country.toLowerCase().includes(query)
+        || station.categories.some(category => category.toLowerCase().includes(query));
+    })
+    .map(station => ({
+      ...station,
+      objectiveScore: scoreStationForObjective(station, state.objective, state.category),
+    }))
+    .filter(station => station.objectiveScore >= 0)
+    .sort((a, b) => b.objectiveScore - a.objectiveScore)
+    .slice(0, 8);
+
+  const filteredCategories = model.categorySummaries
+    .filter(category => !state.country || category.countries.includes(state.country))
+    .filter(category => !state.category || category.category === state.category)
+    .map(category => ({
+      ...category,
+      objectiveScore: scoreCategoryForObjective(category, state.objective, state.country),
+    }))
+    .filter(category => category.objectiveScore >= 0)
+    .sort((a, b) => b.objectiveScore - a.objectiveScore);
+
+  const filteredPairs = model.categoryPairs
+    .filter(pair => !state.category || pair.left === state.category || pair.right === state.category)
+    .filter(pair => !state.country || pair.topStations.some(item => item.country === state.country))
+    .sort((a, b) => b.overlapCount - a.overlapCount || b.averageSharedYears - a.averageSharedYears)
+    .slice(0, 6);
+
+  const topStation = filteredStations[0] || null;
+  const topCategory = filteredCategories[0] || null;
+  const topPair = filteredPairs[0] || null;
+  const latestDecade = model.decadeCards[model.decadeCards.length - 1] || null;
+
+  recommendationEl.innerHTML = `
+    <div class="dataset-output-head">
+      <div>
+        <p class="dataset-section-kicker">Recommendation Engine</p>
+        <h4>Best Starting Point For This Goal</h4>
+      </div>
+      <p>${escapeDatasetHtml(getDatasetObjectiveNarrative(state.objective))}</p>
+    </div>
+    <div class="dataset-recommend-grid">
+      <article class="dataset-recommend-card">
+        <span class="dataset-output-label">Recommended Station</span>
+        <strong>${escapeDatasetHtml(topStation?.station || "--")}</strong>
+        <p>${topStation ? `${topStation.country} | ${topStation.categoryCount} categories | ${topStation.longestSpan} year max span` : "No station matches the current filters."}</p>
+      </article>
+      <article class="dataset-recommend-card">
+        <span class="dataset-output-label">Recommended Category</span>
+        <strong>${escapeDatasetHtml(topCategory?.category || "--")}</strong>
+        <p>${topCategory ? `${topCategory.stationCount} stations across ${topCategory.countryCount} countries and ${topCategory.spanYears} years.` : "No category matches the current filters."}</p>
+      </article>
+      <article class="dataset-recommend-card">
+        <span class="dataset-output-label">Best Variable Pair</span>
+        <strong>${escapeDatasetHtml(topPair ? `${topPair.left} x ${topPair.right}` : "--")}</strong>
+        <p>${topPair ? `${topPair.overlapCount} overlapping stations with ${topPair.averageSharedYears} average shared years.` : "No pair is available for the current filters."}</p>
+      </article>
+    </div>
+  `;
+
+  stationListEl.innerHTML = `
+    <div class="dataset-output-head">
+      <div>
+        <p class="dataset-section-kicker">Station Explorer</p>
+        <h4>High-Value Stations</h4>
+      </div>
+      <p>These are the strongest station candidates under the current filters.</p>
+    </div>
+    <div class="dataset-result-list">
+      ${filteredStations.length ? filteredStations.map((station, index) => `
+        <article class="dataset-result-card">
+          <div class="dataset-result-top">
+            <div>
+              <span class="dataset-rank">#${index + 1}</span>
+              <strong>${escapeDatasetHtml(station.station)}</strong>
+              <p>${escapeDatasetHtml(station.country)}</p>
+            </div>
+            <span class="dataset-score-pill">${Math.round(station.objectiveScore)}</span>
+          </div>
+          <div class="dataset-result-meta">
+            <span>${station.categoryCount} categories</span>
+            <span>${station.longestSpan}y max span</span>
+            <span>${formatDatasetYearLabel(station.earliest)}-${formatDatasetYearLabel(station.latest)}</span>
+          </div>
+          <div class="dataset-tag-row">
+            ${station.categories.map(category => `<span class="dataset-tag">${escapeDatasetHtml(category)}</span>`).join("")}
+          </div>
+        </article>
+      `).join("") : `<p class="dataset-empty-state">No stations match the current filters.</p>`}
+    </div>
+  `;
+
+  pairListEl.innerHTML = `
+    <div class="dataset-output-head">
+      <div>
+        <p class="dataset-section-kicker">Compatibility Explorer</p>
+        <h4>Category Pairs That Actually Work</h4>
+      </div>
+      <p>These pairs have enough shared footprint to support joined interpretation.</p>
+    </div>
+    <div class="dataset-pair-list">
+      ${filteredPairs.length ? filteredPairs.map(pair => `
+        <article class="dataset-pair-card">
+          <div class="dataset-pair-head">
+            <strong>${escapeDatasetHtml(pair.left)} x ${escapeDatasetHtml(pair.right)}</strong>
+            <span class="dataset-score-pill">${pair.overlapCount} stations</span>
+          </div>
+          <p>${pair.averageSharedYears} average shared years across overlapping stations.</p>
+          <div class="dataset-mini-list">
+            ${pair.topStations.map(item => `
+              <div class="dataset-mini-item">
+                <span>${escapeDatasetHtml(item.station)}</span>
+                <strong>${item.sharedYears}y</strong>
+              </div>
+            `).join("")}
+          </div>
+        </article>
+      `).join("") : `<p class="dataset-empty-state">No category pairs match the current filters.</p>`}
+    </div>
+  `;
+
+  diagnosticsEl.innerHTML = `
+    <div class="dataset-output-head">
+      <div>
+        <p class="dataset-section-kicker">Coverage Diagnostics</p>
+        <h4>What The Current Selection Means</h4>
+      </div>
+      <p>This explains the practical shape of the filtered archive instead of leaving the user to infer it alone.</p>
+    </div>
+    <div class="dataset-diagnostic-grid">
+      <article class="dataset-diagnostic-card">
+        <span class="dataset-output-label">Stations left</span>
+        <strong>${filteredStations.length}</strong>
+        <p>${filteredCategories.length} categories remain after the current filter stack.</p>
+      </article>
+      <article class="dataset-diagnostic-card">
+        <span class="dataset-output-label">Peak network year</span>
+        <strong>${model.topActivity?.year || "--"}</strong>
+        <p>${model.topActivity ? `${model.topActivity.activePairs} active links were available at the archive peak.` : "No year summary available."}</p>
+      </article>
+      <article class="dataset-diagnostic-card">
+        <span class="dataset-output-label">Archive window</span>
+        <strong>${formatDatasetMonthLabel(model.globalStart)} to ${formatDatasetMonthLabel(model.globalEnd)}</strong>
+        <p>${model.globalStart && model.globalEnd ? model.globalEnd.getFullYear() - model.globalStart.getFullYear() + 1 : 0} years of metadata coverage.</p>
+      </article>
+      <article class="dataset-diagnostic-card">
+        <span class="dataset-output-label">Recent decade card</span>
+        <strong>${escapeDatasetHtml(latestDecade?.label || "--")}</strong>
+        <p>${latestDecade ? `${latestDecade.avgPairs} average links and ${latestDecade.avgStations} average active stations.` : "No decade summary available."}</p>
+      </article>
+    </div>
+    <div class="dataset-decade-row">
+      ${model.decadeCards.map(card => `
+        <div class="dataset-decade-chip">
+          <strong>${escapeDatasetHtml(card.label)}</strong>
+          <span>${card.avgPairs} links</span>
+          <span>${card.avgStations} stations</span>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
+function attachDatasetOverviewEvents(model) {
+  const objectiveSelect = document.getElementById("datasetObjectiveSelect");
+  const countrySelect = document.getElementById("datasetCountrySelect");
+  const categorySelect = document.getElementById("datasetCategorySelect");
+  const searchInput = document.getElementById("datasetSearchInput");
+  const minYearsInput = document.getElementById("datasetMinYearsInput");
+  const minYearsValue = document.getElementById("datasetMinYearsValue");
+  const resetButton = document.getElementById("datasetResetBtn");
+  const quickButtons = document.querySelectorAll("[data-dataset-objective]");
+
+  const state = {
+    objective: objectiveSelect?.value || "coverage",
+    country: countrySelect?.value || "",
+    category: categorySelect?.value || "",
+    search: searchInput?.value || "",
+    minYears: Number(minYearsInput?.value || 0),
+  };
+
+  const syncAndRender = () => {
+    state.objective = objectiveSelect?.value || "coverage";
+    state.country = countrySelect?.value || "";
+    state.category = categorySelect?.value || "";
+    state.search = searchInput?.value || "";
+    state.minYears = Number(minYearsInput?.value || 0);
+    if (minYearsValue) minYearsValue.textContent = `${state.minYears} years`;
+    quickButtons.forEach(button => {
+      button.classList.toggle("active", button.getAttribute("data-dataset-objective") === state.objective);
+    });
+    renderDatasetOverviewWorkbench(model, state);
+  };
+
+  objectiveSelect?.addEventListener("change", syncAndRender);
+  countrySelect?.addEventListener("change", syncAndRender);
+  categorySelect?.addEventListener("change", syncAndRender);
+  searchInput?.addEventListener("input", syncAndRender);
+  minYearsInput?.addEventListener("input", syncAndRender);
+
+  quickButtons.forEach(button => {
+    button.addEventListener("click", () => {
+      if (objectiveSelect) objectiveSelect.value = button.getAttribute("data-dataset-objective") || "coverage";
+      syncAndRender();
+    });
+  });
+
+  resetButton?.addEventListener("click", () => {
+    if (objectiveSelect) objectiveSelect.value = "coverage";
+    if (countrySelect) countrySelect.value = "";
+    if (categorySelect) categorySelect.value = "";
+    if (searchInput) searchInput.value = "";
+    if (minYearsInput) minYearsInput.value = "0";
+    syncAndRender();
+  });
+
+  syncAndRender();
+}
+
+async function generateAndDisplayDatasetOverview() {
+  try {
+    const coverageData = await fetch('/api/coverage').then(r => r.json());
+    const availabilityData = await fetch('/api/availability').then(r => r.json());
+    const stationsData = await fetch('/api/stations/overview').then(r => r.json());
+
+    // Generate quick recommendations
+    const topStations = calculateTopStations(stationsData.rows);
+    const dataInsights = generateDataInsights(coverageData, availabilityData, stationsData);
+
+    // Populate existing hero section with insights
+    const heroSection = document.querySelector('.dataset-page-hero');
+    if (heroSection) {
+      heroSection.innerHTML = `
+        <div class="dataset-hero-content">
+          <p class="section-label">METADATA INTELLIGENCE</p>
+          <h3>📊 Know Your Data Before You Analyze</h3>
+          <p>This page shows exactly what you can analyze: which stations have complete discharge records, where monsoon patterns are well-captured, and which pairs of variables can be compared. Start here to build smarter visualizations.</p>
+        </div>
+        <div class="dataset-hero-insights">
+          ${dataInsights.map(i => `
+            <div class="insight-card">
+              <span class="insight-icon">${i.icon}</span>
+              <span class="insight-text">${i.text}</span>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    // Insert quick-start cards before first section
+    const firstSection = document.querySelector('.dataset-overview-block');
+    if (firstSection && !document.querySelector('.quick-start-section')) {
+      const quickStart = document.createElement('div');
+      quickStart.className = 'quick-start-section';
+      quickStart.innerHTML = `
+        <h4>🚀 Quick Recommendations</h4>
+        <div class="quick-start-cards">
+          ${topStations.slice(0, 4).map(station => `
+            <div class="quick-start-card">
+              <div class="card-header">${escapeHtml(station.station_name)}</div>
+              <div class="card-body">
+                <p><strong>${station.yearSpan}y</strong> of data</p>
+                <p>${station.variables} variables available</p>
+                <p class="card-strength">${getStrengthLabel(station.score)}</p>
+              </div>
+              <button class="tertiary-btn" onclick="window.goToBuilder('${escapeHtml(station.station_name)}')">Build with This →</button>
+            </div>
+          `).join('')}
+        </div>
+      `;
+      firstSection.parentElement.insertBefore(quickStart, firstSection);
+    }
+
+    // Render the four sections
+    await Promise.all([
+      renderCoverageHeatmap(coverageData),
+      renderAvailabilityMatrix(availabilityData),
+      renderStationExplorer(stationsData),
+      renderProvenanceDisclosure()
+    ]);
+  } catch (err) {
+    console.error('Error loading dataset overview:', err);
+  }
+}
+
+function calculateTopStations(rows) {
+  return rows.map(row => ({
+    station_name: row.station_name,
+    yearSpan: row.last_year - row.first_year + 1,
+    variables: row.variable_count,
+    score: row.variable_count * (row.last_year - row.first_year + 1) / 10
+  })).sort((a, b) => b.score - a.score);
+}
+
+function generateDataInsights(coverage, availability, stations) {
+  const totalStations = stations.rows.length;
+  const countryCounts = {};
+  const variableStrengths = {};
+
+  stations.rows.forEach(s => {
+    countryCounts[s.country] = (countryCounts[s.country] || 0) + 1;
+  });
+
+  availability.rows.forEach(r => {
+    availability.variables.forEach(v => {
+      const cell = r.variables[v];
+      if (cell && cell.years > 20) {
+        variableStrengths[v] = (variableStrengths[v] || 0) + 1;
+      }
+    });
+  });
+
+  const strongestVariable = Object.entries(variableStrengths).sort((a, b) => b[1] - a[1])[0];
+  const mainCountry = Object.entries(countryCounts).sort((a, b) => b[1] - a[1])[0];
+
+  return [
+    { icon: '🌍', text: `${totalStations} stations across the Mekong basin` },
+    { icon: '📈', text: `${strongestVariable ? strongestVariable[0] : 'Multiple variables'} well-documented` },
+    { icon: '🇹🇭', text: `${mainCountry ? `${mainCountry[0]}: ${mainCountry[1]} stations` : 'Multi-country coverage'}` },
+    { icon: '✓', text: 'Transparency on data gaps & limitations' }
+  ];
+}
+
+function getStrengthLabel(score) {
+  if (score > 300) return '⭐ Excellent for analysis';
+  if (score > 150) return '⭐⭐ Strong data coverage';
+  return '⭐ Good starting point';
+}
+
+// ===== SECTION 1: COVERAGE HEATMAP (ENHANCED) =====
+async function renderCoverageHeatmap(data) {
+  const container = document.getElementById('datasetCoverageApp');
+
+  let html = `
+    <div class="coverage-heatmap-wrapper">
+      <div class="heatmap-description">
+        <p>Each cell shows data completeness (%) for a station-decade pair. Green = complete, light gray = sparse or missing. Use filters to find stations with continuous records for your analysis.</p>
+      </div>
+      <div class="coverage-heatmap-controls">
+        <div class="heatmap-filter">
+          <label>🔍 Variable:</label>
+          <select id="heatmapVariableFilter" class="dropdown">
+            <option value="">All Variables</option>
+            ${data.variables.map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('')}
+          </select>
+        </div>
+        <div class="heatmap-filter">
+          <label>🌍 Country:</label>
+          <select id="heatmapCountryFilter" class="dropdown">
+            <option value="">All Countries</option>
+            ${data.countries.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('')}
+          </select>
+        </div>
+        <div class="heatmap-filter">
+          <label>📊 Min Completeness:</label>
+          <div class="filter-input-group">
+            <input id="heatmapThreshold" type="range" min="0" max="100" value="0" />
+            <span id="heatmapThresholdValue">0%</span>
+          </div>
+        </div>
+      </div>
+      <div class="coverage-heatmap-grid" id="coverageGrid"></div>
+      <div class="coverage-legend">
+        <span>← Sparse</span>
+        <div class="legend-bar"></div>
+        <span>Complete →</span>
+      </div>
+    </div>
+  `;
+
+  container.innerHTML = html;
+  renderCoverageGrid(data);
+
+  document.getElementById('heatmapVariableFilter')?.addEventListener('change', () => renderCoverageGrid(data));
+  document.getElementById('heatmapCountryFilter')?.addEventListener('change', () => renderCoverageGrid(data));
+  document.getElementById('heatmapThreshold')?.addEventListener('input', (e) => {
+    document.getElementById('heatmapThresholdValue').textContent = e.target.value + '%';
+    renderCoverageGrid(data);
+  });
+}
+
+function renderCoverageGrid(data) {
+  const grid = document.getElementById('coverageGrid');
+  const varFilter = document.getElementById('heatmapVariableFilter')?.value || '';
+  const countryFilter = document.getElementById('heatmapCountryFilter')?.value || '';
+  const threshold = parseInt(document.getElementById('heatmapThreshold')?.value || 0);
+
+  let filtered = data.stations.filter(s => !countryFilter || s.country === countryFilter);
+
+  let html = '<div class="heatmap-header"><span class="station-corner">Station</span>';
+  data.decades.forEach(d => {
+    html += `<div class="decade-header">${d}s</div>`;
+  });
+  html += '</div>';
+
+  filtered.forEach(station => {
+    html += `<div class="heatmap-row"><span class="station-label">${station.station_name}</span>`;
+
+    station.cells.forEach(cell => {
+      let pct = cell.overall_pct;
+      if (varFilter && cell.by_variable[varFilter] !== undefined) {
+        pct = cell.by_variable[varFilter];
+      }
+
+      const meetsThreshold = pct === null || pct < threshold;
+      const color = pct === null ? '#fafafa' : `hsl(137, ${71 - (100-pct)*0.3}%, ${90 + (100-pct)*0.1}%)`;
+
+      html += `
+        <div class="heatmap-cell" style="background: ${color};"
+             title="${cell.decade}s: ${pct !== null ? pct + '%' : 'No data'}"
+             data-pct="${pct}">
+        </div>
+      `;
+    });
+    html += '</div>';
+  });
+  html += '</div>';
+
+  grid.innerHTML = html;
+}
+
+// ===== SECTION 2: AVAILABILITY MATRIX (ENHANCED) =====
+async function renderAvailabilityMatrix(data) {
+  const container = document.getElementById('datasetAvailabilityApp');
+
+  let html = `
+    <div class="availability-wrapper">
+      <div class="availability-description">
+        <p>Can you study discharge vs. water level at Ban Chot? This matrix shows which variable pairs can be compared. Green cells = strong data, gray = sparse or missing.</p>
+      </div>
+      <div class="availability-controls">
+        <label>Filter: Show only stations with <input id="minYearsSlider" type="range" min="0" max="60" value="0" class="inline-slider" /> <span id="minYearsValue">0</span> years minimum</label>
+      </div>
+      <div class="availability-matrix-wrapper" id="availabilityMatrix"></div>
+    </div>
+  `;
+
+  container.innerHTML = html;
+  renderAvailabilityMatrixTable(data);
+
+  document.getElementById('minYearsSlider')?.addEventListener('input', (e) => {
+    document.getElementById('minYearsValue').textContent = e.target.value;
+    renderAvailabilityMatrixTable(data);
+  });
+}
+
+function renderAvailabilityMatrixTable(data) {
+  const matrix = document.getElementById('availabilityMatrix');
+  const minYears = parseInt(document.getElementById('minYearsSlider')?.value || 0);
+  let filtered = data.rows.filter(row =>
+    Object.values(row.variables).some(cell => cell && cell.years >= minYears)
+  );
+
+  let html = '<table class="availability-table"><thead><tr><th>Station</th>';
+  data.variables.forEach(v => html += `<th title="${v}">${v}</th>`);
+  html += '</tr></thead><tbody>';
+
+  filtered.forEach(row => {
+    html += `<tr><td class="station-cell"><strong>${escapeHtml(row.station_name)}</strong><br><small>${row.country}</small></td>`;
+    data.variables.forEach(v => {
+      const cell = row.variables[v];
+      const years = cell?.years || 0;
+      const density = cell?.density_pct || 0;
+      const meets = cell && years >= minYears;
+      const color = !cell ? '#fafafa' : `hsl(137, ${71 - (100-density)*0.3}%, ${90 + (100-density)*0.1}%)`;
+
+      html += `
+        <td style="background: ${color}; cursor: pointer;" title="${years}y available, ${density}% complete">
+          <strong>${years}</strong>y
+        </td>
+      `;
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+
+  matrix.innerHTML = html;
+}
+
+// ===== SECTION 3: STATION EXPLORER (ENHANCED) =====
+async function renderStationExplorer(data) {
+  const container = document.getElementById('datasetStationExplorerApp');
+
+  let html = `
+    <div class="station-explorer-wrapper">
+      <div class="station-explorer-description">
+        <p>Browse all stations. Click any station to see its strengths, data completeness by variable, and jump straight to building a visualization.</p>
+      </div>
+      <div class="station-explorer-controls">
+        <input id="stationSearch" type="text" placeholder="🔍 Search: Ban Chot, Thailand, Discharge..." class="dropdown" />
+        <select id="stationSort" class="dropdown">
+          <option value="name">Sort: A–Z</option>
+          <option value="years">Sort: Longest Records</option>
+          <option value="variables">Sort: Most Variables</option>
+        </select>
+      </div>
+      <div class="station-explorer-table" id="stationTable"></div>
+    </div>
+  `;
+
+  container.innerHTML = html;
+  renderStationTable(data);
+
+  document.getElementById('stationSearch')?.addEventListener('input', () => renderStationTable(data));
+  document.getElementById('stationSort')?.addEventListener('change', () => renderStationTable(data));
+}
+
+function renderStationTable(data) {
+  const table = document.getElementById('stationTable');
+  const search = document.getElementById('stationSearch')?.value.toLowerCase() || '';
+  const sort = document.getElementById('stationSort')?.value || 'name';
+
+  let rows = [...data.rows];
+
+  if (search) {
+    rows = rows.filter(r =>
+      r.station_name.toLowerCase().includes(search) ||
+      r.country.toLowerCase().includes(search)
+    );
+  }
+
+  rows.sort((a, b) => {
+    if (sort === 'years') return (b.last_year - b.first_year) - (a.last_year - a.first_year);
+    if (sort === 'variables') return b.variable_count - a.variable_count;
+    return a.station_name.localeCompare(b.station_name);
+  });
+
+  let html = '';
+  rows.forEach((row, idx) => {
+    const years = row.last_year - row.first_year + 1;
+    const strength = getStationStrength(row.variable_count, years);
+    const badges = row.per_variable_badges.map(b =>
+      `<span class="data-badge" title="${b.variable}: ${b.completeness_pct}%">${b.variable.substring(0, 4)}</span>`
+    ).join('');
+
+    html += `
+      <div class="station-row collapsed" data-index="${idx}">
+        <div class="station-row-header">
+          <div class="station-col-1">
+            <span class="station-name">${escapeHtml(row.station_name)}</span>
+            <span class="station-subtext">${row.country}</span>
+          </div>
+          <div class="station-col-2">
+            <span class="stat">📅 ${years}y</span>
+            <span class="stat">📊 ${row.variable_count} vars</span>
+            <span class="strength-badge" style="background: ${getStrengthColor(strength)}">${strength}</span>
+          </div>
+          <span class="expand-icon">›</span>
+        </div>
+        <div class="station-row-expanded">
+          <div class="expanded-content">
+            <div class="variable-badges">${badges}</div>
+            <button class="primary-btn" onclick="window.goToBuilder('${escapeHtml(row.station_name)}')">Build Visualization →</button>
+          </div>
+        </div>
+      </div>
+    `;
+  });
+
+  table.innerHTML = html || '<div class="empty-state">No stations match your search. Try a different term.</div>';
+
+  document.querySelectorAll('.station-row-header').forEach(header => {
+    header.addEventListener('click', function() {
+      const row = this.parentElement;
+      const isCollapsed = row.classList.contains('collapsed');
+
+      document.querySelectorAll('.station-row').forEach(r => r.classList.add('collapsed'));
+      document.querySelectorAll('.station-row-expanded').forEach(e => e.style.display = 'none');
+
+      if (isCollapsed) {
+        row.classList.remove('collapsed');
+        row.querySelector('.station-row-expanded').style.display = 'block';
+      }
+    });
+  });
+}
+
+function getStationStrength(variables, years) {
+  const score = variables * years / 10;
+  if (score > 30) return 'Excellent';
+  if (score > 15) return 'Strong';
+  return 'Limited';
+}
+
+function getStrengthColor(strength) {
+  if (strength === 'Excellent') return 'rgba(34, 160, 90, 0.2)';
+  if (strength === 'Strong') return 'rgba(232, 165, 90, 0.2)';
+  return 'rgba(200, 200, 200, 0.2)';
+}
+
+// ===== SECTION 4: PROVENANCE DISCLOSURE =====
+async function renderProvenanceDisclosure() {
+  const container = document.getElementById('datasetProvenanceApp');
+
+  const html = `
+    <div class="provenance-wrapper">
+      <div class="provenance-accordion">
+        <div class="accordion-panel">
+          <div class="accordion-header">📊 Data Sources & Collection</div>
+          <div class="accordion-content">
+            <p>Data comes from <strong>national water authorities</strong> in Thailand, Laos, Cambodia, and Vietnam, coordinated through the <strong>Mekong River Commission (MRC)</strong>. Each country maintains its own monitoring network; records span from 1960 to present depending on station.</p>
+            <ul>
+              <li><strong>Thailand:</strong> Royal Irrigation Department</li>
+              <li><strong>Laos:</strong> Department of Meteorology & Hydrology</li>
+              <li><strong>Cambodia:</strong> Ministry of Water Resources</li>
+              <li><strong>Vietnam:</strong> Institute of Meteorology & Hydrology</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="accordion-panel">
+          <div class="accordion-header">⚙️ Processing Pipeline: What Happens to Raw Data</div>
+          <div class="accordion-content">
+            <div class="preprocessing-timeline">
+              <div class="timeline-step">1️⃣ <strong>Ingest</strong><br>Raw daily readings</div>
+              <div class="timeline-arrow">→</div>
+              <div class="timeline-step">2️⃣ <strong>Standardize</strong><br>Units & timezone</div>
+              <div class="timeline-arrow">→</div>
+              <div class="timeline-step">3️⃣ <strong>Flag Anomalies</strong><br>Outliers & gaps</div>
+              <div class="timeline-arrow">→</div>
+              <div class="timeline-step">4️⃣ <strong>Validate</strong><br>QA checks</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="accordion-panel">
+          <div class="accordion-header">⚠️ Known Limitations: When to Be Cautious</div>
+          <div class="accordion-content">
+            <div class="limitation">
+              <span class="severity-badge severity-high">🔴 CRITICAL</span>
+              <span><strong>Pre-2000 records inconsistent:</strong> Equipment quality varied. Water level at Laotian stations before 2000 should be viewed skeptically for trend analysis.</span>
+            </div>
+            <div class="limitation">
+              <span class="severity-badge severity-medium">🟡 IMPORTANT</span>
+              <span><strong>Multi-year gaps exist:</strong> Some stations have 5–10 year blackouts (political instability, equipment failure). Check the heatmap before committing time to a station.</span>
+            </div>
+            <div class="limitation">
+              <span class="severity-badge severity-low">🟢 MINOR</span>
+              <span><strong>Timezone shifts:</strong> Discharge readings cross date boundaries; timestamps may be ±4 hours off. Negligible for monthly+ analysis.</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="accordion-panel">
+          <div class="accordion-header">✓ Can I Use This Data For...?</div>
+          <div class="accordion-content">
+            <table class="suitability-table">
+              <tr>
+                <th>Analysis Type</th>
+                <th>Discharge</th>
+                <th>Water Level</th>
+                <th>Rainfall</th>
+                <th>Sediment</th>
+              </tr>
+              <tr>
+                <td>Trend over decades</td>
+                <td>🟢 Yes</td>
+                <td>🟢 Yes</td>
+                <td>🟡 With care</td>
+                <td>🔴 No</td>
+              </tr>
+              <tr>
+                <td>Correlate 2 variables</td>
+                <td colspan="4">🟢 Yes (if both measured at same station)</td>
+              </tr>
+              <tr>
+                <td>Forecast next month</td>
+                <td>🟡 Limited</td>
+                <td>🟢 Good</td>
+                <td>🟡 Limited</td>
+                <td>🔴 No</td>
+              </tr>
+              <tr>
+                <td>Compare upstream/downstream</td>
+                <td>🟢 Yes</td>
+                <td>🟢 Yes</td>
+                <td>🔴 No</td>
+                <td>🔴 No</td>
+              </tr>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  container.innerHTML = html;
+
+  document.querySelectorAll('.accordion-header').forEach(header => {
+    header.addEventListener('click', function() {
+      const panel = this.parentElement;
+      const content = panel.querySelector('.accordion-content');
+      const isOpen = content.style.display === 'block';
+
+      document.querySelectorAll('.accordion-content').forEach(c => c.style.display = 'none');
+      if (!isOpen) content.style.display = 'block';
+    });
+  });
+}
+
+// ===== HELPER =====
+function escapeHtml(text) {
+  const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+  return String(text).replace(/[&<>"']/g, m => map[m]);
+}
+
+// Add to window for onclick handlers
+// Override the goToBuilder function to accept station pre-population
+window.goToBuilder = function(stationName) {
+  // Navigate to builder section
+  setSectionVisible(builderSection);
+  setActiveNav(".custom-visualization-setup-icon");
+
+  if (stationName) {
+    // Set default graph option if not already selected
+    if (!graphOptionsDropdown.value) {
+      graphOptionsDropdown.value = "Single Category, Single Station Timeline";
+      graphOptionsDropdown.dispatchEvent(new Event("change"));
+    }
+
+    // Wait a moment for categories to populate
+    setTimeout(() => {
+      // Populate station dropdown
+      stationDropdown.value = stationName;
+
+      // Show available categories for this station
+      const stationData = categoryDetailsMap[Object.keys(categoryDetailsMap)[0]]?.find(
+        row => row.station_name === stationName
+      );
+
+      if (stationData) {
+        // Highlight first available category
+        const firstCategory = Object.keys(categoryDetailsMap)[0];
+        if (firstCategory && categoryDropdown) {
+          categoryDropdown.value = firstCategory;
+        }
+      }
+
+      // Scroll to the builder section
+      builderSection.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 300);
+  }
+};
+
+
 function initializeMap() {
   map = L.map("map", {
     minZoom: 4,
@@ -1475,11 +2516,12 @@ function setActiveNav(selector) {
   if (navEl) navEl.classList.add('active');
 }
 
-function bindSectionTriggers(selector, section) {
+function bindSectionTriggers(selector, section, callback) {
   document.querySelectorAll(selector).forEach(element => {
     element.addEventListener("click", () => {
       setSectionVisible(section);
       setActiveNav(selector);
+      if (callback) callback();
     });
   });
 }
@@ -1493,6 +2535,7 @@ function setupNavigation() {
   bindSectionTriggers(".correlation-icon", correlationSection);
   bindSectionTriggers(".seasonal-icon", seasonalSection);
   bindSectionTriggers(".export-icon", exportSection);
+  bindSectionTriggers(".dataset-overview-icon", datasetOverviewSection, () => generateAndDisplayDatasetOverview());
   bindSectionTriggers(".research-icon", researchSection);
   bindSectionTriggers(".about-us-icon", aboutSection);
 }
@@ -2052,6 +3095,25 @@ function setupThemeToggle() {
     applyTheme(!isDark);
   });
   if (localStorage.getItem('theme') === 'dark') applyTheme(true);
+}
+
+function setupMapExpandButton() {
+  const expandBtn = document.getElementById('map-expand-btn');
+  const mapView = document.getElementById('map-view');
+  if (!expandBtn || !mapView) return;
+
+  expandBtn.addEventListener('click', () => {
+    mapView.classList.toggle('map-expanded');
+    if (mapView.classList.contains('map-expanded')) {
+      expandBtn.setAttribute('title', 'Click to collapse map');
+    } else {
+      expandBtn.setAttribute('title', 'Click to expand map to fullscreen');
+    }
+    // Trigger map resize to recalculate dimensions
+    if (map) {
+      setTimeout(() => map.invalidateSize(), 100);
+    }
+  });
 }
 
 // ------------------------------
@@ -4072,6 +5134,7 @@ document.addEventListener("DOMContentLoaded", async function() {
     setupResearchLabEvents();
     setupSidebarToggle();
     setupThemeToggle();
+    setupMapExpandButton();
     setupAiAnalysis();
     setupAnalyzeEvents();
     setupUndoToast();
