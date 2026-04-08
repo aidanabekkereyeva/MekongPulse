@@ -541,26 +541,6 @@
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
             Holt-Winters
           </button>
-          <button class="model-tab" data-model="sarima">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg>
-            SARIMA
-          </button>
-          <button class="model-tab" data-model="random_forest">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22V12"/><path d="M7 12c-2.8 0-5-2.2-5-5 0-1.9 1-3.5 2.6-4.4"/><path d="M17 12c2.8 0 5-2.2 5-5 0-1.9-1-3.5-2.6-4.4"/><path d="M8 7c0-2.2 1.8-4 4-4s4 1.8 4 4"/><path d="M7 12h10"/></svg>
-            Random Forest
-          </button>
-          <button class="model-tab" data-model="gradient_boosting">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 8 14 12 20 6"/><path d="M20 11V6h-5"/></svg>
-            Gradient Boosting
-          </button>
-          <button class="model-tab" data-model="linear_seasonal">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12c2-6 4-6 6 0s4 6 6 0 4-6 6 0"/><line x1="3" y1="19" x2="21" y2="19"/></svg>
-            Linear Seasonal
-          </button>
-          <button class="model-tab" data-model="svr">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="12" r="3"/><circle cx="17" cy="12" r="3"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
-            SVR
-          </button>
           <div class="model-tab-divider"></div>
           <button class="model-tab ml-model-tab" data-model="LSTM">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="10" rx="2"/><path d="M7 7V5a2 2 0 0 1 4 0v2"/><path d="M13 7V5a2 2 0 0 1 4 0v2"/></svg>
@@ -1285,11 +1265,6 @@
                   <label class="menu-title" for="rf-model-select">Model</label>
                   <select id="rf-model-select" class="dropdown">
                     <option value="holt_winters">Holt-Winters</option>
-                    <option value="sarima">SARIMA</option>
-                    <option value="random_forest">Random Forest</option>
-                    <option value="gradient_boosting">Gradient Boosting</option>
-                    <option value="linear_seasonal">Linear Seasonal</option>
-                    <option value="svr">SVR</option>
                   </select>
                 </div>
                 <div class="form-group">
@@ -1520,7 +1495,7 @@
               The motivation was to demonstrate that modern web technologies, open-source scientific computing libraries, and AI language models can be combined to produce a platform that is simultaneously presentation-ready, analytically substantive, and approachable for students and early-career researchers. The project also served as an opportunity to apply skills in data engineering, statistical modelling, machine learning, and full-stack development within a real-world environmental informatics context.
             </p>
             <p>
-              The choice to incorporate multiple forecasting models — ranging from classical statistical approaches (Holt-Winters, SARIMA) to ensemble machine learning methods (Random Forest, Gradient Boosting) and kernel-based regression (SVR) — reflects a deliberate effort to situate the platform at the intersection of traditional hydrology and contemporary data science practice.
+              The platform uses Holt-Winters exponential smoothing and deep learning models (LSTM, GRU) for forecasting, providing both classical statistical and contemporary machine learning approaches to hydrological time series prediction.
             </p>
           </div>
 
@@ -1533,7 +1508,7 @@
               Station records were sourced from the Mekong River Commission (MRC) monitoring network, encompassing four primary hydrological variables: rainfall (mm), river discharge (m³/s), water level (m), and total suspended solids (mg/l). Data was preprocessed and structured into a station-category relational model, enabling flexible cross-station and cross-variable querying at the presentation layer without requiring a live database connection.
             </p>
             <p>
-              Forecasting is implemented across six models. Classical methods — Holt-Winters triple exponential smoothing and SARIMA — decompose time series into trend, seasonal, and residual components with fitted confidence intervals. Machine learning methods — Random Forest, Gradient Boosting, Support Vector Regression, and Linear Seasonal decomposition — operate on engineered lag features and Fourier harmonic terms to capture non-linear seasonal dynamics. All models generate 95% confidence intervals from in-sample residuals to communicate forecast uncertainty.
+              Forecasting is implemented using Holt-Winters triple exponential smoothing (classical statistical method), which decomposes time series into trend, seasonal, and residual components with fitted confidence intervals. Deep learning models (LSTM, GRU) capture non-linear patterns in historical sequences. All models generate 95% confidence intervals to communicate forecast uncertainty.
             </p>
             <p>
               The AI-assisted analysis module uses the Gemini language model to generate structured hydrological reports, interpreting statistical summaries, trend directions, station rankings, and data quality metrics in the context of Mekong basin environmental science.
@@ -1571,8 +1546,8 @@
             <h3>Technical Architecture</h3>
             <ul>
               <li><strong>Backend:</strong> Python · Flask · Pandas · NumPy</li>
-              <li><strong>Statistical models:</strong> statsmodels (Holt-Winters, SARIMA)</li>
-              <li><strong>Machine learning:</strong> scikit-learn (Random Forest, Gradient Boosting, SVR, Linear Regression)</li>
+              <li><strong>Statistical models:</strong> statsmodels (Holt-Winters)</li>
+              <li><strong>Deep learning:</strong> TensorFlow/Keras (LSTM, GRU)</li>
               <li><strong>AI analysis:</strong> Google Gemini API via google-genai</li>
               <li><strong>Visualisation:</strong> Plotly graph_objs and express</li>
               <li><strong>Mapping:</strong> Leaflet.js · GeoJSON basin overlay · CartoDB tiles</li>

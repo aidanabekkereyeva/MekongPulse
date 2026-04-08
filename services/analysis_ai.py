@@ -9,9 +9,10 @@ from pathlib import Path
 from typing import Dict, Optional
 
 # Models tried in order; if one is rate-limited the next is attempted.
+# Gemini 2.0 Flash models are deprecated; prefer the current 2.5 equivalents.
 _GEMINI_MODELS = [
-    "gemini-2.0-flash-lite",
-    "gemini-2.0-flash",
+    "gemini-2.5-flash-lite",
+    "gemini-2.5-flash",
 ]
 
 _CACHE_PATH = (
@@ -78,20 +79,24 @@ def _gemini_generate(api_key: str, prompt: str) -> str:
 
     for model in _GEMINI_MODELS:
         try:
+            print(f"[AI] Gemini attempting model: {model}")
             response = client.models.generate_content(
                 model=model,
                 contents=prompt,
             )
             text = _normalise_md((response.text or "").strip())
+            print(f"[AI] Gemini succeeded with model: {model}")
             _AI_RESPONSE_CACHE[cache_key] = text
             _save_ai_cache(_AI_RESPONSE_CACHE)
             return text
         except Exception as exc:
             msg = str(exc)
             if "429" in msg or "RESOURCE_EXHAUSTED" in msg or "quota" in msg.lower():
+                print(f"[AI] Gemini model rate-limited: {model} ({msg[:120]})")
                 last_exc = exc
                 time.sleep(2)
                 continue
+            print(f"[AI] Gemini model failed: {model} ({type(exc).__name__}: {msg[:120]})")
             raise
 
     if last_exc:

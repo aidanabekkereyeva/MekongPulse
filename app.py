@@ -171,11 +171,6 @@ def export_station_data():
 
 MODEL_DISPATCH = {
     "holt_winters":       visualization.generate_holt_winters_prediction,
-    "sarima":             visualization.generate_sarima_prediction,
-    "random_forest":      visualization.generate_random_forest_prediction,
-    "gradient_boosting":  visualization.generate_gradient_boosting_prediction,
-    "linear_seasonal":    visualization.generate_linear_seasonal_prediction,
-    "svr":                visualization.generate_svr_prediction,
 }
 
 @app.route('/generate_prediction', methods=['POST'])
@@ -297,11 +292,17 @@ def _generate_prediction_analysis(station, category, model, horizon, rmse, mape,
         if extra_info.get('alpha') else ''
     )
 
-    prompt = f"""Mekong basin hydrological forecasting analyst. Write a structured forecast report using these section headers on their own line followed by a colon. No markdown symbols.
+    prompt = f"""Mekong basin hydrological forecasting analyst. Write a detailed structured forecast report using these section headers on their own line followed by a colon. No markdown symbols.
 
 Data: {model} | {station} | {category} | horizon={horizon} {horizon_unit} | {last_historical} → {forecast_end} | RMSE={rmse} | MAPE={mape}{aic_part}{alpha_part}
 
-Sections to write (2-3 sentences each):
+Length requirements:
+- Write 5-7 sentences per section.
+- Make the full response approximately 400-650 words.
+- Maintain academic tone and provide deeper interpretation, not short summaries.
+- Use only the numbers and facts provided in the Data line.
+
+Sections to write:
 
 Model Overview:
 Performance Assessment:
@@ -468,11 +469,17 @@ def analyze_with_ai():
         gemini_result = None
 
         if gemini_available():
-            prompt = f"""Mekong basin hydrological analyst. Write a structured report using these section headers on their own line followed by a colon. No markdown symbols.
+            prompt = f"""Mekong basin hydrological analyst. Write a detailed structured report using these section headers on their own line followed by a colon. No markdown symbols.
 
 Data: {graph_type} | {station} | {category} | {first_year}-{last_year} | {record_count} records | {coverage_pct}% coverage | mean={mean_val} min={min_val} max={max_val} std={std_val} trend={trend}{f' | ranking: {ranking_text}' if ranking_text else ''}
 
-Sections to write (2-3 sentences each):
+Length requirements:
+- Write 5-7 sentences per section.
+- Make the full response approximately 450-700 words.
+- Be specific, interpretive, and academically detailed rather than brief.
+- Use only the numbers and facts provided in the Data line.
+
+Sections to write:
 
 Data Quality and Coverage Assessment:
 Statistical Overview and Interpretation:
@@ -564,11 +571,17 @@ def _generate_seasonal_analysis(station, category, trend_direction, trend_streng
     api_key = os.getenv('GEMINI_API_KEY', '').strip()
     period_label = "annual (12-month)" if period == 12 else f"{period}-month"
 
-    prompt = f"""Mekong basin hydrological analyst. Write a structured seasonal decomposition report using these section headers on their own line followed by a colon. No markdown symbols.
+    prompt = f"""Mekong basin hydrological analyst. Write a detailed structured seasonal decomposition report using these section headers on their own line followed by a colon. No markdown symbols.
 
 Data: STL decomposition | {station} | {category} | {start_date} to {end_date} | {n_obs} monthly obs | period={period} ({period_label}) | trend={trend_direction} | trend_strength={trend_strength} | seasonal_strength={seasonal_strength} | peak_month={peak_month} | trough_month={trough_month} | seasonal_amplitude={seasonal_amplitude} {unit} | anomaly_count={anomaly_count}
 
-Sections to write (2-3 sentences each):
+Length requirements:
+- Write 5-7 sentences per section.
+- Make the full response approximately 400-650 words.
+- Provide interpretive discussion for each component, not brief summaries.
+- Use only the numbers and facts provided in the Data line.
+
+Sections to write:
 
 Decomposition Overview:
 Trend Component Analysis:
