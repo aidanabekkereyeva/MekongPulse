@@ -172,10 +172,8 @@ def _load_historical_fit(
         rmse = float(np.sqrt(np.nanmean(residuals ** 2)))
 
         act_mean = float(np.nanmean(np.abs(actuals)))
-        threshold = max(act_mean * 0.01, 1e-6)
-        valid = np.abs(actuals) > threshold
-        mape = (float(np.nanmean(np.abs(residuals[valid] / actuals[valid])) * 100)
-                if valid.sum() > 0 else float('nan'))
+        denom = np.maximum(np.abs(actuals), max(act_mean * 0.01, 1e-6))
+        mape = float(np.nanmean(np.abs(residuals) / denom) * 100)
 
         return fit_df, rmse, mape
     except Exception:

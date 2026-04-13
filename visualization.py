@@ -489,17 +489,19 @@ def plot_correlation_scatter(station_name, categories_data):
         pd.to_datetime(data_a["end_date"], dayfirst=True),
         pd.to_datetime(data_b["end_date"], dayfirst=True),
     ).strftime("%d-%m-%Y")
-    result = generate_correlation_explorer(
-        station_name=station_name,
-        category_a=data_a["category_name"],
-        category_b=data_b["category_name"],
-        start_date=start_date,
-        end_date=end_date,
-    )
+    chart_title = f"Correlation: {data_a['category_name']} vs {data_b['category_name']} at {station_name}"
+    try:
+        result = generate_correlation_explorer(
+            station_name=station_name,
+            category_a=data_a["category_name"],
+            category_b=data_b["category_name"],
+            start_date=start_date,
+            end_date=end_date,
+        )
+    except ValueError as e:
+        return create_no_data_chart(chart_title, str(e))
     charts = result.get("charts", {})
-    return charts.get("scatter") or create_no_data_chart(
-        f"Correlation: {data_a['category_name']} vs {data_b['category_name']} at {station_name}"
-    )
+    return charts.get("scatter") or create_no_data_chart(chart_title)
 
 
 def generate_correlation_scatter_visualizations(selected_data):
@@ -1870,7 +1872,9 @@ def generate_holt_winters_prediction(
         index=forecast.index,
     )
     ci_upper = forecast + ci_offset
-    ci_lower = (forecast - ci_offset).clip(lower=0.0)
+    ci_lower = forecast - ci_offset
+    if positive_only:
+        ci_lower = ci_lower.clip(lower=0.0)
 
     # Bridge point: last historical observation used to connect all traces
     bridge_date  = series.index[-1]
@@ -1934,7 +1938,7 @@ def generate_holt_winters_prediction(
 
     apply_clean_layout(
         fig,
-        title=f"Holt-Winters Forecast - {station_display(station_name)}: {category_name}",
+        title="",
         yaxis_title=unit_label,
         xaxis_title="Date",
     )
@@ -2051,7 +2055,7 @@ def _make_forecast_chart(series, fitted_vals, forecast_vals, forecast_index, ci_
 
     apply_clean_layout(
         fig,
-        title=f"{model_label} - {station_display(station_name)}: {category_name}",
+        title="",
         yaxis_title=unit_label,
         xaxis_title="Date",
     )
