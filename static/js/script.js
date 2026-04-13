@@ -144,6 +144,7 @@ let stationDetailsMap = {};
 let categoryDetailsMap = {};
 let stationNameList = [];
 let categoryNameList = [];
+let selectedStations = [];
 let selectedCategories = [];
 let selectedStationEntries = [];
 let selectedVisualizations = [];
@@ -285,8 +286,47 @@ function formatDateToYYYYMMDD(dateString) {
   return `${year}-${month}-${day}`;
 }
 
+function normalizeGraphName(name) {
+  return String(name || "").trim();
+}
+
+function findGraphConfigByName(name) {
+  const normalizedName = normalizeGraphName(name);
+  return graphTypeOptions.find(option => normalizeGraphName(option.name) === normalizedName);
+}
+
+function getCurrentBuilderGraphName() {
+  if (!graphOptionsDropdown) return "";
+
+  const value = normalizeGraphName(graphOptionsDropdown.value);
+  if (value) return value;
+
+  const selectedOption = graphOptionsDropdown.options[graphOptionsDropdown.selectedIndex];
+  return normalizeGraphName(selectedOption?.textContent);
+}
+
+function getCurrentBuilderCategoryName() {
+  if (!categoryDropdown) return "";
+
+  const value = normalizeGraphName(categoryDropdown.value);
+  if (value) return value;
+
+  const selectedOption = categoryDropdown.options[categoryDropdown.selectedIndex];
+  return normalizeGraphName(selectedOption?.textContent);
+}
+
+function getCurrentBuilderStationName() {
+  if (!stationDropdown) return "";
+
+  const value = normalizeGraphName(stationDropdown.value);
+  if (value) return value;
+
+  const selectedOption = stationDropdown.options[stationDropdown.selectedIndex];
+  return normalizeGraphName(selectedOption?.textContent);
+}
+
 function getSelectedGraphConfig() {
-  return graphTypeOptions.find(option => option.name === selectedGraphOption);
+  return findGraphConfigByName(selectedGraphOption);
 }
 
 function validateGraphRequirements() {
@@ -350,7 +390,7 @@ function displayGraphRequirements(requirementsElId = "graph-requirements-text") 
 }
 
 function displayGraphRequirementsForAnalyze(graphName) {
-  const config = graphTypeOptions.find(o => o.name === graphName);
+  const config = findGraphConfigByName(graphName);
   const requirementsEl = document.getElementById("az-graph-requirements-text");
   if (!config || !requirementsEl) return;
 
@@ -377,6 +417,92 @@ function displayGraphRequirementsForAnalyze(graphName) {
   }
 
   requirementsEl.textContent = requirementText;
+}
+
+function refreshBuilderRequirements() {
+  const requirementsEl = document.getElementById("graph-requirements-text");
+  const graphName = getCurrentBuilderGraphName();
+  if (!requirementsEl) return;
+
+  const config = findGraphConfigByName(graphName);
+  if (!config) {
+    requirementsEl.textContent = "Select a visualization type to see requirements";
+    return;
+  }
+
+  const categoryText = config.number_of_categories_allow === "All"
+    ? "any number of categories"
+    : `${config.number_of_categories_allow} categor${config.number_of_categories_allow === 1 ? "y" : "ies"}`;
+
+  const stationText = config.number_of_stations_allow === "All"
+    ? "any number of stations"
+    : `${config.number_of_stations_allow} station${config.number_of_stations_allow === 1 ? "" : "s"}`;
+
+  requirementsEl.textContent = `Requires: ${categoryText} • ${stationText}`;
+}
+
+function handleAddCategorySelection() {
+  const currentCategory = getCurrentBuilderCategoryName();
+  const graphConfig = getSelectedGraphConfig();
+
+  if (!graphConfig || !currentCategory || currentCategory.toLowerCase().startsWith("select ")) {
+    return;
+  }
+
+  if (!selectedStations.length) {
+    showAlert(document.getElementById("no-station-alert"));
+    return;
+  }
+
+  if (
+    graphConfig.number_of_categories_allow !== "All" &&
+    selectedCategories.length >= graphConfig.number_of_categories_allow
+  ) {
+    showAlert(oneCategoryOnlyAlert);
+    return;
+  }
+
+  if (!selectedCategories.includes(currentCategory)) {
+    selectedCategories.push(currentCategory);
+    rebuildSelectedStationEntries();
+    renderSelectedCategories();
+    renderSelectedStations();
+  }
+}
+
+function handleAddStationSelection() {
+  const currentStation = getCurrentBuilderStationName();
+  const graphConfig = getSelectedGraphConfig();
+
+  if (!currentStation || currentStation.toLowerCase().startsWith("select ")) {
+    showAlert(document.getElementById("no-station-alert"));
+    return;
+  }
+
+  const stationAlreadyExists = selectedStations.includes(currentStation);
+  const stationLimit = graphConfig?.number_of_stations_allow;
+
+  if (stationLimit !== "All" && stationLimit && selectedStations.length >= stationLimit && !stationAlreadyExists) {
+    showAlert(oneStationOnlyAlert);
+    return;
+  }
+
+  if (!stationAlreadyExists) {
+    selectedStations.push(currentStation);
+    selectedStations.sort((a, b) => a.localeCompare(b));
+  }
+
+  if (selectedCategories.length) {
+    const availableCategories = new Set(getAvailableCategoriesForStations());
+    selectedCategories = selectedCategories.filter(category => availableCategories.has(category));
+    renderSelectedCategories();
+  }
+
+  categoryDropdown.disabled = !selectedStations.length;
+  showCategoryOptionsOnUI();
+  rebuildSelectedStationEntries();
+  renderSelectedStations();
+  updateBuilderSummary();
 }
 
 function setSectionVisible(section) {
@@ -413,7 +539,9 @@ function updateBuilderSummary() {
   selectedGraphPreview.textContent = selectedGraphOption || "No graph selected yet";
   selectedCategoriesPreview.textContent = String(selectedCategories.length);
 
-  const uniqueStations = new Set(selectedStationEntries.map(entry => entry.station_name));
+  const uniqueStations = selectedStations.length
+    ? new Set(selectedStations)
+    : new Set(selectedStationEntries.map(entry => entry.station_name));
   selectedStationsPreview.textContent = String(uniqueStations.size);
 }
 
@@ -657,6 +785,7 @@ function updateRankingTable(ranking) {
 }
 
 function resetSelectedCategoriesAndStations() {
+  selectedStations = [];
   selectedCategories = [];
   selectedStationEntries = [];
   selectedCategoriesContainer.innerHTML = "";
@@ -677,10 +806,11 @@ function resetVisualizationSetup() {
   showStationOptionsOnUI(ALL_CATEGORIES);
 
   categoryDropdown.disabled = true;
-  stationDropdown.disabled = true;
+  stationDropdown.disabled = false;
   categorySelectionDiv.style.display = "block";
 
   updateBuilderSummary();
+  refreshBuilderRequirements();
 }
 
 function getAllCountries() {
@@ -755,6 +885,56 @@ function addAllCategoriesForStation(stationName) {
   renderSelectedCategories();
 }
 
+function getAvailableCategoriesForStations(stations = selectedStations) {
+  if (!stations.length) return [];
+
+  const stationCategorySets = stations.map(stationName => {
+    const categories = new Set();
+    Object.keys(categoryDetailsMap).forEach(categoryName => {
+      const hasStation = (categoryDetailsMap[categoryName] || []).some(row => row.station_name === stationName);
+      if (hasStation) categories.add(categoryName);
+    });
+    return categories;
+  });
+
+  if (!stationCategorySets.length) return [];
+
+  const [firstSet, ...restSets] = stationCategorySets;
+  return [...firstSet].filter(categoryName =>
+    restSets.every(categorySet => categorySet.has(categoryName))
+  ).sort((a, b) => a.localeCompare(b));
+}
+
+function rebuildSelectedStationEntries() {
+  const preservedEntries = new Map(
+    selectedStationEntries.map(entry => [
+      `${entry.station_name}::${entry.category_name}`,
+      entry
+    ])
+  );
+
+  const rebuiltEntries = [];
+
+  selectedStations.forEach(stationName => {
+    selectedCategories.forEach(categoryName => {
+      const detail = getCategoryDateRange(categoryName, stationName);
+      if (!detail) return;
+
+      const key = `${stationName}::${categoryName}`;
+      const preserved = preservedEntries.get(key);
+
+      rebuiltEntries.push({
+        station_name: stationName,
+        category_name: categoryName,
+        start_date: preserved?.start_date || formatDateToDDMMYYYY(detail.start_date),
+        end_date: preserved?.end_date || formatDateToDDMMYYYY(detail.end_date)
+      });
+    });
+  });
+
+  selectedStationEntries = rebuiltEntries;
+}
+
 function renderSelectedCategories() {
   selectedCategoriesContainer.innerHTML = "";
 
@@ -775,20 +955,9 @@ function renderSelectedCategories() {
 
     removeBtn.addEventListener("click", () => {
       selectedCategories = selectedCategories.filter(c => c !== category);
-
-      selectedStationEntries = selectedStationEntries.filter(entry => entry.category_name !== category);
+      rebuildSelectedStationEntries();
       renderSelectedCategories();
       renderSelectedStations();
-
-      if (selectedCategories.length === 0 && !hasAutoAddCategories) {
-        stationDropdown.disabled = true;
-        showStationOptionsOnUI(ALL_CATEGORIES);
-        showStationsOnMapUI(ALL_CATEGORIES);
-      } else {
-        showStationOptionsOnUI("Current Categories Selected");
-        showStationsOnMapUI("Current Categories Selected");
-      }
-
       updateBuilderSummary();
     });
 
@@ -803,7 +972,8 @@ function renderSelectedCategories() {
 function renderSelectedStations() {
   selectedStationsContainer.innerHTML = "";
 
-  selectedStationEntries.forEach((entry, index) => {
+  selectedStations.forEach((stationName, index) => {
+    const stationMeta = stationDetailsMap[stationName];
     const item = document.createElement("div");
     item.className = "selected-station-element";
     item.style.display = "flex";
@@ -818,12 +988,15 @@ function renderSelectedStations() {
     const line1 = document.createElement("p");
     line1.className = "station-name";
     line1.style.marginBottom = "6px";
-    line1.innerHTML = `<strong>${entry.station_name}</strong> - ${entry.category_name}`;
+    line1.innerHTML = `<strong>${stationName}</strong>${stationMeta?.country ? ` - ${stationMeta.country}` : ""}`;
 
     const line2 = document.createElement("p");
     line2.className = "station-date";
     line2.style.margin = "0";
-    line2.textContent = `${entry.start_date} -> ${entry.end_date}`;
+    const matchedCount = selectedStationEntries.filter(entry => entry.station_name === stationName).length;
+    line2.textContent = matchedCount
+      ? `${matchedCount} category match${matchedCount === 1 ? "" : "es"} ready`
+      : "Choose categories to build this station configuration";
 
     textWrap.appendChild(line1);
     textWrap.appendChild(line2);
@@ -832,23 +1005,6 @@ function renderSelectedStations() {
     actions.style.display = "flex";
     actions.style.gap = "8px";
 
-    const editBtn = document.createElement("button");
-    editBtn.type = "button";
-    editBtn.textContent = "Edit dates";
-    editBtn.className = "secondary-btn";
-    editBtn.style.padding = "8px 10px";
-
-    editBtn.addEventListener("click", () => {
-      const newStart = prompt("Enter new start date (DD-MM-YYYY):", entry.start_date);
-      const newEnd = prompt("Enter new end date (DD-MM-YYYY):", entry.end_date);
-
-      if (newStart && newEnd) {
-        selectedStationEntries[index].start_date = newStart;
-        selectedStationEntries[index].end_date = newEnd;
-        renderSelectedStations();
-      }
-    });
-
     const deleteBtn = document.createElement("button");
     deleteBtn.type = "button";
     deleteBtn.textContent = "Remove";
@@ -856,12 +1012,16 @@ function renderSelectedStations() {
     deleteBtn.style.padding = "8px 10px";
 
     deleteBtn.addEventListener("click", () => {
-      selectedStationEntries.splice(index, 1);
+      selectedStations = selectedStations.filter(station => station !== stationName);
+      const availableCategories = new Set(getAvailableCategoriesForStations());
+      selectedCategories = selectedCategories.filter(category => availableCategories.has(category));
+      renderSelectedCategories();
+      categoryDropdown.disabled = !selectedStations.length;
+      rebuildSelectedStationEntries();
       renderSelectedStations();
       updateBuilderSummary();
     });
 
-    actions.appendChild(editBtn);
     actions.appendChild(deleteBtn);
 
     item.appendChild(textWrap);
@@ -882,13 +1042,15 @@ function showGraphOptionsOnUI() {
     option.value = optionType.name;
     graphOptionsDropdown.appendChild(option);
   });
+
+  refreshBuilderRequirements();
 }
 
 function showCategoryOptionsOnUI() {
   categoryDropdown.innerHTML = "";
   categoryDropdown.appendChild(getPlaceholderOption("Select a category"));
 
-  categoryNameList.forEach(categoryName => {
+  getAvailableCategoriesForStations().forEach(categoryName => {
     const option = document.createElement("option");
     option.textContent = categoryName;
     option.value = categoryName;
@@ -903,16 +1065,14 @@ function showStationOptionsOnUI(mode) {
   const addedStations = new Set();
 
   if (mode === ALL_CATEGORIES) {
-    Object.values(categoryDetailsMap).forEach(categoryRows => {
-      categoryRows.forEach(row => {
-        if (!addedStations.has(row.station_name)) {
-          const option = document.createElement("option");
-          option.textContent = row.station_name;
-          option.value = row.station_name;
-          stationDropdown.appendChild(option);
-          addedStations.add(row.station_name);
-        }
-      });
+    Object.values(stationDetailsMap).forEach(station => {
+      if (!station?.station_name || addedStations.has(station.station_name)) return;
+
+      const option = document.createElement("option");
+      option.textContent = station.station_name;
+      option.value = station.station_name;
+      stationDropdown.appendChild(option);
+      addedStations.add(station.station_name);
     });
     return;
   }
@@ -1025,19 +1185,23 @@ function loadVisualizationIntoBuilder(visualization, index) {
   }
 
   // Restore categories and station entries
+  selectedStations      = [...new Set(visualization.data.map(d => d.station_name))];
   selectedCategories    = [...new Set(visualization.data.map(d => d.category_name))];
   selectedStationEntries = visualization.data.map(d => ({ ...d }));
 
   // Sync auto-add setting and category row visibility
   const graphConfig = getSelectedGraphConfig();
-  hasAutoAddCategories = graphConfig ? graphConfig.auto_add_categories : false;
-  categorySelectionDiv.style.display = hasAutoAddCategories ? "none" : "block";
+  hasAutoAddCategories = false;
+  categorySelectionDiv.style.display = "block";
   stationDropdown.disabled = false;
-  categoryDropdown.disabled = hasAutoAddCategories;
+  categoryDropdown.disabled = !selectedStations.length;
 
+  showStationOptionsOnUI(ALL_CATEGORIES);
+  showCategoryOptionsOnUI();
   renderSelectedCategories();
   renderSelectedStations();
   updateBuilderSummary();
+  refreshBuilderRequirements();
 
   setSectionVisible(builderSection);
   setActiveNav(".custom-visualization-setup-icon");
@@ -2718,138 +2882,65 @@ function setupNavigation() {
 
 function setupBuilderEvents() {
   categoryDropdown.disabled = true;
-  stationDropdown.disabled = true;
+  stationDropdown.disabled = false;
   startVisualizationBtn.style.display = "inline-block";
 
-  graphOptionsDropdown.addEventListener("change", function() {
-    selectedGraphOption = graphOptionsDropdown.value;
+  const handleGraphTypeChange = function() {
+    selectedGraphOption = getCurrentBuilderGraphName();
     updateBuilderSummary();
-    displayGraphRequirements();
+    refreshBuilderRequirements();
 
     const graphConfig = getSelectedGraphConfig();
-    if (!graphConfig) return;
-
-    hasAutoAddCategories = graphConfig.auto_add_categories;
-
-    resetSelectedCategoriesAndStations();
-
-    if (hasAutoAddCategories) {
-      categorySelectionDiv.style.display = "none";
-      categoryDropdown.disabled = true;
-      stationDropdown.disabled = false;
-      showStationOptionsOnUI(ALL_CATEGORIES);
-      showStationsOnMapUI(ALL_CATEGORIES);
-    } else {
+    if (!graphConfig) {
+      hasAutoAddCategories = false;
       categorySelectionDiv.style.display = "block";
-      categoryDropdown.disabled = false;
-      stationDropdown.disabled = true;
+      categoryDropdown.disabled = true;
+      selectedCategories = [];
+      selectedStationEntries = [];
+      renderSelectedCategories();
+      renderSelectedStations();
       showCategoryOptionsOnUI();
-      showStationOptionsOnUI(ALL_CATEGORIES);
-      showStationsOnMapUI(ALL_CATEGORIES);
+      return;
     }
-  });
 
-  addCategoryBtn.addEventListener("click", function() {
-    const currentCategory = categoryDropdown.value;
-    const graphConfig = getSelectedGraphConfig();
+    hasAutoAddCategories = false;
+    categorySelectionDiv.style.display = "block";
+    categoryDropdown.disabled = !selectedStations.length;
+    const availableCategories = new Set(getAvailableCategoriesForStations());
+    selectedCategories = selectedCategories.filter(category => availableCategories.has(category));
 
-    if (!graphConfig || !currentCategory) return;
+    if (graphConfig.number_of_stations_allow !== "All" && selectedStations.length > graphConfig.number_of_stations_allow) {
+      selectedStations = selectedStations.slice(0, graphConfig.number_of_stations_allow);
+      showAlert(oneStationOnlyAlert);
+    }
 
     if (
       graphConfig.number_of_categories_allow !== "All" &&
-      selectedCategories.length >= graphConfig.number_of_categories_allow
+      selectedCategories.length > graphConfig.number_of_categories_allow
     ) {
+      selectedCategories = selectedCategories.slice(0, graphConfig.number_of_categories_allow);
       showAlert(oneCategoryOnlyAlert);
-      return;
     }
 
-    if (!selectedCategories.includes(currentCategory)) {
-      selectedCategories.push(currentCategory);
-      renderSelectedCategories();
-      stationDropdown.disabled = false;
-      showStationOptionsOnUI("Current Categories Selected");
-      showStationsOnMapUI("Current Categories Selected");
-    }
+    showStationOptionsOnUI(ALL_CATEGORIES);
+    showCategoryOptionsOnUI();
+    rebuildSelectedStationEntries();
+    renderSelectedCategories();
+    renderSelectedStations();
+  };
+
+  graphOptionsDropdown.addEventListener("change", handleGraphTypeChange);
+  graphOptionsDropdown.addEventListener("input", handleGraphTypeChange);
+
+  stationDropdown.addEventListener("change", () => {
+    const selectedStation = getCurrentBuilderStationName();
+    if (!selectedStation || selectedStation.toLowerCase().startsWith("select ")) return;
+    handleAddStationSelection();
   });
 
-addStationBtn.addEventListener("click", function() {
-  const currentStation = (stationDropdown.value || "").trim();
-  const graphConfig = getSelectedGraphConfig();
+  addCategoryBtn.addEventListener("click", handleAddCategorySelection);
 
-  if (!graphConfig) {
-    showAlert(document.getElementById("no-graph-type-alert"));
-    return;
-  }
-
-  if (!currentStation) {
-    showAlert(document.getElementById("no-station-alert"));
-    return;
-  }
-
-  if (hasAutoAddCategories) {
-    addAllCategoriesForStation(currentStation);
-  }
-
-  const uniqueStationCount = new Set(
-    selectedStationEntries.map(entry => entry.station_name)
-  ).size;
-
-  const stationAlreadyExists = selectedStationEntries.some(
-    entry => entry.station_name === currentStation
-  );
-
-  if (
-    graphConfig.number_of_stations_allow !== "All" &&
-    uniqueStationCount >= graphConfig.number_of_stations_allow &&
-    !stationAlreadyExists
-  ) {
-    showAlert(oneStationOnlyAlert);
-    return;
-  }
-
-  const categoriesToUse = [...selectedCategories];
-
-  if (!categoriesToUse.length) {
-    showAlert(document.getElementById("no-category-alert"));
-    return;
-  }
-
-  let addedAnything = false;
-
-  categoriesToUse.forEach(categoryName => {
-    const detail = getCategoryDateRange(categoryName, currentStation);
-
-    if (!detail) {
-      console.log("No matching data found for:", categoryName, currentStation);
-      return;
-    }
-
-    const duplicate = selectedStationEntries.some(
-      entry =>
-        entry.station_name === currentStation &&
-        entry.category_name === categoryName
-    );
-
-    if (!duplicate) {
-      selectedStationEntries.push({
-        station_name: currentStation,
-        category_name: categoryName,
-        start_date: formatDateToDDMMYYYY(detail.start_date),
-        end_date: formatDateToDDMMYYYY(detail.end_date)
-      });
-
-      addedAnything = true;
-    }
-  });
-
-  if (!addedAnything) {
-    showAlert(document.getElementById("station-no-data-alert"));
-    return;
-  }
-
-  renderSelectedStations();
-  updateBuilderSummary();
-});
+  addStationBtn.addEventListener("click", handleAddStationSelection);
 
   addToDashboardBtn.addEventListener("click", function() {
     if (!selectedGraphOption || !selectedStationEntries.length || !selectedCategories.length) {

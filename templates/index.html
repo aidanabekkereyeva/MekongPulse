@@ -232,7 +232,21 @@
         </div>
 
         <div class="form-card">
-          <p class="form-step-label">Step 1 — Choose Type</p>
+          <p class="form-step-label">Step 1 &mdash; Choose Station</p>
+          <div class="form-row" id="station-dropdown">
+            <div class="form-group">
+              <label class="menu-title" for="stations-select">Stations</label>
+              <div class="control-row">
+                <select id="stations-select" class="dropdown"></select>
+                <button type="button" id="add-station-btn" class="action-add-btn">Add Station</button>
+              </div>
+              <p class="helper-text">Choose a station, then click "Add Station".</p>
+              <div class="selected-stations"></div>
+              <p class="warning-alert" id="one-station-only-alert">Only one station is allowed for this visualization type.</p>
+            </div>
+          </div>
+
+          <p class="form-step-label">Step 2 &mdash; Choose Type</p>
           <div class="form-row">
             <div class="form-group">
               <label class="menu-title" for="options-select">Visualization Type</label>
@@ -241,35 +255,22 @@
             </div>
           </div>
 
-          <p class="form-step-label">Step 2 — Configure Data</p>
+          <p class="form-step-label">Step 3 &mdash; Choose Categories</p>
           <div class="form-row" id="category-selection-div">
             <div class="form-group">
               <label class="menu-title" for="categories-select">Categories</label>
-             <div class="control-row">
-  <select id="categories-select" class="dropdown"></select>
-  <button type="button" id="add-category-btn" class="action-add-btn">Add Category</button>
-</div>
-<p class="helper-text">Choose a category, then click “Add Category”.</p>
+              <div class="control-row">
+                <select id="categories-select" class="dropdown"></select>
+                <button type="button" id="add-category-btn" class="action-add-btn">Add Category</button>
+              </div>
+              <p class="helper-text">Choose a category, then click "Add Category".</p>
               <div class="selected-categories"></div>
               <p class="warning-alert" id="one-category-only-alert">Only one category is allowed for this visualization type.</p>
             </div>
           </div>
 
-          <div class=”form-row” id=”station-dropdown”>
-            <div class=”form-group”>
-              <label class=”menu-title” for=”stations-select”>Stations</label>
-              <div class=”control-row”>
-  <select id=”stations-select” class=”dropdown”></select>
-  <button type=”button” id=”add-station-btn” class=”action-add-btn”>Add Station</button>
-</div>
-<p class=”helper-text”>Choose a station, then click “Add Station”.</p>
-              <div class=”selected-stations”></div>
-              <p class=”warning-alert” id=”one-station-only-alert”>Only one station is allowed for this visualization type.</p>
-            </div>
-          </div>
-
-          <p class=”form-step-label”>Step 3 — Review &amp; Generate</p>
-          <div class=”builder-summary”>
+          <p class="form-step-label">Step 4 &mdash; Review &amp; Generate</p>
+          <div class="builder-summary">
             <div class="summary-box">
               <p class="card-label">Selected graph</p>
               <p id="selected-graph-preview">No graph selected yet</p>
