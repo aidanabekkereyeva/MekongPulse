@@ -380,6 +380,8 @@ function displayGraphRequirementsForAnalyze(graphName) {
 }
 
 function setSectionVisible(section) {
+  collapseExpandedMap();
+
   [overviewSection, builderSection, dashboardSection, aboutSection, predictionSection, analyzeSection, correlationSection, seasonalSection, exportSection, datasetOverviewSection, researchSection].forEach(sec => {
     if (!sec) return;
     sec.classList.add("hidden");
@@ -389,6 +391,22 @@ function setSectionVisible(section) {
     section.classList.remove("hidden");
     section.scrollIntoView({ behavior: "smooth", block: "start" });
   }
+}
+
+function collapseExpandedMap() {
+  const mapView = document.getElementById('map-view');
+  const expandBtn = document.getElementById('map-expand-btn');
+  if (!mapView || !mapView.classList.contains('map-expanded')) return;
+
+  mapView.classList.remove('map-expanded');
+  if (expandBtn) {
+    expandBtn.setAttribute('title', 'Click to expand map to fullscreen');
+  }
+
+  setTimeout(() => {
+    map?.invalidateSize();
+    if (stationMarkers.length) fitMapToStations();
+  }, 0);
 }
 
 function updateBuilderSummary() {
