@@ -8,7 +8,10 @@
       "Bash(pip show:*)",
       "Bash(python -c \"from dotenv import load_dotenv; load_dotenv\\(\\); from services.analysis_ai import _gemini_generate, gemini_available; print\\('gemini_available:', gemini_available\\(\\)\\)\")",
       "Bash(python -c ':*)",
-      "Bash(python3)"
+      "Bash(python3)",
+      "Bash(ls c:/Users/Aidan/Desktop/mekongpulse/*.py)",
+      "Bash(python -c \"import app\")",
+      "Bash(timeout 5 python app.py)"
     ]
   }
 }

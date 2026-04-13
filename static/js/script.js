@@ -1,5 +1,5 @@
-const STATION_DETAILS_CSV_LINK = "../static/data-outputs/station_details.csv";
-const CATEGORY_DETAILS_CSV_LINK = "../static/data-outputs/category_details.csv";
+const STATION_DETAILS_CSV_LINK = "/static/data-outputs/station_details.csv";
+const CATEGORY_DETAILS_CSV_LINK = "/static/data-outputs/category_details.csv";
 const ALL_CATEGORIES = "All Categories";
 const TILE_LIGHT = "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
 const TILE_DARK  = "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
@@ -1380,12 +1380,58 @@ function applyCountryHighlight(country) {
   if (clearBtn) clearBtn.style.display = country ? 'block' : 'none';
 }
 
+function getMapFilterCountries() {
+  const countries = new Set();
+
+  Object.keys(COUNTRY_COLORS || {}).forEach(country => {
+    if (country) countries.add(country);
+  });
+
+  Object.values(stationDetailsMap || {}).forEach(station => {
+    if (station?.country) countries.add(station.country);
+  });
+
+  return Array.from(countries).sort((a, b) => a.localeCompare(b));
+}
+
+function syncMapCountryFilterOptions() {
+  const filterSelect = document.getElementById('map-country-filter');
+  if (!filterSelect) return;
+
+  const countries = getMapFilterCountries();
+  if (!countries.length) return;
+
+  const selectedValue = filterSelect.value;
+  filterSelect.innerHTML = '<option value="">All Countries</option>';
+
+  countries.forEach(country => {
+    const opt = document.createElement('option');
+    opt.value = country;
+    opt.textContent = country;
+    filterSelect.appendChild(opt);
+  });
+
+  filterSelect.value = countries.includes(selectedValue) ? selectedValue : '';
+}
+
+function renderInitialMapStations() {
+  const filterSelect = document.getElementById('map-country-filter');
+  activeCountryFilter = '';
+  if (filterSelect) filterSelect.value = '';
+
+  showStationsOnMapUI(ALL_CATEGORIES);
+
+  if (!map) return;
+
+  map.invalidateSize();
+  if (stationMarkers.length) fitMapToStations();
+}
+
 function buildMapLegend() {
   const legend = document.getElementById('map-legend');
-  const filterSelect = document.getElementById('map-country-filter');
   if (!legend) return;
 
-  const entries = Object.entries(COUNTRY_COLORS);
+  const entries = getMapFilterCountries().map(country => [country, getCountryColor(country)]);
 
   const countByCountry = {};
   Object.values(stationDetailsMap).forEach(s => {
@@ -1416,14 +1462,7 @@ function buildMapLegend() {
     applyCountryHighlight(null);
   });
 
-  if (filterSelect) {
-    entries.forEach(([country]) => {
-      const opt = document.createElement('option');
-      opt.value = country;
-      opt.textContent = country;
-      filterSelect.appendChild(opt);
-    });
-  }
+  syncMapCountryFilterOptions();
 }
 
 function fitMapToStations() {
@@ -1444,10 +1483,13 @@ function showStationsOnMapUI(mode) {
 
   const addedStations = new Set();
 
-  const addMarkerForStation = (stationName) => {
-    const station = stationDetailsMap[stationName];
+  const addMarkerForStation = (stationOrName) => {
+    const station = typeof stationOrName === 'string'
+      ? stationDetailsMap[stationOrName]
+      : stationOrName;
+
     if (!station || isNaN(station.latitude) || isNaN(station.longitude)) return;
-    if (addedStations.has(stationName)) return;
+    if (addedStations.has(station.station_name)) return;
     if (activeCountryFilter && station.country !== activeCountryFilter) return;
 
     const color = getCountryColor(station.country);
@@ -1491,13 +1533,11 @@ function showStationsOnMapUI(mode) {
 
     markerClusterGroup.addLayer(marker);
     stationMarkers.push(marker);
-    addedStations.add(stationName);
+    addedStations.add(station.station_name);
   };
 
   if (mode === ALL_CATEGORIES) {
-    Object.values(categoryDetailsMap).forEach(rows => {
-      rows.forEach(row => addMarkerForStation(row.station_name));
-    });
+    Object.values(stationDetailsMap).forEach(addMarkerForStation);
     return;
   }
 
@@ -2565,7 +2605,7 @@ function initializeMap() {
     zoomControl: false
   }).setView([16.5, 103.5], 7);
 
-  L.control.zoom({ position: 'bottomright' }).addTo(map);
+  L.control.zoom({ position: 'topright' }).addTo(map);
 
   const bounds = L.latLngBounds(L.latLng(-10, 40), L.latLng(50, 155));
   map.setMaxBounds(bounds);
@@ -2579,6 +2619,9 @@ function initializeMap() {
     subdomains: "abcd",
     maxZoom: 18
   }).addTo(map);
+  currentTileLayer.once('load', () => {
+    setTimeout(renderInitialMapStations, 0);
+  });
 
   // Plain layer group — no clustering, all stations visible at once
   markerClusterGroup = L.layerGroup();
@@ -2615,6 +2658,10 @@ function initializeMap() {
   document.getElementById("map-country-filter")?.addEventListener("change", function() {
     activeCountryFilter = this.value;
     showStationsOnMapUI(currentMapMode);
+  });
+
+  map.whenReady(() => {
+    setTimeout(renderInitialMapStations, 0);
   });
 }
 
@@ -5267,6 +5314,18 @@ function setupResearchLabEvents() {
 // INIT
 // ------------------------------
 document.addEventListener("DOMContentLoaded", async function() {
+  // Populate country filter immediately from hardcoded constant — no data loading needed
+  syncMapCountryFilterOptions();
+
+  // Bind navigation and chrome events immediately — must never be blocked by data loading
+  setupNavigation();
+  setupModalEvents();
+  setupSidebarToggle();
+  setupThemeToggle();
+  setupMapExpandButton();
+  setupUndoToast();
+
+  // Load CSV data, then initialise all data-dependent UI
   try {
     await Promise.all([loadCSVStationDetails(), loadCSVCategoryDetails(), loadMLStationMap()]);
 
@@ -5274,28 +5333,25 @@ document.addEventListener("DOMContentLoaded", async function() {
     showGraphOptionsOnUI();
     showCategoryOptionsOnUI();
     showStationOptionsOnUI(ALL_CATEGORIES);
-    showStationsOnMapUI(ALL_CATEGORIES);
+    renderInitialMapStations();
+    requestAnimationFrame(renderInitialMapStations);
+    window.addEventListener('load', renderInitialMapStations, { once: true });
+    setTimeout(renderInitialMapStations, 250);
 
     updateOverviewStats();
     updateBuilderSummary();
     updateVisualizationQueueUI();
 
-    setupNavigation();
     setupBuilderEvents();
-    setupModalEvents();
     populatePredictionDropdowns();
     setupPredictionEvents();
     setupCorrelationEvents();
     setupSeasonalEvents();
     setupExportEvents();
     setupResearchLabEvents();
-    setupSidebarToggle();
-    setupThemeToggle();
-    setupMapExpandButton();
     setupAiAnalysis();
     setupAnalyzeEvents();
-    setupUndoToast();
   } catch (error) {
-    console.error("Initialization error:", error);
+    console.error("Data loading error:", error);
   }
 });

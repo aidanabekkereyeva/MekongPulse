@@ -273,9 +273,41 @@ def _build_dataset_overview_source():
 # ------------------------------
 # ROUTES
 # ------------------------------
+def _compute_overview_stats():
+    """Compute header stat-chip values from the loaded DataRepository."""
+    station_count = len(_repo.station_index)
+    countries = {m.get("country") for m in _repo.station_index.values() if m.get("country")}
+    country_count = len(countries)
+    features = {
+        feat
+        for m in _repo.station_index.values()
+        for feat in m.get("features", [])
+    }
+    category_count = len(features)
+
+    all_dates = []
+    for m in _repo.station_index.values():
+        for detail in m.get("feature_details", {}).values():
+            if detail.get("start_date"): all_dates.append(detail["start_date"])
+            if detail.get("end_date"):   all_dates.append(detail["end_date"])
+    if all_dates:
+        all_dates.sort()
+        date_range = f"{all_dates[0][:4]} – {all_dates[-1][:4]}"
+    else:
+        date_range = "--"
+
+    return dict(
+        station_count=station_count,
+        country_count=country_count,
+        category_count=category_count,
+        date_range=date_range,
+        countries=sorted(countries),
+    )
+
+
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('index.html', **_compute_overview_stats())
 
 
 @app.route('/api/coverage')
