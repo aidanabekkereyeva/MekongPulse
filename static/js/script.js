@@ -4393,7 +4393,7 @@ function updateCorrelationOverlap() {
   const overlapPreview = document.getElementById('corr-overlap-preview');
   const focusPreview = document.getElementById('corr-focus-preview');
 
-  if (!station || !categoryA || !categoryB || categoryA === categoryB) {
+  if (!station) {
     if (startEl) startEl.value = '';
     if (endEl) endEl.value = '';
     if (overlapPreview) overlapPreview.textContent = 'Select a station and two different variables';
@@ -4401,19 +4401,35 @@ function updateCorrelationOverlap() {
     return;
   }
 
-  const overlap = getCorrelationOverlap(station, categoryA, categoryB);
-  if (!overlap) {
-    if (startEl) startEl.value = '';
-    if (endEl) endEl.value = '';
-    if (overlapPreview) overlapPreview.textContent = 'No overlapping date range found';
+  // Determine the best date range we can show given current selections
+  const refCategory = categoryA || categoryB;
+  let dateRange = null;
+
+  if (categoryA && categoryB && categoryA !== categoryB) {
+    // Both different — compute true overlap
+    dateRange = getCorrelationOverlap(station, categoryA, categoryB);
+    if (overlapPreview) overlapPreview.textContent = dateRange
+      ? `${formatDateToDDMMYYYY(dateRange.start_date)} to ${formatDateToDDMMYYYY(dateRange.end_date)}`
+      : 'No overlapping date range found';
+    if (focusPreview) focusPreview.textContent = `${categoryA} against ${categoryB} at ${station}`;
+  } else if (refCategory) {
+    // Same variable in both slots, or only one chosen — use that variable's range
+    dateRange = getCategoryDateRange(refCategory, station);
+    if (overlapPreview) overlapPreview.textContent = 'Select two different variables for correlation';
+    if (focusPreview) focusPreview.textContent = 'Correlation structure, seasonal co-movement, and lag behavior';
   } else {
-    if (startEl) startEl.value = formatDateToDDMMYYYY(overlap.start_date);
-    if (endEl) endEl.value = formatDateToDDMMYYYY(overlap.end_date);
-    if (overlapPreview) overlapPreview.textContent = `${formatDateToDDMMYYYY(overlap.start_date)} to ${formatDateToDDMMYYYY(overlap.end_date)}`;
+    // No category selected yet — use widest range for this station
+    dateRange = getCategoryDateRange('', station);
+    if (overlapPreview) overlapPreview.textContent = 'Select a station and two different variables';
+    if (focusPreview) focusPreview.textContent = 'Correlation structure, seasonal co-movement, and lag behavior';
   }
 
-  if (focusPreview) {
-    focusPreview.textContent = `${categoryA} against ${categoryB} at ${station}`;
+  if (dateRange) {
+    if (startEl) startEl.value = formatDateToDDMMYYYY(dateRange.start_date);
+    if (endEl) endEl.value = formatDateToDDMMYYYY(dateRange.end_date);
+  } else {
+    if (startEl) startEl.value = '';
+    if (endEl) endEl.value = '';
   }
 }
 
