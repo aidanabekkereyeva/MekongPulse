@@ -81,14 +81,22 @@ def normalize_series(series: pd.Series) -> pd.Series:
 
 def apply_clean_layout(fig, title: str, yaxis_title: str = "Value", xaxis_title: str = "Date"):
     fig.update_layout(
-        title={"text": title, "x": 0.5, "xanchor": "center", "font": dict(size=20, color="#1f2d3d")},
+        title={"text": title, "x": 0.5, "xanchor": "center", "y": 0.98, "yanchor": "top", "font": dict(size=16, color="#1f2d3d")},
         template="plotly_white",
         paper_bgcolor="white",
         plot_bgcolor="white",
-        margin=dict(l=50, r=30, t=80, b=50),
+        margin=dict(l=50, r=100, t=60, b=50),
         font=dict(family="Segoe UI, Arial, sans-serif", size=12, color="#223142"),
         hovermode="x unified",
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        legend=dict(
+            orientation="v",
+            yanchor="top", y=1,
+            xanchor="left", x=1.01,
+            font=dict(size=10),
+            bgcolor="rgba(255,255,255,0.8)",
+            bordercolor="#e2e8f0",
+            borderwidth=1,
+        ),
         xaxis=dict(title=xaxis_title, showline=True, linecolor="#9fb3c8", showgrid=True, gridcolor="#e7edf3", tickformat="%Y"),
         yaxis=dict(title=yaxis_title, showline=True, linecolor="#9fb3c8", showgrid=True, gridcolor="#e7edf3"),
     )
