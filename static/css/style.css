@@ -1583,19 +1583,25 @@ button {
   padding: 0 16px;
   min-height: 36px;
   font-size: var(--text-sm);
-  font-weight: 500;
+  font-weight: 600;
   background: transparent;
-  color: var(--text-secondary);
-  border: 1.5px solid var(--border);
+  color: var(--accent);
+  border: 1.5px solid var(--accent);
   border-radius: var(--radius-btn);
   cursor: pointer;
-  transition: border-color 0.15s ease, color 0.15s ease;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
 }
 
 .save-viz-btn:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-  background: transparent;
+  background: var(--accent);
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(224, 123, 48, 0.25);
+}
+
+.save-viz-btn:active {
+  transform: translateY(0);
+  box-shadow: none;
 }
 
 /* ===== OVERVIEW CARDS ===== */
@@ -4595,6 +4601,7 @@ input.dropdown {
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: 24px;
+  margin-top: 28px;
   margin-bottom: 32px;
 }
 
