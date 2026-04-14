@@ -233,6 +233,20 @@ const exportSection       = document.querySelector(".export-section");
 const datasetOverviewSection = document.querySelector(".dataset-overview-section");
 const researchSection     = document.querySelector(".research-section");
 
+const SECTION_TITLES = new Map([
+  [overviewSection,        "Overview"],
+  [builderSection,         "Visualization Builder"],
+  [dashboardSection,       "Dashboard"],
+  [predictionSection,      "Prediction"],
+  [analyzeSection,         "Analyze"],
+  [correlationSection,     "Correlation"],
+  [seasonalSection,        "Seasonal"],
+  [exportSection,          "Export"],
+  [datasetOverviewSection, "Dataset Overview"],
+  [researchSection,        "Research Lab"],
+  [aboutSection,           "About"],
+]);
+
 // ------------------------------
 // HELPERS
 // ------------------------------
@@ -511,11 +525,16 @@ function setSectionVisible(section) {
   [overviewSection, builderSection, dashboardSection, aboutSection, predictionSection, analyzeSection, correlationSection, seasonalSection, exportSection, datasetOverviewSection, researchSection].forEach(sec => {
     if (!sec) return;
     sec.classList.add("hidden");
+    sec.classList.remove("section-entering");
   });
 
   if (section) {
     section.classList.remove("hidden");
+    void section.offsetWidth; // force reflow to re-trigger animation
+    section.classList.add("section-entering");
     section.scrollIntoView({ behavior: "smooth", block: "start" });
+    const title = SECTION_TITLES.get(section) || "Overview";
+    document.title = `MekongPulse \u00b7 ${title}`;
   }
 }
 
@@ -548,8 +567,29 @@ function updateBuilderSummary() {
 function updateInsightAndCoverage(summary) {
   if (!summary) return;
 
-  // KPI cards
-  const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val ?? "--"; };
+  // KPI cards — animate numeric values from 0 to target
+  function animateCounter(el, rawVal) {
+    if (!el) return;
+    const str = String(rawVal ?? "--");
+    const match = str.match(/^([\d,]+\.?\d*)(.*)$/);
+    if (!match) { el.textContent = str; return; }
+    const numStr = match[1].replace(/,/g, "");
+    const suffix = match[2] || "";
+    const target = parseFloat(numStr);
+    if (isNaN(target)) { el.textContent = str; return; }
+    const decimals = numStr.includes(".") ? (numStr.split(".")[1] || "").length : 0;
+    const duration = 650;
+    const startTime = performance.now();
+    function step(now) {
+      const p = Math.min((now - startTime) / duration, 1);
+      const eased = 1 - Math.pow(1 - p, 3);
+      const current = target * eased;
+      el.textContent = (decimals > 0 ? current.toFixed(decimals) : Math.round(current).toLocaleString()) + suffix;
+      if (p < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+  const set = (id, val) => animateCounter(document.getElementById(id), val);
   set("kpi-mean",    summary.mean    ?? "--");
   set("kpi-max",     summary.max     ?? "--");
   set("kpi-min",     summary.min     ?? "--");
@@ -1230,6 +1270,17 @@ function renderCharts(charts) {
       badge.classList.remove("hidden");
     } else {
       badge.classList.add("hidden");
+    }
+  }
+
+  // Sync sidebar nav badge
+  const navBadge = document.getElementById("nav-dashboard-badge");
+  if (navBadge) {
+    if (charts && charts.length) {
+      navBadge.textContent = charts.length;
+      navBadge.classList.remove("hidden");
+    } else {
+      navBadge.classList.add("hidden");
     }
   }
 
@@ -5433,6 +5484,7 @@ document.addEventListener("DOMContentLoaded", async function() {
   setupThemeToggle();
   setupMapExpandButton();
   setupUndoToast();
+  setupShortcuts();
 
   // Load CSV data, then initialise all data-dependent UI
   try {
@@ -5464,3 +5516,47 @@ document.addEventListener("DOMContentLoaded", async function() {
     console.error("Data loading error:", error);
   }
 });
+
+// ------------------------------
+// KEYBOARD SHORTCUTS
+// ------------------------------
+function setupShortcuts() {
+  const modal    = document.getElementById("shortcuts-modal");
+  const closeBtn = document.getElementById("shortcuts-close");
+  const trigger  = document.getElementById("shortcuts-trigger");
+
+  function open()  { modal?.classList.remove("hidden"); }
+  function close() { modal?.classList.add("hidden"); }
+  function toggle(){ modal?.classList.toggle("hidden"); }
+
+  trigger?.addEventListener("click", toggle);
+  closeBtn?.addEventListener("click", close);
+  modal?.addEventListener("click", e => { if (e.target === modal) close(); });
+
+  const NAV_KEYS = [
+    [overviewSection,        ".user-guide-icon"],
+    [builderSection,         ".custom-visualization-setup-icon"],
+    [dashboardSection,       ".visualization-dashboard-icon"],
+    [predictionSection,      ".prediction-icon"],
+    [analyzeSection,         ".analyze-section-icon"],
+    [correlationSection,     ".correlation-icon"],
+    [seasonalSection,        ".seasonal-icon"],
+    [exportSection,          ".export-icon"],
+  ];
+
+  document.addEventListener("keydown", e => {
+    if (e.target.tagName === "INPUT" || e.target.tagName === "SELECT" || e.target.tagName === "TEXTAREA") return;
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+    if (e.key === "?") { e.preventDefault(); toggle(); return; }
+    if (e.key === "Escape") { close(); return; }
+
+    const idx = parseInt(e.key, 10) - 1;
+    if (idx >= 0 && idx < NAV_KEYS.length) {
+      e.preventDefault();
+      const [section, selector] = NAV_KEYS[idx];
+      setSectionVisible(section);
+      setActiveNav(selector);
+    }
+  });
+}

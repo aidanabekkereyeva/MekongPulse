@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mekong Pulse</title>
+  <title>MekongPulse · Overview</title>
+  <link rel="icon" href="../static/img/logo.svg" type="image/svg+xml">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -51,7 +52,7 @@
           <div class="nav-item visualization-dashboard-icon" data-label="Visualization Dashboard">
             <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
             <span>Visualization Dashboard</span>
-            <span class="nav-dot"></span>
+            <span class="nav-badge hidden" id="nav-dashboard-badge">0</span>
           </div>
           <div class="nav-item prediction-icon" data-label="Prediction">
             <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
@@ -112,10 +113,12 @@
           <span class="theme-toggle-label">Dark Mode</span>
         </button>
         <div class="sidebar-meta">
-          <span class="sidebar-version">v1.0</span>
-          <a href="#" class="sidebar-docs-link" title="Documentation">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-          </a>
+          <span class="sidebar-version">v1.0 · 2025</span>
+          <div class="sidebar-meta-actions">
+            <button class="sidebar-icon-btn" id="shortcuts-trigger" title="Keyboard shortcuts (?)">
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </button>
+          </div>
         </div>
       </div>
     </aside>
@@ -258,7 +261,7 @@
         </div>
 
         <div class="form-card">
-          <p class="form-step-label">Step 1 &mdash; Choose Station</p>
+          <p class="form-step-label">Choose Station</p>
           <div class="form-row" id="station-dropdown">
             <div class="form-group">
               <label class="menu-title" for="stations-select">Stations</label>
@@ -272,7 +275,7 @@
             </div>
           </div>
 
-          <p class="form-step-label">Step 2 &mdash; Choose Type</p>
+          <p class="form-step-label">Choose Type</p>
           <div class="form-row">
             <div class="form-group">
               <label class="menu-title" for="options-select">Visualization Type</label>
@@ -281,7 +284,7 @@
             </div>
           </div>
 
-          <p class="form-step-label">Step 3 &mdash; Choose Categories</p>
+          <p class="form-step-label">Choose Categories</p>
           <div class="form-row" id="category-selection-div">
             <div class="form-group">
               <label class="menu-title" for="categories-select">Categories</label>
@@ -295,7 +298,7 @@
             </div>
           </div>
 
-          <p class="form-step-label">Step 4 &mdash; Review &amp; Generate</p>
+          <p class="form-step-label">Review &amp; Generate</p>
           <div class="builder-summary">
             <div class="summary-box">
               <p class="card-label">Selected graph</p>
@@ -515,7 +518,13 @@
                 </tr>
               </thead>
               <tbody id="ranking-table-body">
-                <tr><td colspan="5">Generate a visualization to load ranking results.</td></tr>
+                <tr class="ranking-empty-row"><td colspan="5">
+                  <div class="empty-state">
+                    <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 16l4-4 4 4 4-4"/></svg>
+                    <p class="empty-state-title">No ranking data yet</p>
+                    <p class="empty-state-desc">Generate a visualization first — station rankings will populate automatically.</p>
+                  </div>
+                </td></tr>
               </tbody>
             </table>
           </div>
@@ -1169,7 +1178,14 @@
               <p>Interactive decade by station grid coloured by completeness percentage, with filters and a click-to-expand side panel.</p>
             </div>
             <div id="datasetCoverageApp" class="dataset-app-shell">
-              <div class="loading-placeholder">Loading coverage heatmap...</div>
+              <div class="skel-wrap">
+                <div class="skel skel-title"></div>
+                <div class="skel skel-subtitle"></div>
+                <div class="skel skel-body"></div>
+                <div class="skel skel-row"></div>
+                <div class="skel skel-row skel-w80"></div>
+                <div class="skel skel-row skel-w90"></div>
+              </div>
             </div>
           </section>
 
@@ -1182,7 +1198,13 @@
               <p>Sortable station-by-variable matrix coloured by data density, with minimum-years filtering and station-variable popups.</p>
             </div>
             <div id="datasetAvailabilityApp" class="dataset-app-shell">
-              <div class="loading-placeholder">Loading availability matrix...</div>
+              <div class="skel-wrap">
+                <div class="skel skel-title"></div>
+                <div class="skel skel-subtitle"></div>
+                <div class="skel skel-body skel-body-sm"></div>
+                <div class="skel skel-row"></div>
+                <div class="skel skel-row skel-w90"></div>
+              </div>
             </div>
           </section>
 
@@ -1195,7 +1217,15 @@
               <p>Searchable, sortable station inventory with expandable rows, miniature sparklines, completeness badges, and analysis shortcuts.</p>
             </div>
             <div id="datasetStationExplorerApp" class="dataset-app-shell">
-              <div class="loading-placeholder">Loading station explorer...</div>
+              <div class="skel-wrap">
+                <div class="skel skel-title"></div>
+                <div class="skel skel-subtitle"></div>
+                <div class="skel skel-table-head"></div>
+                <div class="skel skel-row"></div>
+                <div class="skel skel-row"></div>
+                <div class="skel skel-row skel-w90"></div>
+                <div class="skel skel-row skel-w95"></div>
+              </div>
             </div>
           </section>
 
@@ -1208,7 +1238,14 @@
               <p>Source disclosure, preprocessing timeline, known limitations, and analytical suitability guidance in one place.</p>
             </div>
             <div id="datasetProvenanceApp" class="dataset-app-shell">
-              <div class="loading-placeholder">Loading provenance disclosure...</div>
+              <div class="skel-wrap">
+                <div class="skel skel-title"></div>
+                <div class="skel skel-text-line"></div>
+                <div class="skel skel-text-line skel-w80"></div>
+                <div class="skel skel-text-line skel-w90"></div>
+                <div class="skel skel-text-line skel-w70" style="margin-top:16px;"></div>
+                <div class="skel skel-text-line skel-w85"></div>
+              </div>
             </div>
           </section>
         </div>
@@ -1735,6 +1772,36 @@
     <span id="undo-toast-text">Visualization deleted</span>
     <button id="undo-restore-btn" class="undo-restore-btn">Undo</button>
     <div class="undo-progress-bar"><div id="undo-progress-fill" class="undo-progress-fill"></div></div>
+  </div>
+
+  <!-- Keyboard Shortcuts Modal -->
+  <div id="shortcuts-modal" class="shortcuts-modal hidden" role="dialog" aria-modal="true" aria-label="Keyboard shortcuts">
+    <div class="shortcuts-card">
+      <div class="shortcuts-header">
+        <span class="shortcuts-title">Keyboard Shortcuts</span>
+        <button class="shortcuts-close" id="shortcuts-close" aria-label="Close">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="shortcuts-body">
+        <div class="shortcuts-group">
+          <p class="shortcuts-group-label">Navigate</p>
+          <div class="shortcut-row"><kbd>1</kbd><span>Overview</span></div>
+          <div class="shortcut-row"><kbd>2</kbd><span>Visualization Builder</span></div>
+          <div class="shortcut-row"><kbd>3</kbd><span>Dashboard</span></div>
+          <div class="shortcut-row"><kbd>4</kbd><span>Prediction</span></div>
+          <div class="shortcut-row"><kbd>5</kbd><span>Analyze</span></div>
+          <div class="shortcut-row"><kbd>6</kbd><span>Correlation</span></div>
+          <div class="shortcut-row"><kbd>7</kbd><span>Seasonal</span></div>
+          <div class="shortcut-row"><kbd>8</kbd><span>Export</span></div>
+        </div>
+        <div class="shortcuts-group">
+          <p class="shortcuts-group-label">Interface</p>
+          <div class="shortcut-row"><kbd>?</kbd><span>Toggle this panel</span></div>
+          <div class="shortcut-row"><kbd>Esc</kbd><span>Close modal</span></div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script src="../static/js/script.js"></script>
