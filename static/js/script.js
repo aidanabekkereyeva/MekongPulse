@@ -232,6 +232,7 @@ const seasonalSection     = document.querySelector(".seasonal-section");
 const exportSection       = document.querySelector(".export-section");
 const datasetOverviewSection = document.querySelector(".dataset-overview-section");
 const researchSection     = document.querySelector(".research-section");
+const newsSection         = document.querySelector(".news-section");
 
 const SECTION_TITLES = new Map([
   [overviewSection,        "Overview"],
@@ -244,6 +245,7 @@ const SECTION_TITLES = new Map([
   [exportSection,          "Export"],
   [datasetOverviewSection, "Dataset Overview"],
   [researchSection,        "Research Lab"],
+  [newsSection,            "News"],
   [aboutSection,           "About"],
 ]);
 
@@ -522,7 +524,7 @@ function handleAddStationSelection() {
 function setSectionVisible(section) {
   collapseExpandedMap();
 
-  [overviewSection, builderSection, dashboardSection, aboutSection, predictionSection, analyzeSection, correlationSection, seasonalSection, exportSection, datasetOverviewSection, researchSection].forEach(sec => {
+  [overviewSection, builderSection, dashboardSection, aboutSection, predictionSection, analyzeSection, correlationSection, seasonalSection, exportSection, datasetOverviewSection, researchSection, newsSection].forEach(sec => {
     if (!sec) return;
     sec.classList.add("hidden");
     sec.classList.remove("section-entering");
@@ -2929,6 +2931,7 @@ function setupNavigation() {
   bindSectionTriggers(".dataset-overview-icon", datasetOverviewSection, () => generateAndDisplayDatasetOverview());
   bindSectionTriggers(".research-icon", researchSection);
   bindSectionTriggers(".about-us-icon", aboutSection);
+  bindSectionTriggers(".news-icon", newsSection, () => loadNewsSection());
 }
 
 function setupBuilderEvents() {
@@ -5528,6 +5531,8 @@ document.addEventListener("DOMContentLoaded", async function() {
     setupResearchLabEvents();
     setupAiAnalysis();
     setupAnalyzeEvents();
+    setupNewsEvents();
+    setupNewsDetailPanel();
   } catch (error) {
     console.error("Data loading error:", error);
   }
@@ -5573,6 +5578,321 @@ function setupShortcuts() {
       const [section, selector] = NAV_KEYS[idx];
       setSectionVisible(section);
       setActiveNav(selector);
+    }
+  });
+}
+
+
+// ==============================
+// NEWS MODULE
+// ==============================
+
+let _newsLoaded = false;
+let _newsFloodFilter = false;
+let _newsArticles = [];
+
+function loadNewsSection(forceRefresh) {
+  if (_newsLoaded && !forceRefresh) return;
+  _showNewsState("loading");
+  fetch("/api/news?limit=10")
+    .then(r => r.json())
+    .then(data => {
+      if (data.error) throw new Error(data.error);
+      _newsArticles = data.articles || [];
+      _newsLoaded = true;
+      _updateNewsMeta(data.last_sync, data.total_stored);
+      _renderNewsArticles(_newsArticles);
+    })
+    .catch(err => {
+      console.error("[News] Load error:", err);
+      _showNewsState("error", err.message || "Failed to load news.");
+    });
+}
+
+function _updateNewsMeta(lastSync, totalStored) {
+  const syncLabel = document.getElementById("news-last-sync-label");
+  const countLabel = document.getElementById("news-count-label");
+  if (syncLabel) {
+    if (lastSync) {
+      const d = new Date(lastSync);
+      syncLabel.textContent = "Last synced: " + d.toLocaleString();
+    } else {
+      syncLabel.textContent = "Not yet synced — click Refresh";
+    }
+  }
+  if (countLabel) {
+    countLabel.textContent = totalStored ? totalStored + " articles stored" : "";
+  }
+}
+
+function _showNewsState(state, message) {
+  const loading = document.getElementById("news-loading");
+  const error   = document.getElementById("news-error");
+  const empty   = document.getElementById("news-empty");
+  const grid    = document.getElementById("news-grid");
+  const errMsg  = document.getElementById("news-error-msg");
+
+  [loading, error, empty, grid].forEach(el => el && el.classList.add("hidden"));
+  if (state === "loading" && loading) loading.classList.remove("hidden");
+  if (state === "error") {
+    if (error) error.classList.remove("hidden");
+    if (errMsg && message) errMsg.textContent = message;
+  }
+  if (state === "empty" && empty) empty.classList.remove("hidden");
+  if (state === "articles" && grid) grid.classList.remove("hidden");
+}
+
+function _formatRelativeDate(isoString) {
+  if (!isoString) return "";
+  const now = new Date();
+  const then = new Date(isoString);
+  const diffMs = now - then;
+  const diffMins = Math.floor(diffMs / 60000);
+  if (diffMins < 60) return diffMins <= 1 ? "Just now" : diffMins + "m ago";
+  const diffHrs = Math.floor(diffMins / 60);
+  if (diffHrs < 24) return diffHrs + "h ago";
+  const diffDays = Math.floor(diffHrs / 24);
+  if (diffDays < 7) return diffDays + "d ago";
+  return then.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
+
+function _renderNewsArticles(articles) {
+  const grid = document.getElementById("news-grid");
+  if (!grid) return;
+
+  const filtered = _newsFloodFilter ? articles.filter(a => a.is_flood_related) : articles;
+
+  if (!filtered.length) {
+    _showNewsState("empty");
+    return;
+  }
+
+  _showNewsState("articles");
+  grid.innerHTML = filtered.map(a => _buildArticleCard(a)).join("");
+}
+
+function _buildArticleCard(a) {
+  const tags = (a.tags || []).slice(0, 4).map(t =>
+    `<span class="news-tag">${_escHtml(t)}</span>`
+  ).join("");
+
+  const floodBadge = a.is_flood_related
+    ? `<span class="news-flood-badge">Flood</span>`
+    : "";
+
+  const imgHtml = a.image_url
+    ? `<div class="news-card-img-wrap"><img class="news-card-img" src="${_escHtml(a.image_url)}" alt="" loading="lazy" onerror="this.parentElement.style.display='none'"/></div>`
+    : "";
+
+  const region = a.country_or_region
+    ? `<span class="news-card-region">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        ${_escHtml(a.country_or_region)}
+       </span>`
+    : "";
+
+  const score = a.relevance_score ? Math.round(a.relevance_score * 100) : null;
+  const scoreBadge = score !== null
+    ? `<span class="news-relevance-badge" title="AI relevance score">${score}%</span>`
+    : "";
+
+  const articleDataAttr = `data-article-id="${_escHtml(a.id)}"`;
+
+  return `
+  <article class="news-card" ${articleDataAttr} role="button" tabindex="0" title="Click to read details">
+    ${imgHtml}
+    <div class="news-card-body">
+      <div class="news-card-meta">
+        <span class="news-source">${_escHtml(a.source_name || "Unknown source")}</span>
+        <span class="news-date">${_formatRelativeDate(a.published_at)}</span>
+        ${floodBadge}
+        ${scoreBadge}
+      </div>
+      <h3 class="news-card-title">${_escHtml(a.title)}</h3>
+      ${a.summary ? `<p class="news-card-summary">${_escHtml(a.summary)}</p>` : ""}
+      <div class="news-card-footer">
+        <div class="news-tag-row">${tags}</div>
+        <div class="news-card-actions">
+          ${region}
+          <span class="news-read-link">
+            Details
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </span>
+        </div>
+      </div>
+    </div>
+  </article>`;
+}
+
+function _escHtml(str) {
+  if (!str) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function setupNewsEvents() {
+  // Filter buttons
+  document.querySelectorAll(".news-filter-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".news-filter-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      _newsFloodFilter = btn.dataset.filter === "flood";
+      _renderNewsArticles(_newsArticles);
+    });
+  });
+
+  // Refresh button — calls sync endpoint then reloads
+  const refreshBtn = document.getElementById("news-refresh-btn");
+  if (refreshBtn) {
+    refreshBtn.addEventListener("click", () => {
+      refreshBtn.disabled = true;
+      refreshBtn.textContent = "Syncing…";
+      _showNewsState("loading");
+
+      fetch("/api/news/sync", { method: "POST" })
+        .then(r => r.json())
+        .then(data => {
+          if (data.error) throw new Error(data.error);
+          // Reload articles after sync
+          return fetch("/api/news?limit=10").then(r => r.json());
+        })
+        .then(data => {
+          if (data.error) throw new Error(data.error);
+          _newsArticles = data.articles || [];
+          _newsLoaded = true;
+          _updateNewsMeta(data.last_sync, data.total_stored);
+          _renderNewsArticles(_newsArticles);
+        })
+        .catch(err => {
+          console.error("[News] Refresh error:", err);
+          _showNewsState("error", err.message || "Sync failed.");
+        })
+        .finally(() => {
+          refreshBtn.disabled = false;
+          refreshBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> Refresh`;
+        });
+    });
+  }
+}
+
+// ==============================
+// NEWS DETAIL PANEL
+// ==============================
+
+const _ndpPanel    = document.getElementById("news-detail-panel");
+const _ndpBackdrop = document.getElementById("news-detail-backdrop");
+
+function _openArticleDetail(article) {
+  if (!_ndpPanel) return;
+
+  // Hero image
+  const imgWrap = document.getElementById("ndp-img-wrap");
+  const imgEl   = document.getElementById("ndp-img");
+  if (article.image_url) {
+    imgEl.src = article.image_url;
+    imgEl.alt = article.title || "";
+    imgWrap.classList.remove("hidden");
+  } else {
+    imgWrap.classList.add("hidden");
+    imgEl.src = "";
+  }
+
+  // Populate fields
+  document.getElementById("ndp-source").textContent  = article.source_name || "";
+  document.getElementById("ndp-date").textContent    = _formatRelativeDate(article.published_at);
+  document.getElementById("ndp-title").textContent   = article.title || "";
+  document.getElementById("ndp-summary").textContent = article.summary || "";
+  document.getElementById("ndp-snippet").textContent = article.content_snippet || "";
+
+  const floodBadge = document.getElementById("ndp-flood-badge");
+  floodBadge.classList.toggle("hidden", !article.is_flood_related);
+
+  const topicEl = document.getElementById("ndp-topic");
+  topicEl.textContent = article.topic || "";
+  topicEl.style.display = article.topic ? "" : "none";
+
+  const regionEl = document.getElementById("ndp-region");
+  if (article.country_or_region) {
+    regionEl.textContent = article.country_or_region;
+    regionEl.style.display = "";
+  } else {
+    regionEl.style.display = "none";
+  }
+
+  const scoreEl = document.getElementById("ndp-score");
+  if (article.relevance_score) {
+    scoreEl.textContent = Math.round(article.relevance_score * 100) + "% relevant";
+    scoreEl.style.display = "";
+  } else {
+    scoreEl.style.display = "none";
+  }
+
+  // Tags
+  const tagsEl = document.getElementById("ndp-tags");
+  tagsEl.innerHTML = (article.tags || []).map(t =>
+    `<span class="news-tag">${_escHtml(t)}</span>`
+  ).join("");
+
+  // Hide summary/snippet sections if empty
+  document.getElementById("ndp-summary-wrap").style.display = article.summary ? "" : "none";
+  document.getElementById("ndp-snippet-wrap").style.display = article.content_snippet ? "" : "none";
+
+  // External link
+  const linkEl = document.getElementById("ndp-link");
+  linkEl.href = article.article_url || "#";
+
+  // Show panel + backdrop
+  _ndpBackdrop.classList.remove("hidden");
+  _ndpPanel.classList.remove("hidden");
+  requestAnimationFrame(() => {
+    _ndpPanel.classList.add("news-detail-open");
+    _ndpBackdrop.classList.add("news-detail-open");
+  });
+  document.getElementById("news-detail-close")?.focus();
+}
+
+function _closeArticleDetail() {
+  if (!_ndpPanel) return;
+  _ndpPanel.classList.remove("news-detail-open");
+  _ndpBackdrop.classList.remove("news-detail-open");
+  setTimeout(() => {
+    _ndpPanel.classList.add("hidden");
+    _ndpBackdrop.classList.add("hidden");
+  }, 280);
+}
+
+function setupNewsDetailPanel() {
+  document.getElementById("news-detail-close")?.addEventListener("click", _closeArticleDetail);
+  _ndpBackdrop?.addEventListener("click", _closeArticleDetail);
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape" && _ndpPanel && !_ndpPanel.classList.contains("hidden")) {
+      _closeArticleDetail();
+    }
+  });
+
+  // Delegate click on article cards
+  document.getElementById("news-grid")?.addEventListener("click", e => {
+    const card = e.target.closest("[data-article-id]");
+    if (!card) return;
+    // Don't intercept the "Open Full Article" link inside the detail panel
+    if (e.target.closest("#ndp-link")) return;
+    const articleId = card.dataset.articleId;
+    const article = _newsArticles.find(a => a.id === articleId);
+    if (article) _openArticleDetail(article);
+  });
+
+  document.getElementById("news-grid")?.addEventListener("keydown", e => {
+    if (e.key === "Enter" || e.key === " ") {
+      const card = e.target.closest("[data-article-id]");
+      if (card) {
+        e.preventDefault();
+        const article = _newsArticles.find(a => a.id === card.dataset.articleId);
+        if (article) _openArticleDetail(article);
+      }
     }
   });
 }

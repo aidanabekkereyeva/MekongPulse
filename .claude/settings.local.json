@@ -11,7 +11,14 @@
       "Bash(python3)",
       "Bash(ls c:/Users/Aidan/Desktop/mekongpulse/*.py)",
       "Bash(python -c \"import app\")",
-      "Bash(timeout 5 python app.py)"
+      "Bash(timeout 5 python app.py)",
+      "Bash(xargs wc *)",
+      "Bash(grep -r \"jwt\\\\|session\\\\|auth\\\\|login\\\\|password\" /c/Users/Aidan/Desktop/mekongpulse/*.py)",
+      "Bash(git -C /c/Users/Aidan/Desktop/mekongpulse log --oneline)",
+      "Bash(python -c ' *)",
+      "Bash(python scripts/seed_news.py)",
+      "Bash(python -c \"import ast; ast.parse\\(open\\('services/news_service.py'\\).read\\(\\)\\); print\\('OK'\\)\")",
+      "WebSearch"
     ]
   }
 }

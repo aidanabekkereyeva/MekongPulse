@@ -13,6 +13,7 @@ from visualization import generate_visualizations_with_summary
 from services.analysis_ai import _gemini_generate, gemini_available, gemini_generate_safe
 from services import ml_prediction_service
 from services import seasonal_service
+from services import news_service
 
 app = Flask(__name__)
 
@@ -81,6 +82,7 @@ visualization.repo = _repo
 ml_prediction_service.repo = _repo
 seasonal_service.repo = _repo
 generate_static_csvs(_repo)
+news_service.start_background_sync()
 print("[startup] Ready.")
 
 
@@ -1255,6 +1257,50 @@ def generate_forecast_diagnostics():
     except Exception as e:
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
+
+
+# ──────────────────────────────────────────────
+# NEWS ENDPOINTS
+# ──────────────────────────────────────────────
+
+@app.route('/api/news', methods=['GET'])
+def api_news_list():
+    """Return the latest news articles, optionally filtered."""
+    try:
+        limit = min(int(request.args.get('limit', 10)), 50)
+        flood_only = request.args.get('flood_related', '').lower() == 'true'
+        tag = request.args.get('tag') or None
+        articles = news_service.get_articles(limit=limit, flood_only=flood_only, tag=tag)
+        status = news_service.get_sync_status()
+        return jsonify({
+            'articles': articles,
+            'count': len(articles),
+            'last_sync': status['last_sync'],
+            'total_stored': status['total_articles'],
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/news/sync', methods=['POST'])
+def api_news_sync():
+    """Manually trigger a news sync (idempotent)."""
+    import traceback
+    try:
+        result = news_service.sync_news(force=True)
+        return jsonify({'status': 'ok', **result})
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/news/<article_id>', methods=['GET'])
+def api_news_item(article_id):
+    """Return a single news article by its id."""
+    article = news_service.get_article_by_id(article_id)
+    if article is None:
+        return jsonify({'error': 'Not found'}), 404
+    return jsonify(article)
 
 
 if __name__ == '__main__':
