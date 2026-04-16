@@ -5590,6 +5590,7 @@ function setupShortcuts() {
 let _newsLoaded = false;
 let _newsFloodFilter = false;
 let _newsArticles = [];
+let _newsFallbackImages = [];
 
 function loadNewsSection(forceRefresh) {
   if (_newsLoaded && !forceRefresh) return;
@@ -5599,6 +5600,7 @@ function loadNewsSection(forceRefresh) {
     .then(data => {
       if (data.error) throw new Error(data.error);
       _newsArticles = data.articles || [];
+      if (data.fallback_images && data.fallback_images.length) _newsFallbackImages = data.fallback_images;
       _newsLoaded = true;
       _updateNewsMeta(data.last_sync, data.total_stored);
       _renderNewsArticles(_newsArticles);
@@ -5671,8 +5673,87 @@ function _renderNewsArticles(articles) {
   grid.innerHTML = filtered.map(a => _buildArticleCard(a)).join("");
 }
 
+function _placeholderVariant(a) {
+  if (a.is_flood_related) return "ncp--flood";
+  const allTags = (a.tags || []).join(" ").toLowerCase();
+  if (/dam|hydro|reservoir|salinity|drought/.test(allTags)) return "ncp--hydro";
+  return "";
+}
+
+// Pick a Mekong fallback image URL for an article (consistent per article ID).
+function _pickFallback(a) {
+  if (!_newsFallbackImages.length) return null;
+  const hash = (a.id || "x").split("").reduce((s, c) => s + c.charCodeAt(0), 0);
+  return _newsFallbackImages[hash % _newsFallbackImages.length];
+}
+
+// CSS-only placeholder (used when even the fallback photo fails to load).
+function _buildCssPlaceholder(a) {
+  const variant = _placeholderVariant(a);
+  const initial = _escHtml((a.source_name || "M").charAt(0).toUpperCase());
+  const topic   = _escHtml(a.topic || "Mekong River");
+  return `
+    <div class="news-card-img-placeholder ${variant}">
+      <svg class="ncp-waves" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 80" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M0,45 C60,15 130,70 200,42 S310,12 400,45 V80 H0Z" fill="rgba(255,255,255,0.09)"/>
+        <path d="M0,60 C90,32 190,78 290,54 C360,36 390,62 400,60 V80 H0Z" fill="rgba(255,255,255,0.06)"/>
+        <path d="M0,72 C110,50 220,80 340,65 C375,58 395,70 400,72 V80 H0Z" fill="rgba(255,255,255,0.04)"/>
+      </svg>
+      <div class="ncp-bar">
+        <span class="ncp-initial">${initial}</span>
+        <span class="ncp-topic">${topic}</span>
+      </div>
+    </div>`;
+}
+
+// Main placeholder builder: uses a real Mekong photo when available.
+function _buildPlaceholder(a) {
+  const fallbackUrl = _pickFallback(a);
+  if (fallbackUrl) {
+    // Real Mekong photo — if it fails to load, drop to CSS-only placeholder.
+    const cssHtml = _buildCssPlaceholder(a).replace(/`/g, "\\`").replace(/'/g, "\\'");
+    return `<div class="news-card-img-wrap"
+                 data-source="${_escHtml(a.source_name || '')}"
+                 data-topic="${_escHtml(a.topic || 'Mekong River')}"
+                 data-flood="${a.is_flood_related}"
+                 data-tags="${_escHtml((a.tags||[]).join(','))}"
+                 data-is-fallback="true">
+               <img class="news-card-img" src="${_escHtml(fallbackUrl)}" alt="Mekong River" loading="lazy"
+                    onerror="_newsFallbackImgError(this)"/>
+             </div>`;
+  }
+  return _buildCssPlaceholder(a);
+}
+
+// Called when a real article image fails — try a Mekong fallback photo first.
+function _newsImgError(el) {
+  const wrap = el.closest(".news-card-img-wrap");
+  if (!wrap) return;
+  const a = {
+    id:               wrap.dataset.id    || "",
+    source_name:      wrap.dataset.source || "",
+    topic:            wrap.dataset.topic  || "Mekong River",
+    is_flood_related: wrap.dataset.flood === "true",
+    tags:             (wrap.dataset.tags || "").split(",").filter(Boolean),
+  };
+  wrap.outerHTML = _buildPlaceholder(a);
+}
+
+// Called when a Mekong fallback photo itself fails — drop to CSS-only design.
+function _newsFallbackImgError(el) {
+  const wrap = el.closest(".news-card-img-wrap");
+  if (!wrap) return;
+  const a = {
+    source_name:     wrap.dataset.source || "",
+    topic:           wrap.dataset.topic  || "Mekong River",
+    is_flood_related: wrap.dataset.flood === "true",
+    tags:            (wrap.dataset.tags || "").split(",").filter(Boolean),
+  };
+  wrap.outerHTML = _buildCssPlaceholder(a);
+}
+
 function _buildArticleCard(a) {
-  const tags = (a.tags || []).slice(0, 4).map(t =>
+  const tags = (a.tags || []).slice(0, 3).map(t =>
     `<span class="news-tag">${_escHtml(t)}</span>`
   ).join("");
 
@@ -5681,15 +5762,16 @@ function _buildArticleCard(a) {
     : "";
 
   const imgHtml = a.image_url
-    ? `<div class="news-card-img-wrap"><img class="news-card-img" src="${_escHtml(a.image_url)}" alt="" loading="lazy" onerror="this.parentElement.style.display='none'"/></div>`
-    : "";
-
-  const region = a.country_or_region
-    ? `<span class="news-card-region">
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-        ${_escHtml(a.country_or_region)}
-       </span>`
-    : "";
+    ? `<div class="news-card-img-wrap"
+           data-id="${_escHtml(a.id)}"
+           data-source="${_escHtml(a.source_name || '')}"
+           data-topic="${_escHtml(a.topic || 'Mekong River')}"
+           data-flood="${a.is_flood_related}"
+           data-tags="${_escHtml((a.tags||[]).join(','))}">
+         <img class="news-card-img" src="${_escHtml(a.image_url)}" alt="" loading="lazy"
+              onerror="_newsImgError(this)"/>
+       </div>`
+    : _buildPlaceholder(a);
 
   const score = a.relevance_score ? Math.round(a.relevance_score * 100) : null;
   const scoreBadge = score !== null
@@ -5711,13 +5793,16 @@ function _buildArticleCard(a) {
       <h3 class="news-card-title">${_escHtml(a.title)}</h3>
       ${a.summary ? `<p class="news-card-summary">${_escHtml(a.summary)}</p>` : ""}
       <div class="news-card-footer">
-        <div class="news-tag-row">${tags}</div>
+        ${tags ? `<div class="news-tag-row">${tags}</div>` : ""}
         <div class="news-card-actions">
-          ${region}
           <span class="news-read-link">
             Details
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
           </span>
+          ${a.article_url ? `<a class="news-card-ext-link" href="${_escHtml(a.article_url)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+            Read article
+          </a>` : ""}
         </div>
       </div>
     </div>
@@ -5745,35 +5830,78 @@ function setupNewsEvents() {
     });
   });
 
-  // Refresh button — calls sync endpoint then reloads
+  // Refresh button — triggers background sync, shows current articles immediately,
+  // then polls until the sync finishes and refreshes the feed.
   const refreshBtn = document.getElementById("news-refresh-btn");
   if (refreshBtn) {
     refreshBtn.addEventListener("click", () => {
       refreshBtn.disabled = true;
-      refreshBtn.textContent = "Syncing…";
-      _showNewsState("loading");
 
+      // Animated label while sync runs in background
+      let dotCount = 0;
+      let labelIdx = 0;
+      const dotLabels = ["Fetching feeds", "Filtering articles", "Running AI", "Saving results"];
+      const _setLabel = () => {
+        dotCount = (dotCount + 1) % 4;
+        const dots = ".".repeat(dotCount + 1);
+        refreshBtn.textContent = dotLabels[Math.min(labelIdx, dotLabels.length - 1)] + dots;
+      };
+      _setLabel();
+      const _dotTimer = setInterval(() => {
+        dotCount++;
+        if (dotCount % 8 === 0) labelIdx = Math.min(labelIdx + 1, dotLabels.length - 1);
+        _setLabel();
+      }, 600);
+
+      const _resetBtn = () => {
+        clearInterval(_dotTimer);
+        refreshBtn.disabled = false;
+        refreshBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> Refresh`;
+      };
+
+      const _applyArticles = (data) => {
+        _newsArticles = data.articles || [];
+        if (data.fallback_images && data.fallback_images.length) _newsFallbackImages = data.fallback_images;
+        _newsLoaded = true;
+        _updateNewsMeta(data.last_sync, data.total_stored);
+        _renderNewsArticles(_newsArticles);
+      };
+
+      // Poll /api/news every 3 s until syncing is false (max 30 attempts = 90 s)
+      const _pollUntilDone = (attemptsLeft) => {
+        if (attemptsLeft <= 0) { _resetBtn(); return; }
+        setTimeout(() => {
+          fetch("/api/news?limit=10")
+            .then(r => r.json())
+            .then(data => {
+              if (data.error) throw new Error(data.error);
+              _applyArticles(data);
+              if (data.syncing) {
+                labelIdx = Math.min(labelIdx + 1, dotLabels.length - 1);
+                _pollUntilDone(attemptsLeft - 1);
+              } else {
+                _resetBtn();
+              }
+            })
+            .catch(() => _resetBtn());
+        }, 3000);
+      };
+
+      // Fire the sync (returns immediately with current cached articles)
+      if (!_newsArticles.length) _showNewsState("loading");
       fetch("/api/news/sync", { method: "POST" })
         .then(r => r.json())
         .then(data => {
           if (data.error) throw new Error(data.error);
-          // Reload articles after sync
-          return fetch("/api/news?limit=10").then(r => r.json());
-        })
-        .then(data => {
-          if (data.error) throw new Error(data.error);
-          _newsArticles = data.articles || [];
-          _newsLoaded = true;
-          _updateNewsMeta(data.last_sync, data.total_stored);
-          _renderNewsArticles(_newsArticles);
+          // Show current articles right away (no waiting for AI)
+          _applyArticles(data);
+          // Then poll until background sync finishes
+          _pollUntilDone(30);
         })
         .catch(err => {
           console.error("[News] Refresh error:", err);
-          _showNewsState("error", err.message || "Sync failed.");
-        })
-        .finally(() => {
-          refreshBtn.disabled = false;
-          refreshBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> Refresh`;
+          if (!_newsArticles.length) _showNewsState("error", err.message || "Sync failed.");
+          _resetBtn();
         });
     });
   }
@@ -5806,7 +5934,6 @@ function _openArticleDetail(article) {
   document.getElementById("ndp-date").textContent    = _formatRelativeDate(article.published_at);
   document.getElementById("ndp-title").textContent   = article.title || "";
   document.getElementById("ndp-summary").textContent = article.summary || "";
-  document.getElementById("ndp-snippet").textContent = article.content_snippet || "";
 
   const floodBadge = document.getElementById("ndp-flood-badge");
   floodBadge.classList.toggle("hidden", !article.is_flood_related);
@@ -5831,19 +5958,56 @@ function _openArticleDetail(article) {
     scoreEl.style.display = "none";
   }
 
+  // Full reading content — split on double newlines into <p> tags
+  const contentWrap = document.getElementById("ndp-content-wrap");
+  const contentEl   = document.getElementById("ndp-content");
+  const rawContent  = (article.reading_content || "").trim();
+  if (rawContent) {
+    contentEl.innerHTML = rawContent
+      .split(/\n\n+/)
+      .filter(p => p.trim())
+      .map(p => `<p>${_escHtml(p.trim())}</p>`)
+      .join("");
+    contentWrap.classList.remove("hidden");
+  } else {
+    // No cached content — fetch on-demand from the server
+    contentWrap.classList.remove("hidden");
+    contentEl.innerHTML = '<p class="ndp-loading">Loading article content\u2026</p>';
+    fetch(`/api/news/${encodeURIComponent(article.id)}/content`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.content && data.content.trim()) {
+          // Cache on the in-memory article object so re-opens are instant
+          article.reading_content = data.content;
+          contentEl.innerHTML = data.content
+            .split(/\n\n+/)
+            .filter(p => p.trim())
+            .map(p => `<p>${_escHtml(p.trim())}</p>`)
+            .join("");
+        } else {
+          contentWrap.classList.add("hidden");
+          contentEl.innerHTML = "";
+        }
+      })
+      .catch(() => {
+        contentWrap.classList.add("hidden");
+        contentEl.innerHTML = "";
+      });
+  }
+
   // Tags
   const tagsEl = document.getElementById("ndp-tags");
   tagsEl.innerHTML = (article.tags || []).map(t =>
     `<span class="news-tag">${_escHtml(t)}</span>`
   ).join("");
 
-  // Hide summary/snippet sections if empty
+  // Summary section
   document.getElementById("ndp-summary-wrap").style.display = article.summary ? "" : "none";
-  document.getElementById("ndp-snippet-wrap").style.display = article.content_snippet ? "" : "none";
 
-  // External link
+  // External link (subtle footer link)
   const linkEl = document.getElementById("ndp-link");
   linkEl.href = article.article_url || "#";
+  linkEl.innerHTML = `Read full article at ${_escHtml(article.source_name || "source")} <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`;
 
   // Show panel + backdrop
   _ndpBackdrop.classList.remove("hidden");

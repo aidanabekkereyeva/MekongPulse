@@ -5608,6 +5608,90 @@ input.dropdown {
   display: block;
 }
 
+/* ── News card image placeholder ──────────────────────────────────────────── */
+/* Shown when no og:image could be fetched. Three colour variants:            */
+/*   default → teal/blue (general Mekong)                                     */
+/*   ncp--flood → deep navy (flood stories)                                   */
+/*   ncp--hydro → green/teal (hydrology / dam stories)                        */
+
+.news-card-img-placeholder {
+  position: relative;
+  width: 100%;
+  height: 160px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: linear-gradient(145deg, #0e3a55 0%, #1a6690 45%, #128e7e 100%);
+  /* Subtle dot-grid overlay */
+  background-image:
+    radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px),
+    linear-gradient(145deg, #0e3a55 0%, #1a6690 45%, #128e7e 100%);
+  background-size: 20px 20px, 100% 100%;
+}
+
+.news-card-img-placeholder.ncp--flood {
+  background-image:
+    radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px),
+    linear-gradient(145deg, #071f36 0%, #0d3f6e 45%, #0a5e8c 100%);
+  background-size: 20px 20px, 100% 100%;
+}
+
+.news-card-img-placeholder.ncp--hydro {
+  background-image:
+    radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px),
+    linear-gradient(145deg, #0a2e28 0%, #0f5f4e 45%, #1a8a6a 100%);
+  background-size: 20px 20px, 100% 100%;
+}
+
+/* SVG wave layers inside the placeholder */
+.ncp-waves {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 60%;
+  pointer-events: none;
+}
+
+/* Bottom bar: source initial + topic label */
+.ncp-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: linear-gradient(to top, rgba(0,0,0,0.45) 0%, transparent 100%);
+}
+
+.ncp-initial {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.18);
+  border: 1.5px solid rgba(255,255,255,0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+  letter-spacing: 0;
+}
+
+.ncp-topic {
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.8);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* Card body */
 .news-card-body {
   padding: 16px;
@@ -5685,21 +5769,19 @@ input.dropdown {
   color: var(--text-secondary);
   line-height: 1.6;
   margin: 0;
-  flex: 1;
   display: -webkit-box;
-  -webkit-line-clamp: 4;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
 
-/* Card footer: tags + read link */
+/* Card footer: tags row + actions row stacked */
 .news-card-footer {
   display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
+  flex-direction: column;
   gap: 10px;
-  flex-wrap: wrap;
   margin-top: auto;
+  padding-top: 4px;
 }
 
 .news-tag-row {
@@ -5721,16 +5803,8 @@ input.dropdown {
 .news-card-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
-}
-
-.news-card-region {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 11px;
-  color: var(--muted);
+  justify-content: space-between;
+  gap: 8px;
 }
 
 .news-read-link {
@@ -5746,6 +5820,28 @@ input.dropdown {
 
 .news-read-link:hover {
   text-decoration: underline;
+}
+
+.news-card-ext-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  background: transparent;
+  text-decoration: none;
+  flex-shrink: 0;
+  white-space: nowrap;
+  transition: color 0.15s, background 0.15s;
+}
+
+.news-card-ext-link:hover {
+  background: var(--accent);
+  color: #fff;
 }
 
 /* Dark mode */
@@ -5796,7 +5892,7 @@ input.dropdown {
   top: 0;
   right: 0;
   bottom: 0;
-  width: min(480px, 100vw);
+  width: min(640px, 100vw);
   background: var(--panel);
   border-left: 1px solid var(--border);
   z-index: 901;
@@ -5951,18 +6047,78 @@ input.dropdown {
 }
 
 /* Fixed footer with CTA */
+/* Full reading content */
+.news-detail-reading-wrap {
+  margin-top: 4px;
+}
+
+.news-detail-reading {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.news-detail-reading p {
+  font-size: 15px;
+  line-height: 1.8;
+  color: var(--text);
+  margin: 0 0 1.1em 0;
+}
+
+.news-detail-reading p:last-child {
+  margin-bottom: 0;
+}
+
+.news-detail-reading p.ndp-loading {
+  color: var(--text-muted, #8a9bb0);
+  font-style: italic;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.news-detail-reading p.ndp-loading::before {
+  content: "";
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--text-muted, #8a9bb0);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: ndp-spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes ndp-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Footer link */
 .news-detail-footer {
-  padding: 16px 20px;
+  padding: 14px 20px;
   border-top: 1px solid var(--border);
   flex-shrink: 0;
 }
 
-.news-detail-open-btn {
-  width: 100%;
+.news-detail-source-link {
+  display: inline-flex;
+  align-items: center;
   justify-content: center;
   gap: 8px;
-  font-size: 14px;
-  padding: 11px;
+  width: 100%;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--accent);
+  text-decoration: none;
+  transition: opacity 0.15s, background 0.15s;
+}
+
+.news-detail-source-link:hover {
+  opacity: 0.88;
 }
 
 /* Make news cards look clickable */

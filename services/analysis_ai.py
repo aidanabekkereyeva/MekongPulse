@@ -4,9 +4,12 @@ import hashlib
 import json
 import os
 import re
+import threading
 import time
 from pathlib import Path
 from typing import Dict, Optional
+
+_cache_file_lock = threading.Lock()  # prevents concurrent JSON writes
 
 # Models tried in order; if one is rate-limited the next is attempted.
 # Gemini 2.0 Flash models are deprecated; prefer the current 2.5 equivalents.
@@ -40,14 +43,15 @@ def _load_ai_cache() -> Dict[str, str]:
 
 
 def _save_ai_cache(cache: Dict[str, str]) -> None:
-    try:
-        _CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
-        _CACHE_PATH.write_text(
-            json.dumps(cache, ensure_ascii=True, indent=2),
-            encoding="utf-8",
-        )
-    except Exception:
-        pass
+    with _cache_file_lock:
+        try:
+            _CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
+            _CACHE_PATH.write_text(
+                json.dumps(cache, ensure_ascii=True, indent=2),
+                encoding="utf-8",
+            )
+        except Exception:
+            pass
 
 
 def _normalise_md(text: str) -> str:

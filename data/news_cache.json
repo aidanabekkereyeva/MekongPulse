@@ -1,6 +1,65 @@
 {
   "articles": [
     {
+      "id": "cfcc1894b2f112de",
+      "title": "New satellite tools track river flows throughout the Lower Mekong Basin - University of Colorado Boulder",
+      "slug": "new-satellite-tools-track-river-flows-throughout-the-lower-mekong-basin-universi",
+      "source_name": "University of Colorado Boulder",
+      "source_url": "https://www.colorado.edu",
+      "article_url": "https://news.google.com/rss/articles/CBMisAFBVV95cUxOLTJ0dDkzOTNkck85WFUxV2tUOUN4Mk13N3V2SUFMOTRXcC1VNThNbF9PWkx0eEhjRDJXeXpTTlM1UVAycGY4eHZBWnJjdE5LMXRkdjQwR0toU0ZLd3A4NHZRYXdCMTRhT0c4dnJrdXhqWTFNb2Mtb2dFM2FyYlBKSFBLTmRENVY2alR0XzZ2Q2hCZGFkYmRMTUZKS0d4a2dSY3hQeGxUSEIwOTJBWGctTQ?oc=5",
+      "canonical_url": "https://news.google.com/rss/articles/CBMisAFBVV95cUxOLTJ0dDkzOTNkck85WFUxV2tUOUN4Mk13N3V2SUFMOTRXcC1VNThNbF9PWkx0eEhjRDJXeXpTTlM1UVAycGY4eHZBWnJjdE5LMXRkdjQwR0toU0ZLd3A4NHZRYXdCMTRhT0c4dnJrdXhqWTFNb2Mtb2dFM2FyYlBKSFBLTmRENVY2alR0XzZ2Q2hCZGFkYmRMTUZKS0d4a2dSY3hQeGxUSEIwOTJBWGctTQ?oc=5",
+      "image_url": "",
+      "published_at": "2026-04-15T18:49:00+00:00",
+      "summary": "New satellite tools track river flows throughout the Lower Mekong Basin &nbsp;&nbsp; University of Colorado Boulder",
+      "content_snippet": "New satellite tools track river flows throughout the Lower Mekong Basin &nbsp;&nbsp; University of Colorado Boulder",
+      "topic": "Mekong River",
+      "country_or_region": "",
+      "is_flood_related": false,
+      "relevance_score": 0.8,
+      "tags": [
+        "mekong"
+      ],
+      "raw_payload": {
+        "title": "New satellite tools track river flows throughout the Lower Mekong Basin - University of Colorado Boulder",
+        "article_url": "https://news.google.com/rss/articles/CBMisAFBVV95cUxOLTJ0dDkzOTNkck85WFUxV2tUOUN4Mk13N3V2SUFMOTRXcC1VNThNbF9PWkx0eEhjRDJXeXpTTlM1UVAycGY4eHZBWnJjdE5LMXRkdjQwR0toU0ZLd3A4NHZRYXdCMTRhT0c4dnJrdXhqWTFNb2Mtb2dFM2FyYlBKSFBLTmRENVY2alR0XzZ2Q2hCZGFkYmRMTUZKS0d4a2dSY3hQeGxUSEIwOTJBWGctTQ?oc=5",
+        "source_name": "University of Colorado Boulder",
+        "published_at": "2026-04-15T18:49:00+00:00"
+      },
+      "created_at": "2026-04-16T00:12:20.205357+00:00",
+      "updated_at": "2026-04-16T00:12:20.205357+00:00"
+    },
+    {
+      "id": "d06537d2683d8ad3",
+      "title": "Mekong nations mark New Year - The Star",
+      "slug": "mekong-nations-mark-new-year-the-star",
+      "source_name": "The Star",
+      "source_url": "https://www.thestar.com.my",
+      "article_url": "https://news.google.com/rss/articles/CBMilgFBVV95cUxQM3ZBYVhGZlJESDYyN2RVRkktYlhIODNWcHRzdXlEQk5oZUY0UmJLMm50U2pDc3NsTnE4OUQ1Ykg5UWl0R19Ebm51dG9KZHg0ZjZGbmNDcURJLUpwcDRTQkYtd2hobS1CWlNjVW5SSjZkdEc5a3ZVc01OVm9YOF9Tc01reklCcGNhVEI4dUZoRDJfd1lwQlE?oc=5",
+      "canonical_url": "https://news.google.com/rss/articles/CBMilgFBVV95cUxQM3ZBYVhGZlJESDYyN2RVRkktYlhIODNWcHRzdXlEQk5oZUY0UmJLMm50U2pDc3NsTnE4OUQ1Ykg5UWl0R19Ebm51dG9KZHg0ZjZGbmNDcURJLUpwcDRTQkYtd2hobS1CWlNjVW5SSjZkdEc5a3ZVc01OVm9YOF9Tc01reklCcGNhVEI4dUZoRDJfd1lwQlE?oc=5",
+      "image_url": "",
+      "published_at": "2026-04-14T00:06:00+00:00",
+      "summary": "The article discusses Mekong nations celebrating their New Year, a significant cultural event in the region. Such celebrations often coincide with seasonal changes, including monsoon patterns that impact the Mekong River's hydrology. While not directly about water levels or floods, the timing and location of these celebrations are inherently linked to the Mekong basin's environmental cycles.",
+      "content_snippet": "Mekong nations mark New Year &nbsp;&nbsp; The Star",
+      "topic": "Mekong River",
+      "country_or_region": "Thailand, Laos, Cambodia, Vietnam, Myanmar",
+      "is_flood_related": false,
+      "relevance_score": 0.75,
+      "tags": [
+        "mekong river",
+        "new year",
+        "southeast asia",
+        "cultural event"
+      ],
+      "raw_payload": {
+        "title": "Mekong nations mark New Year - The Star",
+        "article_url": "https://news.google.com/rss/articles/CBMilgFBVV95cUxQM3ZBYVhGZlJESDYyN2RVRkktYlhIODNWcHRzdXlEQk5oZUY0UmJLMm50U2pDc3NsTnE4OUQ1Ykg5UWl0R19Ebm51dG9KZHg0ZjZGbmNDcURJLUpwcDRTQkYtd2hobS1CWlNjVW5SSjZkdEc5a3ZVc01OVm9YOF9Tc01reklCcGNhVEI4dUZoRDJfd1lwQlE?oc=5",
+        "source_name": "The Star",
+        "published_at": "2026-04-14T00:06:00+00:00"
+      },
+      "created_at": "2026-04-16T00:16:25.907694+00:00",
+      "updated_at": "2026-04-16T00:16:25.907694+00:00"
+    },
+    {
       "id": "e9062daff2e56cb8",
       "title": "Engineering the Mekong: How Upstream Dams are Reshaping Cambodia’s Flooded Forest - Stimson Center",
       "slug": "engineering-the-mekong-how-upstream-dams-are-reshaping-cambodia-s-flooded-forest",
@@ -60,6 +119,35 @@
       },
       "created_at": "2026-04-15T13:20:11.475492+00:00",
       "updated_at": "2026-04-15T13:20:11.475492+00:00"
+    },
+    {
+      "id": "38e029919dbbc1fb",
+      "title": "Mekong nations mark new year in high spirits despite surging fuel costs - The Star",
+      "slug": "mekong-nations-mark-new-year-in-high-spirits-despite-surging-fuel-costs-the-star",
+      "source_name": "The Star",
+      "source_url": "https://www.thestar.com.my",
+      "article_url": "https://news.google.com/rss/articles/CBMizwFBVV95cUxNUmllbGhpN2ZqUDhCMzdaajZ1aTMyNGE4WTh4bHZNNEh3Y3FCLVNMb05HbTlSRXVNUG90RXNtUzJUY3EtaGRBdkdxNWVVY1lHSWtya1oyWE12LWZfN21XcDhLQktHd21rdlA4cXV1ZjZuc2JidFpmRUJKcnBhbDdFN0Z4OFdZSTd0Ylo1c1BRNEhTRVdycVJMS2UyVkRrRUxOckh0aTA4Mk1WU29OVFFaX3lLdEwxaWFGZjROekVwZHFZdWJtOC1JUEVyZ2QwLVk?oc=5",
+      "canonical_url": "https://news.google.com/rss/articles/CBMizwFBVV95cUxNUmllbGhpN2ZqUDhCMzdaajZ1aTMyNGE4WTh4bHZNNEh3Y3FCLVNMb05HbTlSRXVNUG90RXNtUzJUY3EtaGRBdkdxNWVVY1lHSWtya1oyWE12LWZfN21XcDhLQktHd21rdlA4cXV1ZjZuc2JidFpmRUJKcnBhbDdFN0Z4OFdZSTd0Ylo1c1BRNEhTRVdycVJMS2UyVkRrRUxOckh0aTA4Mk1WU29OVFFaX3lLdEwxaWFGZjROekVwZHFZdWJtOC1JUEVyZ2QwLVk?oc=5",
+      "image_url": "",
+      "published_at": "2026-04-13T05:30:00+00:00",
+      "summary": "Mekong nations mark new year in high spirits despite surging fuel costs &nbsp;&nbsp; The Star",
+      "reading_content": "",
+      "content_snippet": "Mekong nations mark new year in high spirits despite surging fuel costs &nbsp;&nbsp; The Star",
+      "topic": "Mekong River",
+      "country_or_region": "",
+      "is_flood_related": false,
+      "relevance_score": 0.8,
+      "tags": [
+        "mekong"
+      ],
+      "raw_payload": {
+        "title": "Mekong nations mark new year in high spirits despite surging fuel costs - The Star",
+        "article_url": "https://news.google.com/rss/articles/CBMizwFBVV95cUxNUmllbGhpN2ZqUDhCMzdaajZ1aTMyNGE4WTh4bHZNNEh3Y3FCLVNMb05HbTlSRXVNUG90RXNtUzJUY3EtaGRBdkdxNWVVY1lHSWtya1oyWE12LWZfN21XcDhLQktHd21rdlA4cXV1ZjZuc2JidFpmRUJKcnBhbDdFN0Z4OFdZSTd0Ylo1c1BRNEhTRVdycVJMS2UyVkRrRUxOckh0aTA4Mk1WU29OVFFaX3lLdEwxaWFGZjROekVwZHFZdWJtOC1JUEVyZ2QwLVk?oc=5",
+        "source_name": "The Star",
+        "published_at": "2026-04-13T05:30:00+00:00"
+      },
+      "created_at": "2026-04-16T00:57:28.043647+00:00",
+      "updated_at": "2026-04-16T00:57:28.043647+00:00"
     },
     {
       "id": "97dae0ded5ceac0e",
@@ -242,7 +330,8 @@
         "seeded": true
       },
       "created_at": "2026-04-15T13:20:11.475492+00:00",
-      "updated_at": "2026-04-15T13:20:11.475492+00:00"
+      "updated_at": "2026-04-15T13:20:11.475492+00:00",
+      "reading_content": "Vietnam's Mekong Delta, globally renowned as the nation's \"rice bowl,\" is grappling with an increasingly severe and annual environmental crisis: salinity intrusion. Seawater is now pushing deeper inland than ever before, contaminating freshwater sources vital for agriculture and daily life. This recurring phenomenon directly imperils the livelihoods of some 20 million people who depend on the delta's fertile lands and rich aquaculture. Farmers are struggling to cultivate traditional crops like rice, which cannot tolerate elevated salt levels, leading to significant economic losses and threatening the region's food security and long-term economic stability.\n\nThe underlying causes of this escalating salinity are a complex interplay of hydrology and human activity. Naturally, the Mekong River’s immense freshwater discharge during the dry season pushes back the incoming tides, preventing saltwater from penetrating far upstream. However, this natural buffer has been critically weakened. Climate change contributes through rising sea levels, which elevate the baseline water levels in the delta, and altered rainfall patterns that reduce the overall freshwater volume. More critically, the proliferation of large hydropower dams upstream – particularly in China, Laos, and Cambodia – has drastically altered the river's natural flow regimes. These dams retain vast amounts of water, especially during the dry season, thereby diminishing the critical freshwater flush needed to repel the encroaching saltwater.\n\nThis annual environmental hazard underscores a profound need for more robust cross-border water governance across the Mekong Basin. Vietnam, as the lowest riparian nation, bears the brunt of upstream decisions over which it has limited control. The current framework for cooperation, primarily through the Mekong River Commission, often struggles to enforce binding agreements or compel member states to prioritize basin-wide environmental health over national energy or irrigation projects. Addressing salinity intrusion effectively requires an unprecedented level of regional coordination, including transparent data sharing, synchronized dam operations to optimize downstream flows, and significant investments in climate adaptation measures within the delta itself, such as improved irrigation infrastructure and saline-tolerant crop varieties, to safeguard this vital agricultural heartland for generations to come."
     },
     {
       "id": "ff0eef7db4de82da",
@@ -272,6 +361,34 @@
       },
       "created_at": "2026-04-15T12:23:08.032894+00:00",
       "updated_at": "2026-04-15T12:23:08.032894+00:00"
+    },
+    {
+      "id": "da63de59cf9d6a94",
+      "title": "B40 million worth of ketamine seized near Mekong River - Bangkok Post",
+      "slug": "b40-million-worth-of-ketamine-seized-near-mekong-river-bangkok-post",
+      "source_name": "Bangkok Post",
+      "source_url": "https://www.bangkokpost.com",
+      "article_url": "https://news.google.com/rss/articles/CBMiqwFBVV95cUxPam1Gc0pqdUUwUGFMVi02M3VBenVGb3dsQVZ0dHNERnpGblNSVDFoLUpQLXFDWWwwRi16M2laS0lmaXNHMXJsZXR5ZWNqZkdNMDEzMEhNdFB1cFRIbzBrbGNoanJ6NmcxN29nUmpucF9PbThHRU5vXzZrcnQ4bk5jWXd1UFFJVEZfeHk0V19wcWttTHJGOUg3UGt0LXoyb3FfS1dMRktpZTA4QUU?oc=5",
+      "canonical_url": "https://news.google.com/rss/articles/CBMiqwFBVV95cUxPam1Gc0pqdUUwUGFMVi02M3VBenVGb3dsQVZ0dHNERnpGblNSVDFoLUpQLXFDWWwwRi16M2laS0lmaXNHMXJsZXR5ZWNqZkdNMDEzMEhNdFB1cFRIbzBrbGNoanJ6NmcxN29nUmpucF9PbThHRU5vXzZrcnQ4bk5jWXd1UFFJVEZfeHk0V19wcWttTHJGOUg3UGt0LXoyb3FfS1dMRktpZTA4QUU?oc=5",
+      "image_url": "",
+      "published_at": "2026-04-09T08:45:00+00:00",
+      "summary": "B40 million worth of ketamine seized near Mekong River &nbsp;&nbsp; Bangkok Post",
+      "content_snippet": "B40 million worth of ketamine seized near Mekong River &nbsp;&nbsp; Bangkok Post",
+      "topic": "Mekong River",
+      "country_or_region": "",
+      "is_flood_related": false,
+      "relevance_score": 0.8,
+      "tags": [
+        "mekong"
+      ],
+      "raw_payload": {
+        "title": "B40 million worth of ketamine seized near Mekong River - Bangkok Post",
+        "article_url": "https://news.google.com/rss/articles/CBMiqwFBVV95cUxPam1Gc0pqdUUwUGFMVi02M3VBenVGb3dsQVZ0dHNERnpGblNSVDFoLUpQLXFDWWwwRi16M2laS0lmaXNHMXJsZXR5ZWNqZkdNMDEzMEhNdFB1cFRIbzBrbGNoanJ6NmcxN29nUmpucF9PbThHRU5vXzZrcnQ4bk5jWXd1UFFJVEZfeHk0V19wcWttTHJGOUg3UGt0LXoyb3FfS1dMRktpZTA4QUU?oc=5",
+        "source_name": "Bangkok Post",
+        "published_at": "2026-04-09T08:45:00+00:00"
+      },
+      "created_at": "2026-04-16T00:16:25.907694+00:00",
+      "updated_at": "2026-04-16T00:16:25.907694+00:00"
     },
     {
       "id": "e3b4face07c0d299",
@@ -388,6 +505,36 @@
       "updated_at": "2026-04-15T13:20:11.475492+00:00"
     },
     {
+      "id": "8840ea3ad51fcb56",
+      "title": "Vietnam, Cambodia take responsibility for Mekong River - VOV World",
+      "slug": "vietnam-cambodia-take-responsibility-for-mekong-river-vov-world",
+      "source_name": "VOV World",
+      "source_url": "https://vovworld.vn",
+      "article_url": "https://news.google.com/rss/articles/CBMinAFBVV95cUxNdUc4TVBtZUloVnNCSjlmZjZGQkxZdUNlbTdQb1B4UlMxeGtnZVpEeGpPUzJ2Mm9nWk52YnJ0cUlsQ0dvS1NtTl93VEoyZllZVW5obkE1cEF3U0VOSnNHbFNZMDBkMlJ2UVh6RUw3M2t0d2JkRnczSGxjZ1FCdHdDaDFUdkJUMlczLVBWWkJ2WmNBY09FMWdVaGlPcWE?oc=5",
+      "canonical_url": "https://news.google.com/rss/articles/CBMinAFBVV95cUxNdUc4TVBtZUloVnNCSjlmZjZGQkxZdUNlbTdQb1B4UlMxeGtnZVpEeGpPUzJ2Mm9nWk52YnJ0cUlsQ0dvS1NtTl93VEoyZllZVW5obkE1cEF3U0VOSnNHbFNZMDBkMlJ2UVh6RUw3M2t0d2JkRnczSGxjZ1FCdHdDaDFUdkJUMlczLVBWWkJ2WmNBY09FMWdVaGlPcWE?oc=5",
+      "image_url": "",
+      "published_at": "2026-04-01T22:41:23+00:00",
+      "summary": "Vietnam, Cambodia take responsibility for Mekong River &nbsp;&nbsp; VOV World",
+      "content_snippet": "Vietnam, Cambodia take responsibility for Mekong River &nbsp;&nbsp; VOV World",
+      "topic": "Mekong River",
+      "country_or_region": "Vietnam, Cambodia",
+      "is_flood_related": false,
+      "relevance_score": 0.8,
+      "tags": [
+        "mekong",
+        "vietnam",
+        "cambodia"
+      ],
+      "raw_payload": {
+        "title": "Vietnam, Cambodia take responsibility for Mekong River - VOV World",
+        "article_url": "https://news.google.com/rss/articles/CBMinAFBVV95cUxNdUc4TVBtZUloVnNCSjlmZjZGQkxZdUNlbTdQb1B4UlMxeGtnZVpEeGpPUzJ2Mm9nWk52YnJ0cUlsQ0dvS1NtTl93VEoyZllZVW5obkE1cEF3U0VOSnNHbFNZMDBkMlJ2UVh6RUw3M2t0d2JkRnczSGxjZ1FCdHdDaDFUdkJUMlczLVBWWkJ2WmNBY09FMWdVaGlPcWE?oc=5",
+        "source_name": "VOV World",
+        "published_at": "2026-04-01T22:41:23+00:00"
+      },
+      "created_at": "2026-04-16T00:24:06.449169+00:00",
+      "updated_at": "2026-04-16T00:24:06.449169+00:00"
+    },
+    {
       "id": "cf438247da929602",
       "title": "Mekong Delta Faces Increased Saltwater Intrusion in 2024-25 Dry Season",
       "slug": "mekong-delta-faces-increased-saltwater-intrusion-in-2024-25-dry-season",
@@ -415,6 +562,35 @@
       },
       "created_at": "2026-04-15T13:20:11.475492+00:00",
       "updated_at": "2026-04-15T13:20:11.475492+00:00"
+    },
+    {
+      "id": "5104c670211f7afa",
+      "title": "Wild elephant crosses Mekong River into Laos - Bangkok Post",
+      "slug": "wild-elephant-crosses-mekong-river-into-laos-bangkok-post",
+      "source_name": "Bangkok Post",
+      "source_url": "https://www.bangkokpost.com",
+      "article_url": "https://news.google.com/rss/articles/CBMingFBVV95cUxPeEhXTElja0djVFlJUXVMSnlvMERhWUJjcTc2WkxDcVRkaFVtOUpiemo4RUxlazJYbkE4NXNMQUc5bEQ2OWtKbE1RLVhMZHMxUXZ6dDdIRDU4YzBCaVcwWGFiZlVwNi03UGJQaHlsT3lhYm11MHByNEs4TXZZZEVXVjV0Smo2a2lkSGUybVRZYmV2WGFmM19aOU9obEhCUQ?oc=5",
+      "canonical_url": "https://news.google.com/rss/articles/CBMingFBVV95cUxPeEhXTElja0djVFlJUXVMSnlvMERhWUJjcTc2WkxDcVRkaFVtOUpiemo4RUxlazJYbkE4NXNMQUc5bEQ2OWtKbE1RLVhMZHMxUXZ6dDdIRDU4YzBCaVcwWGFiZlVwNi03UGJQaHlsT3lhYm11MHByNEs4TXZZZEVXVjV0Smo2a2lkSGUybVRZYmV2WGFmM19aOU9obEhCUQ?oc=5",
+      "image_url": "",
+      "published_at": "2026-03-30T07:00:00+00:00",
+      "summary": "Wild elephant crosses Mekong River into Laos &nbsp;&nbsp; Bangkok Post",
+      "content_snippet": "Wild elephant crosses Mekong River into Laos &nbsp;&nbsp; Bangkok Post",
+      "topic": "Mekong River",
+      "country_or_region": "Laos",
+      "is_flood_related": false,
+      "relevance_score": 0.8,
+      "tags": [
+        "mekong",
+        "laos"
+      ],
+      "raw_payload": {
+        "title": "Wild elephant crosses Mekong River into Laos - Bangkok Post",
+        "article_url": "https://news.google.com/rss/articles/CBMingFBVV95cUxPeEhXTElja0djVFlJUXVMSnlvMERhWUJjcTc2WkxDcVRkaFVtOUpiemo4RUxlazJYbkE4NXNMQUc5bEQ2OWtKbE1RLVhMZHMxUXZ6dDdIRDU4YzBCaVcwWGFiZlVwNi03UGJQaHlsT3lhYm11MHByNEs4TXZZZEVXVjV0Smo2a2lkSGUybVRZYmV2WGFmM19aOU9obEhCUQ?oc=5",
+        "source_name": "Bangkok Post",
+        "published_at": "2026-03-30T07:00:00+00:00"
+      },
+      "created_at": "2026-04-16T00:20:11.971888+00:00",
+      "updated_at": "2026-04-16T00:20:11.971888+00:00"
     },
     {
       "id": "73decca77de53c04",
@@ -588,6 +764,34 @@
       "updated_at": "2026-04-15T12:23:52.486949+00:00"
     },
     {
+      "id": "0a2a119bf172af3d",
+      "title": "Riviera Travel Announces 2027 Festive, 2028 Mekong and Danube Sailings, Expanding River Cruise Options and Boosting Global Tourism Growth - Travel And Tour World",
+      "slug": "riviera-travel-announces-2027-festive-2028-mekong-and-danube-sailings-expanding",
+      "source_name": "Travel And Tour World",
+      "source_url": "https://www.travelandtourworld.com",
+      "article_url": "https://news.google.com/rss/articles/CBMikgJBVV95cUxOeFg3MS1WR1FXWGNWaGJtYmVGUWN6T2xMOHJQeXJiRURZa29wdHlrb2JXSG1oVzZOYThPTU5mdlJSbFJXbC1VUEc4aDVzVk9YVnktVXVUT2JHQXItUTI1QUJEb24xeWF4UXg5ejNVSUhuWG5hLVYzOE9PTnNaNUVoOHE4QWtmYUF6RkxlVnpBTjZ3RVJLb0xSMVRKcHhveVNBX1Mxa3RsOF9MSGpyNG9FZGpFODhCZzBsbWxPRFdmVnQ4UTVSSDV0amlRdEVxX0ZJa19IYVh3SU9yYmhOU0k0YnNtSHFCNFRzS2N5LXN4U3h5dEtQSkh6MGRXWlRjSFpISjRBZzdDQ0dhbVRKLXc4eXpR?oc=5",
+      "canonical_url": "https://news.google.com/rss/articles/CBMikgJBVV95cUxOeFg3MS1WR1FXWGNWaGJtYmVGUWN6T2xMOHJQeXJiRURZa29wdHlrb2JXSG1oVzZOYThPTU5mdlJSbFJXbC1VUEc4aDVzVk9YVnktVXVUT2JHQXItUTI1QUJEb24xeWF4UXg5ejNVSUhuWG5hLVYzOE9PTnNaNUVoOHE4QWtmYUF6RkxlVnpBTjZ3RVJLb0xSMVRKcHhveVNBX1Mxa3RsOF9MSGpyNG9FZGpFODhCZzBsbWxPRFdmVnQ4UTVSSDV0amlRdEVxX0ZJa19IYVh3SU9yYmhOU0k0YnNtSHFCNFRzS2N5LXN4U3h5dEtQSkh6MGRXWlRjSFpISjRBZzdDQ0dhbVRKLXc4eXpR?oc=5",
+      "image_url": "",
+      "published_at": "2026-03-22T07:00:00+00:00",
+      "summary": "Riviera Travel Announces 2027 Festive, 2028 Mekong and Danube Sailings, Expanding River Cruise Options and Boosting Global Tourism Growth &nbsp;&nbsp; Travel And Tour World",
+      "content_snippet": "Riviera Travel Announces 2027 Festive, 2028 Mekong and Danube Sailings, Expanding River Cruise Options and Boosting Global Tourism Growth &nbsp;&nbsp; Travel And Tour World",
+      "topic": "Mekong River",
+      "country_or_region": "",
+      "is_flood_related": false,
+      "relevance_score": 0.8,
+      "tags": [
+        "mekong"
+      ],
+      "raw_payload": {
+        "title": "Riviera Travel Announces 2027 Festive, 2028 Mekong and Danube Sailings, Expanding River Cruise Options and Boosting Global Tourism Growth - Travel And Tour World",
+        "article_url": "https://news.google.com/rss/articles/CBMikgJBVV95cUxOeFg3MS1WR1FXWGNWaGJtYmVGUWN6T2xMOHJQeXJiRURZa29wdHlrb2JXSG1oVzZOYThPTU5mdlJSbFJXbC1VUEc4aDVzVk9YVnktVXVUT2JHQXItUTI1QUJEb24xeWF4UXg5ejNVSUhuWG5hLVYzOE9PTnNaNUVoOHE4QWtmYUF6RkxlVnpBTjZ3RVJLb0xSMVRKcHhveVNBX1Mxa3RsOF9MSGpyNG9FZGpFODhCZzBsbWxPRFdmVnQ4UTVSSDV0amlRdEVxX0ZJa19IYVh3SU9yYmhOU0k0YnNtSHFCNFRzS2N5LXN4U3h5dEtQSkh6MGRXWlRjSFpISjRBZzdDQ0dhbVRKLXc4eXpR?oc=5",
+        "source_name": "Travel And Tour World",
+        "published_at": "2026-03-22T07:00:00+00:00"
+      },
+      "created_at": "2026-04-16T00:25:34.442186+00:00",
+      "updated_at": "2026-04-16T00:25:34.442186+00:00"
+    },
+    {
       "id": "6f970994709c1a08",
       "title": "The spirit of Vietnam bursts into life along the Mekong - SMH.com.au",
       "slug": "the-spirit-of-vietnam-bursts-into-life-along-the-mekong-smh-com-au",
@@ -674,6 +878,63 @@
       "updated_at": "2026-04-15T13:20:11.475492+00:00"
     },
     {
+      "id": "b322d4f8d3167e85",
+      "title": "Science Ministry Offers Water Management Aid to Mekong Nations - CEO Insights Asia",
+      "slug": "science-ministry-offers-water-management-aid-to-mekong-nations-ceo-insights-asia",
+      "source_name": "CEO Insights Asia",
+      "source_url": "https://www.ceoinsightsasia.com",
+      "article_url": "https://news.google.com/rss/articles/CBMitgFBVV95cUxPSmNWMmJnYVdueGctdG9KMU1wSzM0Qk5XOGFCQ2Q3cUdjNGFhTFBUNnQ4NGxNQ1VNX1BBVkhiQ2NqQUxsVVpmVnBZOG5nUjJiTWxJV2VnTkFZRkFsRGczYV95dHZ4dFo4dkI5dXVLMzdCemZPZy1teGNQdVZWYjJqTHVkeTM2aGduc2ZQWDNhTVVremxzT0NkV2p1Z1lkbTJVYUxzbHlGODhiTEpHeDFXSUZQQV9kQQ?oc=5",
+      "canonical_url": "https://news.google.com/rss/articles/CBMitgFBVV95cUxPSmNWMmJnYVdueGctdG9KMU1wSzM0Qk5XOGFCQ2Q3cUdjNGFhTFBUNnQ4NGxNQ1VNX1BBVkhiQ2NqQUxsVVpmVnBZOG5nUjJiTWxJV2VnTkFZRkFsRGczYV95dHZ4dFo4dkI5dXVLMzdCemZPZy1teGNQdVZWYjJqTHVkeTM2aGduc2ZQWDNhTVVremxzT0NkV2p1Z1lkbTJVYUxzbHlGODhiTEpHeDFXSUZQQV9kQQ?oc=5",
+      "image_url": "",
+      "published_at": "2026-03-16T05:03:52+00:00",
+      "summary": "Science Ministry Offers Water Management Aid to Mekong Nations &nbsp;&nbsp; CEO Insights Asia",
+      "content_snippet": "Science Ministry Offers Water Management Aid to Mekong Nations &nbsp;&nbsp; CEO Insights Asia",
+      "topic": "Mekong River",
+      "country_or_region": "",
+      "is_flood_related": false,
+      "relevance_score": 0.8,
+      "tags": [
+        "mekong"
+      ],
+      "raw_payload": {
+        "title": "Science Ministry Offers Water Management Aid to Mekong Nations - CEO Insights Asia",
+        "article_url": "https://news.google.com/rss/articles/CBMitgFBVV95cUxPSmNWMmJnYVdueGctdG9KMU1wSzM0Qk5XOGFCQ2Q3cUdjNGFhTFBUNnQ4NGxNQ1VNX1BBVkhiQ2NqQUxsVVpmVnBZOG5nUjJiTWxJV2VnTkFZRkFsRGczYV95dHZ4dFo4dkI5dXVLMzdCemZPZy1teGNQdVZWYjJqTHVkeTM2aGduc2ZQWDNhTVVremxzT0NkV2p1Z1lkbTJVYUxzbHlGODhiTEpHeDFXSUZQQV9kQQ?oc=5",
+        "source_name": "CEO Insights Asia",
+        "published_at": "2026-03-16T05:03:52+00:00"
+      },
+      "created_at": "2026-04-16T00:12:20.205357+00:00",
+      "updated_at": "2026-04-16T00:12:20.205357+00:00"
+    },
+    {
+      "id": "1dd81e6476904c37",
+      "title": "A Photo Exhibition Reflect Children’s View of the World and the Reality of People of the Tonle Sap Lake and Mekong River - Cambodianess",
+      "slug": "a-photo-exhibition-reflect-children-s-view-of-the-world-and-the-reality-of-peopl",
+      "source_name": "Cambodianess",
+      "source_url": "https://cambodianess.com",
+      "article_url": "https://news.google.com/rss/articles/CBMi5wFBVV95cUxNOEU4MnBWTVJLWDhfanpPcUxSS29Pay1DUk5MUWpTMzA3bldzWnZhSl9BLXdIT3M3OEpGRm4zaHRyTm1MVkN5Wmt3YkRqc2hIVUc3ZGRqTnlmNGx1T2oyUzFrRUlFSnJUN2NKNzVERTJMYXZoMEdSWVlpcWZiUy11WlB3dlVqb1FXVTUwOTFvekNxaE12X2drbHM4Y0YtRm1CYjEzcXo2WU1yaEM5Y2N2d2VFOVExS2I3QTl6RnVIeHFJOFJTM19xSGZaQnByUnVKb1VQVWUzak5JR2tWUUdqQXVYWV91bkU?oc=5",
+      "canonical_url": "https://news.google.com/rss/articles/CBMi5wFBVV95cUxNOEU4MnBWTVJLWDhfanpPcUxSS29Pay1DUk5MUWpTMzA3bldzWnZhSl9BLXdIT3M3OEpGRm4zaHRyTm1MVkN5Wmt3YkRqc2hIVUc3ZGRqTnlmNGx1T2oyUzFrRUlFSnJUN2NKNzVERTJMYXZoMEdSWVlpcWZiUy11WlB3dlVqb1FXVTUwOTFvekNxaE12X2drbHM4Y0YtRm1CYjEzcXo2WU1yaEM5Y2N2d2VFOVExS2I3QTl6RnVIeHFJOFJTM19xSGZaQnByUnVKb1VQVWUzak5JR2tWUUdqQXVYWV91bkU?oc=5",
+      "image_url": "",
+      "published_at": "2026-03-12T07:00:00+00:00",
+      "summary": "A Photo Exhibition Reflect Children’s View of the World and the Reality of People of the Tonle Sap Lake and Mekong River &nbsp;&nbsp; Cambodianess",
+      "content_snippet": "A Photo Exhibition Reflect Children’s View of the World and the Reality of People of the Tonle Sap Lake and Mekong River &nbsp;&nbsp; Cambodianess",
+      "topic": "Mekong River",
+      "country_or_region": "Cambodia",
+      "is_flood_related": false,
+      "relevance_score": 0.8,
+      "tags": [
+        "mekong",
+        "cambodia"
+      ],
+      "raw_payload": {
+        "title": "A Photo Exhibition Reflect Children’s View of the World and the Reality of People of the Tonle Sap Lake and Mekong River - Cambodianess",
+        "article_url": "https://news.google.com/rss/articles/CBMi5wFBVV95cUxNOEU4MnBWTVJLWDhfanpPcUxSS29Pay1DUk5MUWpTMzA3bldzWnZhSl9BLXdIT3M3OEpGRm4zaHRyTm1MVkN5Wmt3YkRqc2hIVUc3ZGRqTnlmNGx1T2oyUzFrRUlFSnJUN2NKNzVERTJMYXZoMEdSWVlpcWZiUy11WlB3dlVqb1FXVTUwOTFvekNxaE12X2drbHM4Y0YtRm1CYjEzcXo2WU1yaEM5Y2N2d2VFOVExS2I3QTl6RnVIeHFJOFJTM19xSGZaQnByUnVKb1VQVWUzak5JR2tWUUdqQXVYWV91bkU?oc=5",
+        "source_name": "Cambodianess",
+        "published_at": "2026-03-12T07:00:00+00:00"
+      },
+      "created_at": "2026-04-16T00:12:20.205357+00:00",
+      "updated_at": "2026-04-16T00:12:20.205357+00:00"
+    },
+    {
       "id": "91671d80da8cda67",
       "title": "In the same boat | Thailand champions Mekong-Lancang Cooperation - Impact Economist",
       "slug": "in-the-same-boat-thailand-champions-mekong-lancang-cooperation-impact-economist",
@@ -729,6 +990,34 @@
       },
       "created_at": "2026-04-15T12:27:44.908763+00:00",
       "updated_at": "2026-04-15T12:27:44.908763+00:00"
+    },
+    {
+      "id": "c0761cd98869bd01",
+      "title": "Underwater sound tech to protect Mekong dolphins - Khmer Times",
+      "slug": "underwater-sound-tech-to-protect-mekong-dolphins-khmer-times",
+      "source_name": "Khmer Times",
+      "source_url": "https://www.khmertimeskh.com",
+      "article_url": "https://news.google.com/rss/articles/CBMikgFBVV95cUxQWHlkTndNbUstMFZLU2ktdGJtMjRyUXYxYUpuSWVlNUdwZ3FqcXpycDJIQjhmakl5RGU0d1drempRbVJKMmRYdTAtckx5SzlBNjliU0hVOXNGV3JUdTFqdVpKSTVMUVYxYXNpeDlmQzJ0TS05bDRIdXlLMm1TN3loU29JYnVyOWhpejNGSmJTcXppUQ?oc=5",
+      "canonical_url": "https://news.google.com/rss/articles/CBMikgFBVV95cUxQWHlkTndNbUstMFZLU2ktdGJtMjRyUXYxYUpuSWVlNUdwZ3FqcXpycDJIQjhmakl5RGU0d1drempRbVJKMmRYdTAtckx5SzlBNjliU0hVOXNGV3JUdTFqdVpKSTVMUVYxYXNpeDlmQzJ0TS05bDRIdXlLMm1TN3loU29JYnVyOWhpejNGSmJTcXppUQ?oc=5",
+      "image_url": "",
+      "published_at": "2026-03-05T08:00:00+00:00",
+      "summary": "Underwater sound tech to protect Mekong dolphins &nbsp;&nbsp; Khmer Times",
+      "content_snippet": "Underwater sound tech to protect Mekong dolphins &nbsp;&nbsp; Khmer Times",
+      "topic": "Mekong River",
+      "country_or_region": "",
+      "is_flood_related": false,
+      "relevance_score": 0.8,
+      "tags": [
+        "mekong"
+      ],
+      "raw_payload": {
+        "title": "Underwater sound tech to protect Mekong dolphins - Khmer Times",
+        "article_url": "https://news.google.com/rss/articles/CBMikgFBVV95cUxQWHlkTndNbUstMFZLU2ktdGJtMjRyUXYxYUpuSWVlNUdwZ3FqcXpycDJIQjhmakl5RGU0d1drempRbVJKMmRYdTAtckx5SzlBNjliU0hVOXNGV3JUdTFqdVpKSTVMUVYxYXNpeDlmQzJ0TS05bDRIdXlLMm1TN3loU29JYnVyOWhpejNGSmJTcXppUQ?oc=5",
+        "source_name": "Khmer Times",
+        "published_at": "2026-03-05T08:00:00+00:00"
+      },
+      "created_at": "2026-04-16T00:12:20.205357+00:00",
+      "updated_at": "2026-04-16T00:12:20.205357+00:00"
     },
     {
       "id": "5febf5e6f266e567",
@@ -989,6 +1278,34 @@
       "updated_at": "2026-04-15T12:51:35.520272+00:00"
     },
     {
+      "id": "c7c0ace181cb9148",
+      "title": "11 of the best Mekong cruises for an unforgettable adventure - The Times",
+      "slug": "11-of-the-best-mekong-cruises-for-an-unforgettable-adventure-the-times",
+      "source_name": "The Times",
+      "source_url": "https://www.thetimes.com",
+      "article_url": "https://news.google.com/rss/articles/CBMijwFBVV95cUxPNG0zLWJ0TG1QTHA3VWR2VFRjc1FpeWk0bG5oNzBnRjcxcVlUVTRhVjNyRGk4RG9UZTJyaUZIOWtlaV9QMXpWQ1p4SER6X1ByTjdhclRrYlEtSWFkQk9GbndwcWI5b0MyQmNRYU1mc0tZTFJmbGRTdk53SzlOb0ZtTWFrRTN4bklINmJmdGRXOA?oc=5",
+      "canonical_url": "https://news.google.com/rss/articles/CBMijwFBVV95cUxPNG0zLWJ0TG1QTHA3VWR2VFRjc1FpeWk0bG5oNzBnRjcxcVlUVTRhVjNyRGk4RG9UZTJyaUZIOWtlaV9QMXpWQ1p4SER6X1ByTjdhclRrYlEtSWFkQk9GbndwcWI5b0MyQmNRYU1mc0tZTFJmbGRTdk53SzlOb0ZtTWFrRTN4bklINmJmdGRXOA?oc=5",
+      "image_url": "",
+      "published_at": "2026-01-06T08:00:00+00:00",
+      "summary": "11 of the best Mekong cruises for an unforgettable adventure &nbsp;&nbsp; The Times",
+      "content_snippet": "11 of the best Mekong cruises for an unforgettable adventure &nbsp;&nbsp; The Times",
+      "topic": "Mekong River",
+      "country_or_region": "",
+      "is_flood_related": false,
+      "relevance_score": 0.8,
+      "tags": [
+        "mekong"
+      ],
+      "raw_payload": {
+        "title": "11 of the best Mekong cruises for an unforgettable adventure - The Times",
+        "article_url": "https://news.google.com/rss/articles/CBMijwFBVV95cUxPNG0zLWJ0TG1QTHA3VWR2VFRjc1FpeWk0bG5oNzBnRjcxcVlUVTRhVjNyRGk4RG9UZTJyaUZIOWtlaV9QMXpWQ1p4SER6X1ByTjdhclRrYlEtSWFkQk9GbndwcWI5b0MyQmNRYU1mc0tZTFJmbGRTdk53SzlOb0ZtTWFrRTN4bklINmJmdGRXOA?oc=5",
+        "source_name": "The Times",
+        "published_at": "2026-01-06T08:00:00+00:00"
+      },
+      "created_at": "2026-04-16T00:34:54.501976+00:00",
+      "updated_at": "2026-04-16T00:34:54.501976+00:00"
+    },
+    {
       "id": "9912610fa82aeaba",
       "title": "Sand Barges on the Mekong River - eos.org",
       "slug": "sand-barges-on-the-mekong-river-eos-org",
@@ -1073,6 +1390,38 @@
       "updated_at": "2026-04-15T13:20:48.687131+00:00"
     },
     {
+      "id": "adc6fbc1a43a5a9b",
+      "title": "Joint operations along Mekong River elevate security, promote well-being - China Daily",
+      "slug": "joint-operations-along-mekong-river-elevate-security-promote-well-being-china-da",
+      "source_name": "China Daily",
+      "source_url": "https://www.chinadaily.com.cn",
+      "article_url": "https://news.google.com/rss/articles/CBMifkFVX3lxTE0tb1U0YUV6TGM2dlNBT0ZoSHVOb3FHNUF1eEU2UDZaWVdnTE0wSFRZVk9xZTQwOXhQQ252b25JVWplSUZkNUUzcWhWemdZQWkzZEpLQVZhc2NwME5CUmIzZUFtYmNGUjlQZlRIbWN1R3FQNEU0R3c2Zm43YWppZw?oc=5",
+      "canonical_url": "https://news.google.com/rss/articles/CBMifkFVX3lxTE0tb1U0YUV6TGM2dlNBT0ZoSHVOb3FHNUF1eEU2UDZaWVdnTE0wSFRZVk9xZTQwOXhQQ252b25JVWplSUZkNUUzcWhWemdZQWkzZEpLQVZhc2NwME5CUmIzZUFtYmNGUjlQZlRIbWN1R3FQNEU0R3c2Zm43YWppZw?oc=5",
+      "image_url": "",
+      "published_at": "2025-12-31T08:00:00+00:00",
+      "summary": "The article reports on joint operations being conducted along the Mekong River. These collaborative efforts are aimed at enhancing security across the region and promoting the overall well-being of its communities.",
+      "content_snippet": "Joint operations along Mekong River elevate security, promote well-being &nbsp;&nbsp; China Daily",
+      "topic": "Mekong River",
+      "country_or_region": "",
+      "is_flood_related": false,
+      "relevance_score": 0.75,
+      "tags": [
+        "mekong river",
+        "joint operations",
+        "security",
+        "river governance",
+        "international cooperation"
+      ],
+      "raw_payload": {
+        "title": "Joint operations along Mekong River elevate security, promote well-being - China Daily",
+        "article_url": "https://news.google.com/rss/articles/CBMifkFVX3lxTE0tb1U0YUV6TGM2dlNBT0ZoSHVOb3FHNUF1eEU2UDZaWVdnTE0wSFRZVk9xZTQwOXhQQ252b25JVWplSUZkNUUzcWhWemdZQWkzZEpLQVZhc2NwME5CUmIzZUFtYmNGUjlQZlRIbWN1R3FQNEU0R3c2Zm43YWppZw?oc=5",
+        "source_name": "China Daily",
+        "published_at": "2025-12-31T08:00:00+00:00"
+      },
+      "created_at": "2026-04-16T00:34:54.501976+00:00",
+      "updated_at": "2026-04-16T00:34:54.501976+00:00"
+    },
+    {
       "id": "1fc6bb434992b502",
       "title": "Joint operations along Mekong River elevate security, promote well-being - China Daily - Global Edition",
       "slug": "joint-operations-along-mekong-river-elevate-security-promote-well-being-china-da",
@@ -1100,237 +1449,16 @@
       },
       "created_at": "2026-04-15T12:51:53.267915+00:00",
       "updated_at": "2026-04-15T12:51:53.267915+00:00"
-    },
-    {
-      "id": "e2e46681d01734e2",
-      "title": "See the soul of Laos on this slow river cruise along the Mekong - National Geographic",
-      "slug": "see-the-soul-of-laos-on-this-slow-river-cruise-along-the-mekong-national-geograp",
-      "source_name": "National Geographic",
-      "source_url": "https://www.nationalgeographic.com",
-      "article_url": "https://news.google.com/rss/articles/CBMiswFBVV95cUxOdU45UTlqNjVIemlnZlhKTHIzMGNnTzE5MTFvMGwtSnc4SVJwa0RQRDVQR1dKdW15Y3hqQXZDdnNEUTR6cnV6U2hhcXhEYlppUkVOalk5OGFPYVlhS0tUa1JsTGNRclhuQ3F6YjdLdHd6N0JqZ2d5YzR4RmV5bUtHNVhmWHhpX2I3ZFdQYVlKWF9wVnUzR2xCU1NjY1ZvUWFmc1BHMkVrNkpWcnhxX0loTTU5QQ?oc=5",
-      "canonical_url": "https://news.google.com/rss/articles/CBMiswFBVV95cUxOdU45UTlqNjVIemlnZlhKTHIzMGNnTzE5MTFvMGwtSnc4SVJwa0RQRDVQR1dKdW15Y3hqQXZDdnNEUTR6cnV6U2hhcXhEYlppUkVOalk5OGFPYVlhS0tUa1JsTGNRclhuQ3F6YjdLdHd6N0JqZ2d5YzR4RmV5bUtHNVhmWHhpX2I3ZFdQYVlKWF9wVnUzR2xCU1NjY1ZvUWFmc1BHMkVrNkpWcnhxX0loTTU5QQ?oc=5",
-      "image_url": "",
-      "published_at": "2025-12-30T08:00:00+00:00",
-      "summary": "See the soul of Laos on this slow river cruise along the Mekong &nbsp;&nbsp; National Geographic",
-      "content_snippet": "See the soul of Laos on this slow river cruise along the Mekong &nbsp;&nbsp; National Geographic",
-      "topic": "Mekong River",
-      "country_or_region": "Laos",
-      "is_flood_related": false,
-      "relevance_score": 0.8,
-      "tags": [
-        "mekong",
-        "laos"
-      ],
-      "raw_payload": {
-        "title": "See the soul of Laos on this slow river cruise along the Mekong - National Geographic",
-        "article_url": "https://news.google.com/rss/articles/CBMiswFBVV95cUxOdU45UTlqNjVIemlnZlhKTHIzMGNnTzE5MTFvMGwtSnc4SVJwa0RQRDVQR1dKdW15Y3hqQXZDdnNEUTR6cnV6U2hhcXhEYlppUkVOalk5OGFPYVlhS0tUa1JsTGNRclhuQ3F6YjdLdHd6N0JqZ2d5YzR4RmV5bUtHNVhmWHhpX2I3ZFdQYVlKWF9wVnUzR2xCU1NjY1ZvUWFmc1BHMkVrNkpWcnhxX0loTTU5QQ?oc=5",
-        "source_name": "National Geographic",
-        "published_at": "2025-12-30T08:00:00+00:00"
-      },
-      "created_at": "2026-04-15T12:51:59.350587+00:00",
-      "updated_at": "2026-04-15T12:51:59.350587+00:00"
-    },
-    {
-      "id": "846c46a1edadcad2",
-      "title": "Political power shifts, floods and tariffs push the Mekong to the brink - East Asia Forum",
-      "slug": "political-power-shifts-floods-and-tariffs-push-the-mekong-to-the-brink-east-asia",
-      "source_name": "East Asia Forum",
-      "source_url": "https://eastasiaforum.org",
-      "article_url": "https://news.google.com/rss/articles/CBMirAFBVV95cUxPTEZXOHYzVlQyZW10a05BaU45cTBKeFRlaDV5YVpmTkVMMG5Ea1Z3dVctYUtmazFSV3FTaEo4amFXZ1M3bjRIUkpWdXhqeGJxNHVtczRBVEtvUWJ5N2owdjZwcFVuNk1feGNzd19iZVFtM0lYVVdWbFdrbTVUVlltU0xSem1mRHV5eGVEby1Bb3p4c21HaGhNN2dBSlJHeGNfVmRDWjBtd2NzQl92?oc=5",
-      "canonical_url": "https://news.google.com/rss/articles/CBMirAFBVV95cUxPTEZXOHYzVlQyZW10a05BaU45cTBKeFRlaDV5YVpmTkVMMG5Ea1Z3dVctYUtmazFSV3FTaEo4amFXZ1M3bjRIUkpWdXhqeGJxNHVtczRBVEtvUWJ5N2owdjZwcFVuNk1feGNzd19iZVFtM0lYVVdWbFdrbTVUVlltU0xSem1mRHV5eGVEby1Bb3p4c21HaGhNN2dBSlJHeGNfVmRDWjBtd2NzQl92?oc=5",
-      "image_url": "",
-      "published_at": "2025-12-30T08:00:00+00:00",
-      "summary": "Political power shifts, floods and tariffs push the Mekong to the brink &nbsp;&nbsp; East Asia Forum",
-      "content_snippet": "Political power shifts, floods and tariffs push the Mekong to the brink &nbsp;&nbsp; East Asia Forum",
-      "topic": "Mekong Flooding",
-      "country_or_region": "",
-      "is_flood_related": true,
-      "relevance_score": 0.9,
-      "tags": [
-        "mekong",
-        "flooding"
-      ],
-      "raw_payload": {
-        "title": "Political power shifts, floods and tariffs push the Mekong to the brink - East Asia Forum",
-        "article_url": "https://news.google.com/rss/articles/CBMirAFBVV95cUxPTEZXOHYzVlQyZW10a05BaU45cTBKeFRlaDV5YVpmTkVMMG5Ea1Z3dVctYUtmazFSV3FTaEo4amFXZ1M3bjRIUkpWdXhqeGJxNHVtczRBVEtvUWJ5N2owdjZwcFVuNk1feGNzd19iZVFtM0lYVVdWbFdrbTVUVlltU0xSem1mRHV5eGVEby1Bb3p4c21HaGhNN2dBSlJHeGNfVmRDWjBtd2NzQl92?oc=5",
-        "source_name": "East Asia Forum",
-        "published_at": "2025-12-30T08:00:00+00:00"
-      },
-      "created_at": "2026-04-15T12:52:05.322752+00:00",
-      "updated_at": "2026-04-15T12:52:05.322752+00:00"
-    },
-    {
-      "id": "383ecf85311135e6",
-      "title": "Commercial Navigation on the Upper Mekong: Growing or Slowing for Thailand? - The Asia Foundation",
-      "slug": "commercial-navigation-on-the-upper-mekong-growing-or-slowing-for-thailand-the-as",
-      "source_name": "The Asia Foundation",
-      "source_url": "https://asiafoundation.org",
-      "article_url": "https://news.google.com/rss/articles/CBMiswFBVV95cUxNbUFDTVBTN0tXMXlXckdUc0NJSmFlX0xreXgzSGxNMWlqUUZZV2Q1VXFXM2lNNVZndUItd2FsenNzZlFLdC1QeXlVNW1qZW05OXRyRGF0R2RjdHN3ZkFRa1pyWVJGQ1NYS2NyZXkxcWhWYUJBRE1tQlpZU3lOSzlpZ2U0aWo2VjA4Sk01dUNoc3JtUDd6N2ZxMV9wOTNmdTlDZnROS3dvUmstUE1nbDZrVVlHYw?oc=5",
-      "canonical_url": "https://news.google.com/rss/articles/CBMiswFBVV95cUxNbUFDTVBTN0tXMXlXckdUc0NJSmFlX0xreXgzSGxNMWlqUUZZV2Q1VXFXM2lNNVZndUItd2FsenNzZlFLdC1QeXlVNW1qZW05OXRyRGF0R2RjdHN3ZkFRa1pyWVJGQ1NYS2NyZXkxcWhWYUJBRE1tQlpZU3lOSzlpZ2U0aWo2VjA4Sk01dUNoc3JtUDd6N2ZxMV9wOTNmdTlDZnROS3dvUmstUE1nbDZrVVlHYw?oc=5",
-      "image_url": "",
-      "published_at": "2025-12-29T08:00:00+00:00",
-      "summary": "Commercial Navigation on the Upper Mekong: Growing or Slowing for Thailand? &nbsp;&nbsp; The Asia Foundation",
-      "content_snippet": "Commercial Navigation on the Upper Mekong: Growing or Slowing for Thailand? &nbsp;&nbsp; The Asia Foundation",
-      "topic": "Mekong River",
-      "country_or_region": "Thailand",
-      "is_flood_related": false,
-      "relevance_score": 0.8,
-      "tags": [
-        "mekong",
-        "thailand"
-      ],
-      "raw_payload": {
-        "title": "Commercial Navigation on the Upper Mekong: Growing or Slowing for Thailand? - The Asia Foundation",
-        "article_url": "https://news.google.com/rss/articles/CBMiswFBVV95cUxNbUFDTVBTN0tXMXlXckdUc0NJSmFlX0xreXgzSGxNMWlqUUZZV2Q1VXFXM2lNNVZndUItd2FsenNzZlFLdC1QeXlVNW1qZW05OXRyRGF0R2RjdHN3ZkFRa1pyWVJGQ1NYS2NyZXkxcWhWYUJBRE1tQlpZU3lOSzlpZ2U0aWo2VjA4Sk01dUNoc3JtUDd6N2ZxMV9wOTNmdTlDZnROS3dvUmstUE1nbDZrVVlHYw?oc=5",
-        "source_name": "The Asia Foundation",
-        "published_at": "2025-12-29T08:00:00+00:00"
-      },
-      "created_at": "2026-04-15T13:20:54.819341+00:00",
-      "updated_at": "2026-04-15T13:20:54.819341+00:00"
-    },
-    {
-      "id": "e9c3bc01b0de5820",
-      "title": "Mekong sand mining risks collapse of SE Asia’s largest freshwater lake, study finds - Mongabay",
-      "slug": "mekong-sand-mining-risks-collapse-of-se-asia-s-largest-freshwater-lake-study-fin",
-      "source_name": "Mongabay",
-      "source_url": "https://news.mongabay.com",
-      "article_url": "https://news.google.com/rss/articles/CBMitwFBVV95cUxQMGkyVXJHVmF4czN6TWxDTGQ3WGk0bDE2UndFY0pwV3JqWVRSbk5QdVBxYXJKZ2pVTVFMdjlSS0JaVDNnOFVZWW1KUHc5ZjJ1UmdmR0JVUGdiRklyVHpFQkNBbUs4UlJ2VG1rVktRU2x5aTlhTFd5Ym4wMEVWMzV3ckpnZWxkVWctY2kwdUxhNjdXYzVGWVMyR2R1bzZOb0ZLZDFHUHFPa3VwQkRQNS10VXB3YjJEWDDSAbwBQVVfeXFMT2lfaEY5N19GX1FpdkhENW5WMnQtWXp5cjgwUU9CZVZrRnAyUGc4WE5tMENVWE1nenA4R0FuTlNmMzBQSm55Q3Z5X2V6dG9DcE5sWG1waVdWSVotSUVvNE5lb0tmVkdaSW1leGd3ZHlQdndOMlNpZUlnbkJnM3RUU3BqQzlYOVN2NzFFVFdPRDJXdHlVZWtGUWNYMjZoY3Zkbi1vd0czQ2NYY0RtODJ6WHI4ZmR5YlZoX21DSWs?oc=5",
-      "canonical_url": "https://news.google.com/rss/articles/CBMitwFBVV95cUxQMGkyVXJHVmF4czN6TWxDTGQ3WGk0bDE2UndFY0pwV3JqWVRSbk5QdVBxYXJKZ2pVTVFMdjlSS0JaVDNnOFVZWW1KUHc5ZjJ1UmdmR0JVUGdiRklyVHpFQkNBbUs4UlJ2VG1rVktRU2x5aTlhTFd5Ym4wMEVWMzV3ckpnZWxkVWctY2kwdUxhNjdXYzVGWVMyR2R1bzZOb0ZLZDFHUHFPa3VwQkRQNS10VXB3YjJEWDDSAbwBQVVfeXFMT2lfaEY5N19GX1FpdkhENW5WMnQtWXp5cjgwUU9CZVZrRnAyUGc4WE5tMENVWE1nenA4R0FuTlNmMzBQSm55Q3Z5X2V6dG9DcE5sWG1waVdWSVotSUVvNE5lb0tmVkdaSW1leGd3ZHlQdndOMlNpZUlnbkJnM3RUU3BqQzlYOVN2NzFFVFdPRDJXdHlVZWtGUWNYMjZoY3Zkbi1vd0czQ2NYY0RtODJ6WHI4ZmR5YlZoX21DSWs?oc=5",
-      "image_url": "",
-      "published_at": "2025-12-23T08:00:00+00:00",
-      "summary": "Mekong sand mining risks collapse of SE Asia’s largest freshwater lake, study finds &nbsp;&nbsp; Mongabay",
-      "content_snippet": "Mekong sand mining risks collapse of SE Asia’s largest freshwater lake, study finds &nbsp;&nbsp; Mongabay",
-      "topic": "Mekong River",
-      "country_or_region": "",
-      "is_flood_related": false,
-      "relevance_score": 0.8,
-      "tags": [
-        "mekong"
-      ],
-      "raw_payload": {
-        "title": "Mekong sand mining risks collapse of SE Asia’s largest freshwater lake, study finds - Mongabay",
-        "article_url": "https://news.google.com/rss/articles/CBMitwFBVV95cUxQMGkyVXJHVmF4czN6TWxDTGQ3WGk0bDE2UndFY0pwV3JqWVRSbk5QdVBxYXJKZ2pVTVFMdjlSS0JaVDNnOFVZWW1KUHc5ZjJ1UmdmR0JVUGdiRklyVHpFQkNBbUs4UlJ2VG1rVktRU2x5aTlhTFd5Ym4wMEVWMzV3ckpnZWxkVWctY2kwdUxhNjdXYzVGWVMyR2R1bzZOb0ZLZDFHUHFPa3VwQkRQNS10VXB3YjJEWDDSAbwBQVVfeXFMT2lfaEY5N19GX1FpdkhENW5WMnQtWXp5cjgwUU9CZVZrRnAyUGc4WE5tMENVWE1nenA4R0FuTlNmMzBQSm55Q3Z5X2V6dG9DcE5sWG1waVdWSVotSUVvNE5lb0tmVkdaSW1leGd3ZHlQdndOMlNpZUlnbkJnM3RUU3BqQzlYOVN2NzFFVFdPRDJXdHlVZWtGUWNYMjZoY3Zkbi1vd0czQ2NYY0RtODJ6WHI4ZmR5YlZoX21DSWs?oc=5",
-        "source_name": "Mongabay",
-        "published_at": "2025-12-23T08:00:00+00:00"
-      },
-      "created_at": "2026-04-15T13:21:05.675787+00:00",
-      "updated_at": "2026-04-15T13:21:05.675787+00:00"
-    },
-    {
-      "id": "409375342448e8fb",
-      "title": "Secretary-General of ASEAN receives courtesy visit by the Chief Executive Officer of the Mekong River Commission Secretariat (MRCS) - ASEAN Main Portal",
-      "slug": "secretary-general-of-asean-receives-courtesy-visit-by-the-chief-executive-office",
-      "source_name": "ASEAN Main Portal",
-      "source_url": "https://asean.org",
-      "article_url": "https://news.google.com/rss/articles/CBMi4gFBVV95cUxQZUdSdUhBQ1N6VWV0VkhVMGFJOUZXY2JqQnlqUUQ5RmFxeEdPV1ZSLTNnMFQwNlpRbGhYNnVQa1hQa1R2VmxBN1k0WUZVemFjR0wxRUxZdVd4cVpYYThYTU9VbVRvNjZzZEo0QWx4V09TNnE5ZDlNejVsQTRCa2JyV0pVb2llS2VWbWZBMExER0kyaVFLbGJLRENxdUhOU3gzbnlYT25IMzNFbklFQXR3eE5hV1c1dXZmUjZCaXZUNHFraTN3NF9Yck1pR3ctVkt0a0dJeDFHWUJGLUFSbVZGd0tR?oc=5",
-      "canonical_url": "https://news.google.com/rss/articles/CBMi4gFBVV95cUxQZUdSdUhBQ1N6VWV0VkhVMGFJOUZXY2JqQnlqUUQ5RmFxeEdPV1ZSLTNnMFQwNlpRbGhYNnVQa1hQa1R2VmxBN1k0WUZVemFjR0wxRUxZdVd4cVpYYThYTU9VbVRvNjZzZEo0QWx4V09TNnE5ZDlNejVsQTRCa2JyV0pVb2llS2VWbWZBMExER0kyaVFLbGJLRENxdUhOU3gzbnlYT25IMzNFbklFQXR3eE5hV1c1dXZmUjZCaXZUNHFraTN3NF9Yck1pR3ctVkt0a0dJeDFHWUJGLUFSbVZGd0tR?oc=5",
-      "image_url": "",
-      "published_at": "2025-12-11T08:00:00+00:00",
-      "summary": "Secretary-General of ASEAN receives courtesy visit by the Chief Executive Officer of the Mekong River Commission Secretariat (MRCS) &nbsp;&nbsp; ASEAN Main Portal",
-      "content_snippet": "Secretary-General of ASEAN receives courtesy visit by the Chief Executive Officer of the Mekong River Commission Secretariat (MRCS) &nbsp;&nbsp; ASEAN Main Portal",
-      "topic": "Mekong River",
-      "country_or_region": "",
-      "is_flood_related": false,
-      "relevance_score": 0.8,
-      "tags": [
-        "mekong"
-      ],
-      "raw_payload": {
-        "title": "Secretary-General of ASEAN receives courtesy visit by the Chief Executive Officer of the Mekong River Commission Secretariat (MRCS) - ASEAN Main Portal",
-        "article_url": "https://news.google.com/rss/articles/CBMi4gFBVV95cUxQZUdSdUhBQ1N6VWV0VkhVMGFJOUZXY2JqQnlqUUQ5RmFxeEdPV1ZSLTNnMFQwNlpRbGhYNnVQa1hQa1R2VmxBN1k0WUZVemFjR0wxRUxZdVd4cVpYYThYTU9VbVRvNjZzZEo0QWx4V09TNnE5ZDlNejVsQTRCa2JyV0pVb2llS2VWbWZBMExER0kyaVFLbGJLRENxdUhOU3gzbnlYT25IMzNFbklFQXR3eE5hV1c1dXZmUjZCaXZUNHFraTN3NF9Yck1pR3ctVkt0a0dJeDFHWUJGLUFSbVZGd0tR?oc=5",
-        "source_name": "ASEAN Main Portal",
-        "published_at": "2025-12-11T08:00:00+00:00"
-      },
-      "created_at": "2026-04-15T13:22:12.569565+00:00",
-      "updated_at": "2026-04-15T13:22:12.569565+00:00"
-    },
-    {
-      "id": "faf5212c865d2aa1",
-      "title": "A New Deal for the Mekong - fulcrum.sg",
-      "slug": "a-new-deal-for-the-mekong-fulcrum-sg",
-      "source_name": "fulcrum.sg",
-      "source_url": "https://fulcrum.sg",
-      "article_url": "https://news.google.com/rss/articles/CBMiZ0FVX3lxTE1qOE9yQmZjYTNGOHNVN0NsZEcxakpJSkpNa1NvM1plMEZZQzF4ZG9XT2pVRkg0ODdCa181MG01US1xRmdJVGFETmI5Y0QxYUtiNTNNbVBlNzl5bmN1V1lQYWpibjhtUlk?oc=5",
-      "canonical_url": "https://news.google.com/rss/articles/CBMiZ0FVX3lxTE1qOE9yQmZjYTNGOHNVN0NsZEcxakpJSkpNa1NvM1plMEZZQzF4ZG9XT2pVRkg0ODdCa181MG01US1xRmdJVGFETmI5Y0QxYUtiNTNNbVBlNzl5bmN1V1lQYWpibjhtUlk?oc=5",
-      "image_url": "",
-      "published_at": "2025-12-11T08:00:00+00:00",
-      "summary": "A New Deal for the Mekong &nbsp;&nbsp; fulcrum.sg",
-      "content_snippet": "A New Deal for the Mekong &nbsp;&nbsp; fulcrum.sg",
-      "topic": "Mekong River",
-      "country_or_region": "",
-      "is_flood_related": false,
-      "relevance_score": 0.8,
-      "tags": [
-        "mekong"
-      ],
-      "raw_payload": {
-        "title": "A New Deal for the Mekong - fulcrum.sg",
-        "article_url": "https://news.google.com/rss/articles/CBMiZ0FVX3lxTE1qOE9yQmZjYTNGOHNVN0NsZEcxakpJSkpNa1NvM1plMEZZQzF4ZG9XT2pVRkg0ODdCa181MG01US1xRmdJVGFETmI5Y0QxYUtiNTNNbVBlNzl5bmN1V1lQYWpibjhtUlk?oc=5",
-        "source_name": "fulcrum.sg",
-        "published_at": "2025-12-11T08:00:00+00:00"
-      },
-      "created_at": "2026-04-15T13:22:18.380877+00:00",
-      "updated_at": "2026-04-15T13:22:18.380877+00:00"
-    },
-    {
-      "id": "728e3947f8d3d8ed",
-      "title": "Long-term sediment decline in the Mekong River along Thailand's border under hydropower development - ScienceDirect.com",
-      "slug": "long-term-sediment-decline-in-the-mekong-river-along-thailand-s-border-under-hyd",
-      "source_name": "ScienceDirect.com",
-      "source_url": "https://www.sciencedirect.com",
-      "article_url": "https://news.google.com/rss/articles/CBMie0FVX3lxTE9nd1pqUGNuSW9BajRjU0ZCVlJTaWRmZEVFZTh5SWRfMmZoeElDMTVXdzVFN19Ub3dYMVpiTENXeVlvX1Q0MXBWc0Y5QjB3VGRNazcwY2hpYy1jTXNzSFBXSW9hS3hWOU5CUzN5R0Fac3h5YW40dklWUlZXbw?oc=5",
-      "canonical_url": "https://news.google.com/rss/articles/CBMie0FVX3lxTE9nd1pqUGNuSW9BajRjU0ZCVlJTaWRmZEVFZTh5SWRfMmZoeElDMTVXdzVFN19Ub3dYMVpiTENXeVlvX1Q0MXBWc0Y5QjB3VGRNazcwY2hpYy1jTXNzSFBXSW9hS3hWOU5CUzN5R0Fac3h5YW40dklWUlZXbw?oc=5",
-      "image_url": "",
-      "published_at": "2025-12-10T08:00:00+00:00",
-      "summary": "Long-term sediment decline in the Mekong River along Thailand's border under hydropower development &nbsp;&nbsp; ScienceDirect.com",
-      "content_snippet": "Long-term sediment decline in the Mekong River along Thailand's border under hydropower development &nbsp;&nbsp; ScienceDirect.com",
-      "topic": "Mekong River",
-      "country_or_region": "Thailand",
-      "is_flood_related": false,
-      "relevance_score": 0.85,
-      "tags": [
-        "mekong",
-        "hydrology",
-        "thailand"
-      ],
-      "raw_payload": {
-        "title": "Long-term sediment decline in the Mekong River along Thailand's border under hydropower development - ScienceDirect.com",
-        "article_url": "https://news.google.com/rss/articles/CBMie0FVX3lxTE9nd1pqUGNuSW9BajRjU0ZCVlJTaWRmZEVFZTh5SWRfMmZoeElDMTVXdzVFN19Ub3dYMVpiTENXeVlvX1Q0MXBWc0Y5QjB3VGRNazcwY2hpYy1jTXNzSFBXSW9hS3hWOU5CUzN5R0Fac3h5YW40dklWUlZXbw?oc=5",
-        "source_name": "ScienceDirect.com",
-        "published_at": "2025-12-10T08:00:00+00:00"
-      },
-      "created_at": "2026-04-15T13:22:24.271797+00:00",
-      "updated_at": "2026-04-15T13:22:24.271797+00:00"
-    },
-    {
-      "id": "2c3b852a511a4aa9",
-      "title": "Mekong River Cruise: Day 7 Island Time at Unicorn Island - Not Quite Nigella",
-      "slug": "mekong-river-cruise-day-7-island-time-at-unicorn-island-not-quite-nigella",
-      "source_name": "Not Quite Nigella",
-      "source_url": "https://www.notquitenigella.com",
-      "article_url": "https://news.google.com/rss/articles/CBMihAFBVV95cUxPTzFHTzFqb2VhV1dzazJ6am9QQ2J3UjJfNkUzdmtWaWNwVUQyMUZOYWhNRGpvZXNmdFpTUUdWTVgwa2dhcnFfTUEtS29XRk4wRkEtSUZ5ZzNzZ3FsUHZLNkNWSXZGOUlYdVRiSDRXR2hCM2lua2M4Y1FRWlc0SFNKb1F2YUU?oc=5",
-      "canonical_url": "https://news.google.com/rss/articles/CBMihAFBVV95cUxPTzFHTzFqb2VhV1dzazJ6am9QQ2J3UjJfNkUzdmtWaWNwVUQyMUZOYWhNRGpvZXNmdFpTUUdWTVgwa2dhcnFfTUEtS29XRk4wRkEtSUZ5ZzNzZ3FsUHZLNkNWSXZGOUlYdVRiSDRXR2hCM2lua2M4Y1FRWlc0SFNKb1F2YUU?oc=5",
-      "image_url": "",
-      "published_at": "2025-12-06T08:00:00+00:00",
-      "summary": "Mekong River Cruise: Day 7 Island Time at Unicorn Island &nbsp;&nbsp; Not Quite Nigella",
-      "content_snippet": "Mekong River Cruise: Day 7 Island Time at Unicorn Island &nbsp;&nbsp; Not Quite Nigella",
-      "topic": "Mekong River",
-      "country_or_region": "",
-      "is_flood_related": false,
-      "relevance_score": 0.8,
-      "tags": [
-        "mekong"
-      ],
-      "raw_payload": {
-        "title": "Mekong River Cruise: Day 7 Island Time at Unicorn Island - Not Quite Nigella",
-        "article_url": "https://news.google.com/rss/articles/CBMihAFBVV95cUxPTzFHTzFqb2VhV1dzazJ6am9QQ2J3UjJfNkUzdmtWaWNwVUQyMUZOYWhNRGpvZXNmdFpTUUdWTVgwa2dhcnFfTUEtS29XRk4wRkEtSUZ5ZzNzZ3FsUHZLNkNWSXZGOUlYdVRiSDRXR2hCM2lua2M4Y1FRWlc0SFNKb1F2YUU?oc=5",
-        "source_name": "Not Quite Nigella",
-        "published_at": "2025-12-06T08:00:00+00:00"
-      },
-      "created_at": "2026-04-15T13:22:30.038192+00:00",
-      "updated_at": "2026-04-15T13:22:30.038192+00:00"
     }
   ],
-  "last_sync": "2026-04-15T13:22:31.240484+00:00",
-  "sync_count": 7
+  "last_sync": "2026-04-16T01:09:07.396240+00:00",
+  "sync_count": 31,
+  "fallback_images": [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/4/40/Albizia_saman_trunk_leaning_over_the_water_on_a_Mekong_bank_in_sunshine_at_golden_hour_%282%29.jpg/960px-Albizia_saman_trunk_leaning_over_the_water_on_a_Mekong_bank_in_sunshine_at_golden_hour_%282%29.jpg",
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/3/37/Boats_on_the_Mekong_with_dark_clouds_and_blue_sky_in_the_late_afternoon_in_Luang_Prabang_Laos.jpg/960px-Boats_on_the_Mekong_with_dark_clouds_and_blue_sky_in_the_late_afternoon_in_Luang_Prabang_Laos.jpg",
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/4/40/Careening_of_a_pirogue_on_a_sandy_beach_of_a_tiny_island_in_the_Mekong_near_Don_Det_in_Laos.jpg/960px-Careening_of_a_pirogue_on_a_sandy_beach_of_a_tiny_island_in_the_Mekong_near_Don_Det_in_Laos.jpg",
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cb/Don_Puay_river_bank_landscape_at_sunset.jpg/960px-Don_Puay_river_bank_landscape_at_sunset.jpg",
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/8/84/Dwellings_and_pirogues_on_the_Mekong_bank_of_Don_Det_Laos_at_sunrise_with_pink_clouds.jpg/960px-Dwellings_and_pirogues_on_the_Mekong_bank_of_Don_Det_Laos_at_sunrise_with_pink_clouds.jpg",
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d7/Fisherman_and_pirogue_sailing_on_the_Mekong_a_sunny_afternoon_in_Don_Det_Laos.jpg/960px-Fisherman_and_pirogue_sailing_on_the_Mekong_a_sunny_afternoon_in_Don_Det_Laos.jpg"
+  ]
 }

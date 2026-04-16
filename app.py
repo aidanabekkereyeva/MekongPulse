@@ -1277,6 +1277,8 @@ def api_news_list():
             'count': len(articles),
             'last_sync': status['last_sync'],
             'total_stored': status['total_articles'],
+            'syncing': news_service.is_syncing(),
+            'fallback_images': news_service.get_fallback_images(),
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -1284,13 +1286,20 @@ def api_news_list():
 
 @app.route('/api/news/sync', methods=['POST'])
 def api_news_sync():
-    """Manually trigger a news sync (idempotent)."""
-    import traceback
+    """Trigger a news sync in the background; return current cached articles immediately."""
     try:
-        result = news_service.sync_news(force=True)
-        return jsonify({'status': 'ok', **result})
+        news_service.sync_news_async()
+        articles = news_service.get_articles(limit=10)
+        status = news_service.get_sync_status()
+        return jsonify({
+            'status': 'syncing',
+            'syncing': True,
+            'articles': articles,
+            'last_sync': status['last_sync'],
+            'total_stored': status['total_articles'],
+            'fallback_images': news_service.get_fallback_images(),
+        }), 202
     except Exception as e:
-        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 
@@ -1301,6 +1310,16 @@ def api_news_item(article_id):
     if article is None:
         return jsonify({'error': 'Not found'}), 404
     return jsonify(article)
+
+
+@app.route('/api/news/<article_id>/content', methods=['GET'])
+def api_news_content(article_id):
+    """Fetch and return reading_content for an article, scraping/generating if needed."""
+    try:
+        content = news_service.fetch_and_cache_content(article_id)
+        return jsonify({'content': content})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 if __name__ == '__main__':
