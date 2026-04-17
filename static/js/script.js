@@ -2309,59 +2309,59 @@ function attachDatasetOverviewEvents(model) {
 
 async function generateAndDisplayDatasetOverview() {
   try {
-    const coverageData = await fetch('/api/coverage').then(r => r.json());
-    const availabilityData = await fetch('/api/availability').then(r => r.json());
-    const stationsData = await fetch('/api/stations/overview').then(r => r.json());
+    const [coverageData, availabilityData, stationsData] = await Promise.all([
+      fetch('/api/coverage').then(r => r.json()),
+      fetch('/api/availability').then(r => r.json()),
+      fetch('/api/stations/overview').then(r => r.json())
+    ]);
 
-    // Generate quick recommendations
-    const topStations = calculateTopStations(stationsData.rows);
-    const dataInsights = generateDataInsights(coverageData, availabilityData, stationsData);
+    // Populate stats bar with real numbers
+    const statsBar = document.getElementById('doStatsBar');
+    if (statsBar) {
+      const stationCount = stationsData.rows.length;
+      const countries = [...new Set(stationsData.rows.map(r => r.country))];
+      const minYear = Math.min(...stationsData.rows.map(r => r.first_year));
+      const maxYear = Math.max(...stationsData.rows.map(r => r.last_year));
+      const varCount = availabilityData.variables.length;
 
-    // Populate existing hero section with insights
-    const heroSection = document.querySelector('.dataset-page-hero');
-    if (heroSection) {
-      heroSection.innerHTML = `
-        <div class="dataset-hero-content">
-          <p class="section-label">METADATA INTELLIGENCE</p>
-          <h3>📊 Know Your Data Before You Analyze</h3>
-          <p>This page shows exactly what you can analyze: which stations have complete discharge records, where monsoon patterns are well-captured, and which pairs of variables can be compared. Start here to build smarter visualizations.</p>
+      statsBar.innerHTML = `
+        <div class="do-stat-card">
+          <div class="do-stat-num">${stationCount}</div>
+          <div class="do-stat-label">Stations</div>
         </div>
-        <div class="dataset-hero-insights">
-          ${dataInsights.map(i => `
-            <div class="insight-card">
-              <span class="insight-icon">${i.icon}</span>
-              <span class="insight-text">${i.text}</span>
-            </div>
-          `).join('')}
+        <div class="do-stat-card">
+          <div class="do-stat-num">${countries.length}</div>
+          <div class="do-stat-label">Countries</div>
+        </div>
+        <div class="do-stat-card">
+          <div class="do-stat-num">${minYear}–${maxYear}</div>
+          <div class="do-stat-label">Year Range</div>
+        </div>
+        <div class="do-stat-card">
+          <div class="do-stat-num">${varCount}</div>
+          <div class="do-stat-label">Variables</div>
         </div>
       `;
     }
 
-    // Insert quick-start cards before first section
-    const firstSection = document.querySelector('.dataset-overview-block');
-    if (firstSection && !document.querySelector('.quick-start-section')) {
-      const quickStart = document.createElement('div');
-      quickStart.className = 'quick-start-section';
-      quickStart.innerHTML = `
-        <h4>🚀 Quick Recommendations</h4>
-        <div class="quick-start-cards">
-          ${topStations.slice(0, 4).map(station => `
-            <div class="quick-start-card">
-              <div class="card-header">${escapeHtml(station.station_name)}</div>
-              <div class="card-body">
-                <p><strong>${station.yearSpan}y</strong> of data</p>
-                <p>${station.variables} variables available</p>
-                <p class="card-strength">${getStrengthLabel(station.score)}</p>
-              </div>
-              <button class="tertiary-btn" onclick="window.goToBuilder('${escapeHtml(station.station_name)}')">Build with This →</button>
-            </div>
-          `).join('')}
-        </div>
-      `;
-      firstSection.parentElement.insertBefore(quickStart, firstSection);
+    // Shared tooltip element
+    if (!document.getElementById('doTooltip')) {
+      const tip = document.createElement('div');
+      tip.id = 'doTooltip';
+      document.body.appendChild(tip);
     }
 
-    // Render the four sections
+    // Wire up section nav tabs
+    document.querySelectorAll('.do-nav-btn').forEach(btn => {
+      btn.addEventListener('click', function () {
+        document.querySelectorAll('.do-nav-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        const target = document.getElementById(this.dataset.target);
+        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    });
+
+    // Render all four sections in parallel
     await Promise.all([
       renderCoverageHeatmap(coverageData),
       renderAvailabilityMatrix(availabilityData),
@@ -2373,92 +2373,46 @@ async function generateAndDisplayDatasetOverview() {
   }
 }
 
-function calculateTopStations(rows) {
-  return rows.map(row => ({
-    station_name: row.station_name,
-    yearSpan: row.last_year - row.first_year + 1,
-    variables: row.variable_count,
-    score: row.variable_count * (row.last_year - row.first_year + 1) / 10
-  })).sort((a, b) => b.score - a.score);
-}
-
-function generateDataInsights(coverage, availability, stations) {
-  const totalStations = stations.rows.length;
-  const countryCounts = {};
-  const variableStrengths = {};
-
-  stations.rows.forEach(s => {
-    countryCounts[s.country] = (countryCounts[s.country] || 0) + 1;
-  });
-
-  availability.rows.forEach(r => {
-    availability.variables.forEach(v => {
-      const cell = r.variables[v];
-      if (cell && cell.years > 20) {
-        variableStrengths[v] = (variableStrengths[v] || 0) + 1;
-      }
-    });
-  });
-
-  const strongestVariable = Object.entries(variableStrengths).sort((a, b) => b[1] - a[1])[0];
-  const mainCountry = Object.entries(countryCounts).sort((a, b) => b[1] - a[1])[0];
-
-  return [
-    { icon: '🌍', text: `${totalStations} stations across the Mekong basin` },
-    { icon: '📈', text: `${strongestVariable ? strongestVariable[0] : 'Multiple variables'} well-documented` },
-    { icon: '🇹🇭', text: `${mainCountry ? `${mainCountry[0]}: ${mainCountry[1]} stations` : 'Multi-country coverage'}` },
-    { icon: '✓', text: 'Transparency on data gaps & limitations' }
-  ];
-}
-
-function getStrengthLabel(score) {
-  if (score > 300) return '⭐ Excellent for analysis';
-  if (score > 150) return '⭐⭐ Strong data coverage';
-  return '⭐ Good starting point';
-}
-
-// ===== SECTION 1: COVERAGE HEATMAP (ENHANCED) =====
+// ===== SECTION 1: COVERAGE HEATMAP =====
 async function renderCoverageHeatmap(data) {
   const container = document.getElementById('datasetCoverageApp');
 
-  let html = `
-    <div class="coverage-heatmap-wrapper">
-      <div class="heatmap-description">
-        <p>Each cell shows data completeness (%) for a station-decade pair. Green = complete, light gray = sparse or missing. Use filters to find stations with continuous records for your analysis.</p>
+  container.innerHTML = `
+    <div class="do-heatmap-wrap">
+      <div class="do-hint">
+        <strong>How to read this:</strong> Each row is a station. Each column is a decade (1960s, 1970s…).
+        Hover any cell to see the exact completeness percentage for that decade.
+        Use the filters below to focus on a specific variable or country.
       </div>
-      <div class="coverage-heatmap-controls">
-        <div class="heatmap-filter">
-          <label>🔍 Variable:</label>
+      <div class="do-controls-bar">
+        <div class="do-control-field">
+          <label class="do-control-label">Show coverage for variable</label>
           <select id="heatmapVariableFilter" class="dropdown">
-            <option value="">All Variables</option>
+            <option value="">All Variables (overall)</option>
             ${data.variables.map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('')}
           </select>
         </div>
-        <div class="heatmap-filter">
-          <label>🌍 Country:</label>
+        <div class="do-control-field">
+          <label class="do-control-label">Filter by country</label>
           <select id="heatmapCountryFilter" class="dropdown">
             <option value="">All Countries</option>
             ${data.countries.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('')}
           </select>
         </div>
-        <div class="heatmap-filter">
-          <label>📊 Min Completeness:</label>
-          <div class="filter-input-group">
-            <input id="heatmapThreshold" type="range" min="0" max="100" value="0" />
-            <span id="heatmapThresholdValue">0%</span>
-          </div>
+        <div class="do-control-field do-control-field--wide">
+          <label class="do-control-label">Hide stations below &nbsp;<span id="heatmapThresholdValue" class="do-threshold-val">0%</span> completeness</label>
+          <input id="heatmapThreshold" type="range" min="0" max="100" value="0" class="do-range" />
         </div>
       </div>
-      <div class="coverage-heatmap-grid" id="coverageGrid"></div>
-      <div class="coverage-legend">
-        <span>← Sparse</span>
-        <div class="legend-bar"></div>
-        <span>Complete →</span>
+      <div class="do-heatmap-grid" id="coverageGrid"></div>
+      <div class="do-legend">
+        <span class="do-legend-label">No data</span>
+        <div class="do-legend-bar"></div>
+        <span class="do-legend-label">100% complete</span>
       </div>
     </div>
   `;
 
-  container.innerHTML = html;
   renderCoverageGrid(data);
 
   document.getElementById('heatmapVariableFilter')?.addEventListener('change', () => renderCoverageGrid(data));
@@ -2475,16 +2429,14 @@ function renderCoverageGrid(data) {
   const countryFilter = document.getElementById('heatmapCountryFilter')?.value || '';
   const threshold = parseInt(document.getElementById('heatmapThreshold')?.value || 0);
 
-  let filtered = data.stations.filter(s => !countryFilter || s.country === countryFilter);
+  const filtered = data.stations.filter(s => !countryFilter || s.country === countryFilter);
 
-  let html = '<div class="heatmap-header"><span class="station-corner">Station</span>';
-  data.decades.forEach(d => {
-    html += `<div class="decade-header">${d}s</div>`;
-  });
+  let html = '<div class="do-heatmap-header"><span class="do-corner">Station</span>';
+  data.decades.forEach(d => html += `<div class="do-decade-col">${d}s</div>`);
   html += '</div>';
 
   filtered.forEach(station => {
-    html += `<div class="heatmap-row"><span class="station-label">${station.station_name}</span>`;
+    html += `<div class="do-heatmap-row"><span class="do-station-name-col">${escapeHtml(station.station_name)}</span>`;
 
     station.cells.forEach(cell => {
       let pct = cell.overall_pct;
@@ -2492,44 +2444,61 @@ function renderCoverageGrid(data) {
         pct = cell.by_variable[varFilter];
       }
 
-      const meetsThreshold = pct === null || pct < threshold;
-      const color = pct === null ? '#fafafa' : `hsl(137, ${71 - (100-pct)*0.3}%, ${90 + (100-pct)*0.1}%)`;
+      const faded = pct !== null && pct < threshold;
+      // Teal/blue water theme: light (no data) → deep teal (complete)
+      const bg = pct === null
+        ? 'var(--bg-subtle)'
+        : `hsl(197, ${40 + pct * 0.38}%, ${93 - pct * 0.30}%)`;
+      const tip = `${escapeHtml(station.station_name)} · ${cell.decade}s: ${pct !== null ? pct + '% complete' : 'No data'}`;
 
-      html += `
-        <div class="heatmap-cell" style="background: ${color};"
-             title="${cell.decade}s: ${pct !== null ? pct + '%' : 'No data'}"
-             data-pct="${pct}">
-        </div>
-      `;
+      html += `<div class="do-heatmap-cell${faded ? ' do-cell-faded' : ''}" style="background:${bg}" data-tip="${tip}"></div>`;
     });
     html += '</div>';
   });
-  html += '</div>';
 
   grid.innerHTML = html;
+
+  // Attach tooltip handlers
+  const tip = document.getElementById('doTooltip');
+  grid.querySelectorAll('.do-heatmap-cell[data-tip]').forEach(cell => {
+    cell.addEventListener('mouseenter', (e) => {
+      tip.textContent = cell.dataset.tip;
+      tip.classList.add('visible');
+    });
+    cell.addEventListener('mousemove', (e) => {
+      tip.style.left = (e.clientX + 14) + 'px';
+      tip.style.top = (e.clientY - 32) + 'px';
+    });
+    cell.addEventListener('mouseleave', () => tip.classList.remove('visible'));
+  });
 }
 
-// ===== SECTION 2: AVAILABILITY MATRIX (ENHANCED) =====
+// ===== SECTION 2: AVAILABILITY MATRIX =====
 async function renderAvailabilityMatrix(data) {
   const container = document.getElementById('datasetAvailabilityApp');
 
-  let html = `
-    <div class="availability-wrapper">
-      <div class="availability-description">
-        <p>Can you study discharge vs. water level at Ban Chot? This matrix shows which variable pairs can be compared. Green cells = strong data, gray = sparse or missing.</p>
+  container.innerHTML = `
+    <div class="do-availability-wrap">
+      <div class="do-hint">
+        <strong>How to read this:</strong> Find your station in the left column.
+        Look across the row — colored cells mean that variable was measured there.
+        The number shows how many years of data exist. Gray cells mean the variable was never recorded at that station.
+        <br><strong>Example:</strong> If you want to compare discharge vs. water level, both columns must be colored in the same row.
       </div>
-      <div class="availability-controls">
-        <label>Filter: Show only stations with <input id="minYearsSlider" type="range" min="0" max="60" value="0" class="inline-slider" /> <span id="minYearsValue">0</span> years minimum</label>
+      <div class="do-controls-bar">
+        <div class="do-control-field do-control-field--wide">
+          <label class="do-control-label">Only show stations with at least &nbsp;<span id="minYearsValue" class="do-threshold-val">0 years</span> of data for a variable</label>
+          <input id="minYearsSlider" type="range" min="0" max="60" value="0" class="do-range" />
+        </div>
       </div>
-      <div class="availability-matrix-wrapper" id="availabilityMatrix"></div>
+      <div class="do-matrix-scroll" id="availabilityMatrix"></div>
     </div>
   `;
 
-  container.innerHTML = html;
   renderAvailabilityMatrixTable(data);
 
   document.getElementById('minYearsSlider')?.addEventListener('input', (e) => {
-    document.getElementById('minYearsValue').textContent = e.target.value;
+    document.getElementById('minYearsValue').textContent = e.target.value + ' years';
     renderAvailabilityMatrixTable(data);
   });
 }
@@ -2537,67 +2506,92 @@ async function renderAvailabilityMatrix(data) {
 function renderAvailabilityMatrixTable(data) {
   const matrix = document.getElementById('availabilityMatrix');
   const minYears = parseInt(document.getElementById('minYearsSlider')?.value || 0);
-  let filtered = data.rows.filter(row =>
+  const filtered = data.rows.filter(row =>
     Object.values(row.variables).some(cell => cell && cell.years >= minYears)
   );
 
-  let html = '<table class="availability-table"><thead><tr><th>Station</th>';
-  data.variables.forEach(v => html += `<th title="${v}">${v}</th>`);
+  const tip = document.getElementById('doTooltip');
+
+  let html = '<table class="do-avail-table"><thead><tr><th>Station</th>';
+  data.variables.forEach(v => html += `<th>${escapeHtml(v)}</th>`);
   html += '</tr></thead><tbody>';
 
   filtered.forEach(row => {
-    html += `<tr><td class="station-cell"><strong>${escapeHtml(row.station_name)}</strong><br><small>${row.country}</small></td>`;
+    html += `<tr><td class="do-station-cell">${escapeHtml(row.station_name)}<small>${escapeHtml(row.country)}</small></td>`;
     data.variables.forEach(v => {
       const cell = row.variables[v];
       const years = cell?.years || 0;
       const density = cell?.density_pct || 0;
-      const meets = cell && years >= minYears;
-      const color = !cell ? '#fafafa' : `hsl(137, ${71 - (100-density)*0.3}%, ${90 + (100-density)*0.1}%)`;
-
-      html += `
-        <td style="background: ${color}; cursor: pointer;" title="${years}y available, ${density}% complete">
-          <strong>${years}</strong>y
-        </td>
-      `;
+      // Teal water theme matching heatmap
+      const bg = !cell || years === 0
+        ? 'var(--bg-subtle)'
+        : `hsl(197, ${40 + density * 0.38}%, ${93 - density * 0.30}%)`;
+      const tipText = cell ? `${years}y · ${density}% density` : 'No data';
+      html += `<td style="background:${bg}" data-tip="${escapeHtml(row.station_name)} / ${escapeHtml(v)}: ${tipText}">${years > 0 ? years + 'y' : '—'}</td>`;
     });
     html += '</tr>';
   });
   html += '</tbody></table>';
 
   matrix.innerHTML = html;
+
+  // Tooltip on matrix cells
+  matrix.querySelectorAll('td[data-tip]').forEach(cell => {
+    cell.addEventListener('mouseenter', () => {
+      tip.textContent = cell.dataset.tip;
+      tip.classList.add('visible');
+    });
+    cell.addEventListener('mousemove', (e) => {
+      tip.style.left = (e.clientX + 14) + 'px';
+      tip.style.top = (e.clientY - 32) + 'px';
+    });
+    cell.addEventListener('mouseleave', () => tip.classList.remove('visible'));
+  });
 }
 
-// ===== SECTION 3: STATION EXPLORER (ENHANCED) =====
+// ===== SECTION 3: STATION EXPLORER =====
 async function renderStationExplorer(data) {
   const container = document.getElementById('datasetStationExplorerApp');
+  const countries = [...new Set(data.rows.map(r => r.country))].sort();
 
-  let html = `
-    <div class="station-explorer-wrapper">
-      <div class="station-explorer-description">
-        <p>Browse all stations. Click any station to see its strengths, data completeness by variable, and jump straight to building a visualization.</p>
+  container.innerHTML = `
+    <div class="do-explorer-wrap">
+      <div class="do-hint">
+        <strong>How to use:</strong> Sort by <em>Longest Records</em> to find stations with the most data,
+        or by <em>Most Variables</em> to find the richest stations.
+        Click any row to expand it and see which variables were measured — then click
+        <em>Open in Visualization Builder</em> to start charting.
+        <br><strong>Ratings:</strong> Excellent = long records + multiple variables. Strong = solid coverage. Limited = short or sparse data — use with caution.
       </div>
-      <div class="station-explorer-controls">
-        <input id="stationSearch" type="text" placeholder="🔍 Search: Ban Chot, Thailand, Discharge..." class="dropdown" />
+      <div class="do-explorer-controls">
+        <input id="stationSearch" type="text" placeholder="Search by station name or country…" class="dropdown" />
+        <select id="stationCountryFilter" class="dropdown">
+          <option value="">All Countries</option>
+          ${countries.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('')}
+        </select>
         <select id="stationSort" class="dropdown">
           <option value="name">Sort: A–Z</option>
-          <option value="years">Sort: Longest Records</option>
-          <option value="variables">Sort: Most Variables</option>
+          <option value="years">Longest Records first</option>
+          <option value="variables">Most Variables first</option>
         </select>
       </div>
-      <div class="station-explorer-table" id="stationTable"></div>
+      <div class="do-explorer-count" id="stationCount"></div>
+      <div class="do-station-list" id="stationTable"></div>
     </div>
   `;
 
-  container.innerHTML = html;
   renderStationTable(data);
 
   document.getElementById('stationSearch')?.addEventListener('input', () => renderStationTable(data));
+  document.getElementById('stationCountryFilter')?.addEventListener('change', () => renderStationTable(data));
   document.getElementById('stationSort')?.addEventListener('change', () => renderStationTable(data));
 }
 
 function renderStationTable(data) {
   const table = document.getElementById('stationTable');
+  const countEl = document.getElementById('stationCount');
   const search = document.getElementById('stationSearch')?.value.toLowerCase() || '';
+  const countryFilter = document.getElementById('stationCountryFilter')?.value || '';
   const sort = document.getElementById('stationSort')?.value || 'name';
 
   let rows = [...data.rows];
@@ -2608,6 +2602,9 @@ function renderStationTable(data) {
       r.country.toLowerCase().includes(search)
     );
   }
+  if (countryFilter) {
+    rows = rows.filter(r => r.country === countryFilter);
+  }
 
   rows.sort((a, b) => {
     if (sort === 'years') return (b.last_year - b.first_year) - (a.last_year - a.first_year);
@@ -2615,52 +2612,67 @@ function renderStationTable(data) {
     return a.station_name.localeCompare(b.station_name);
   });
 
+  if (countEl) {
+    countEl.textContent = rows.length
+      ? `${rows.length} station${rows.length !== 1 ? 's' : ''} — click any row to expand and see which variables were measured`
+      : '';
+  }
+
+  if (!rows.length) {
+    table.innerHTML = '<div class="do-explorer-empty">No stations match your filters. Try clearing the search or changing the country.</div>';
+    return;
+  }
+
   let html = '';
   rows.forEach((row, idx) => {
     const years = row.last_year - row.first_year + 1;
     const strength = getStationStrength(row.variable_count, years);
-    const badges = row.per_variable_badges.map(b =>
-      `<span class="data-badge" title="${b.variable}: ${b.completeness_pct}%">${b.variable.substring(0, 4)}</span>`
-    ).join('');
+    const pillClass = strength === 'Excellent' ? 'do-strength-excellent' : strength === 'Strong' ? 'do-strength-strong' : 'do-strength-limited';
+
+    const badges = row.per_variable_badges.map(b => {
+      const pct = b.completeness_pct;
+      const quality = pct >= 80 ? 'do-badge-good' : pct >= 40 ? 'do-badge-partial' : 'do-badge-sparse';
+      return `<span class="do-var-badge ${quality}" title="${escapeHtml(b.variable)}: ${pct}% of years have data">${escapeHtml(b.variable)} <span class="do-badge-pct">${pct}%</span></span>`;
+    }).join('');
+
+    const badgesNote = row.per_variable_badges.length
+      ? '<p class="do-expanded-note">Each badge shows a variable and its data completeness (% of years with records).</p>'
+      : '<p class="do-expanded-note">No variable detail available for this station.</p>';
 
     html += `
-      <div class="station-row collapsed" data-index="${idx}">
-        <div class="station-row-header">
-          <div class="station-col-1">
-            <span class="station-name">${escapeHtml(row.station_name)}</span>
-            <span class="station-subtext">${row.country}</span>
+      <div class="do-station-row" data-idx="${idx}">
+        <div class="do-station-hd">
+          <div>
+            <div class="do-stn-name">${escapeHtml(row.station_name)}</div>
+            <div class="do-stn-meta">${escapeHtml(row.country)} · ${row.first_year}–${row.last_year} (${years} years)</div>
           </div>
-          <div class="station-col-2">
-            <span class="stat">📅 ${years}y</span>
-            <span class="stat">📊 ${row.variable_count} vars</span>
-            <span class="strength-badge" style="background: ${getStrengthColor(strength)}">${strength}</span>
+          <div class="do-stn-stats">
+            <span class="do-stn-stat">${row.variable_count} variable${row.variable_count !== 1 ? 's' : ''} measured</span>
+            <span class="do-strength-pill ${pillClass}" title="Excellent = long records + multiple variables. Strong = solid. Limited = short or sparse.">${strength}</span>
           </div>
-          <span class="expand-icon">›</span>
+          <span class="do-expand-chevron">›</span>
         </div>
-        <div class="station-row-expanded">
-          <div class="expanded-content">
-            <div class="variable-badges">${badges}</div>
-            <button class="primary-btn" onclick="window.goToBuilder('${escapeHtml(row.station_name)}')">Build Visualization →</button>
+        <div class="do-station-body">
+          <div class="do-station-body-inner">
+            ${badgesNote}
+            <div class="do-var-badges">${badges}</div>
+            <button class="primary-btn" onclick="window.goToBuilder('${escapeHtml(row.station_name)}')">Open in Visualization Builder →</button>
           </div>
         </div>
       </div>
     `;
   });
 
-  table.innerHTML = html || '<div class="empty-state">No stations match your search. Try a different term.</div>';
+  table.innerHTML = html;
 
-  document.querySelectorAll('.station-row-header').forEach(header => {
-    header.addEventListener('click', function() {
-      const row = this.parentElement;
-      const isCollapsed = row.classList.contains('collapsed');
-
-      document.querySelectorAll('.station-row').forEach(r => r.classList.add('collapsed'));
-      document.querySelectorAll('.station-row-expanded').forEach(e => e.style.display = 'none');
-
-      if (isCollapsed) {
-        row.classList.remove('collapsed');
-        row.querySelector('.station-row-expanded').style.display = 'block';
-      }
+  table.querySelectorAll('.do-station-hd').forEach(hd => {
+    hd.addEventListener('click', function () {
+      const row = this.closest('.do-station-row');
+      const isOpen = row.classList.contains('open');
+      // Close all
+      table.querySelectorAll('.do-station-row').forEach(r => r.classList.remove('open'));
+      // Open clicked one if it was closed
+      if (!isOpen) row.classList.add('open');
     });
   });
 }
@@ -2672,118 +2684,89 @@ function getStationStrength(variables, years) {
   return 'Limited';
 }
 
-function getStrengthColor(strength) {
-  if (strength === 'Excellent') return 'rgba(34, 160, 90, 0.2)';
-  if (strength === 'Strong') return 'rgba(232, 165, 90, 0.2)';
-  return 'rgba(200, 200, 200, 0.2)';
-}
-
 // ===== SECTION 4: PROVENANCE DISCLOSURE =====
 async function renderProvenanceDisclosure() {
   const container = document.getElementById('datasetProvenanceApp');
 
-  const html = `
-    <div class="provenance-wrapper">
-      <div class="provenance-accordion">
-        <div class="accordion-panel">
-          <div class="accordion-header">📊 Data Sources & Collection</div>
-          <div class="accordion-content">
-            <p>Data comes from <strong>national water authorities</strong> in Thailand, Laos, Cambodia, and Vietnam, coordinated through the <strong>Mekong River Commission (MRC)</strong>. Each country maintains its own monitoring network; records span from 1960 to present depending on station.</p>
-            <ul>
-              <li><strong>Thailand:</strong> Royal Irrigation Department</li>
-              <li><strong>Laos:</strong> Department of Meteorology & Hydrology</li>
-              <li><strong>Cambodia:</strong> Ministry of Water Resources</li>
-              <li><strong>Vietnam:</strong> Institute of Meteorology & Hydrology</li>
-            </ul>
-          </div>
-        </div>
+  container.innerHTML = `
+    <div class="do-provenance-wrap">
+      <div class="do-accordion">
 
-        <div class="accordion-panel">
-          <div class="accordion-header">⚙️ Processing Pipeline: What Happens to Raw Data</div>
-          <div class="accordion-content">
-            <div class="preprocessing-timeline">
-              <div class="timeline-step">1️⃣ <strong>Ingest</strong><br>Raw daily readings</div>
-              <div class="timeline-arrow">→</div>
-              <div class="timeline-step">2️⃣ <strong>Standardize</strong><br>Units & timezone</div>
-              <div class="timeline-arrow">→</div>
-              <div class="timeline-step">3️⃣ <strong>Flag Anomalies</strong><br>Outliers & gaps</div>
-              <div class="timeline-arrow">→</div>
-              <div class="timeline-step">4️⃣ <strong>Validate</strong><br>QA checks</div>
+        <div class="do-acc-panel open">
+          <div class="do-acc-header">
+            Where does this data come from?
+            <span class="do-acc-chevron">▾</span>
+          </div>
+          <div class="do-acc-body">
+            <div class="do-acc-body-inner">
+              <p>Data comes from <strong>national water authorities</strong> in Thailand, Laos, Cambodia, and Vietnam, coordinated through the <strong>Mekong River Commission (MRC)</strong>. Each country operates its own monitoring network; records typically span from 1960 to present depending on the station.</p>
+              <ul>
+                <li><strong>Thailand:</strong> Royal Irrigation Department</li>
+                <li><strong>Laos:</strong> Department of Meteorology &amp; Hydrology</li>
+                <li><strong>Cambodia:</strong> Ministry of Water Resources</li>
+                <li><strong>Vietnam:</strong> Institute of Meteorology &amp; Hydrology</li>
+              </ul>
             </div>
           </div>
         </div>
 
-        <div class="accordion-panel">
-          <div class="accordion-header">⚠️ Known Limitations: When to Be Cautious</div>
-          <div class="accordion-content">
-            <div class="limitation">
-              <span class="severity-badge severity-high">🔴 CRITICAL</span>
-              <span><strong>Pre-2000 records inconsistent:</strong> Equipment quality varied. Water level at Laotian stations before 2000 should be viewed skeptically for trend analysis.</span>
-            </div>
-            <div class="limitation">
-              <span class="severity-badge severity-medium">🟡 IMPORTANT</span>
-              <span><strong>Multi-year gaps exist:</strong> Some stations have 5–10 year blackouts (political instability, equipment failure). Check the heatmap before committing time to a station.</span>
-            </div>
-            <div class="limitation">
-              <span class="severity-badge severity-low">🟢 MINOR</span>
-              <span><strong>Timezone shifts:</strong> Discharge readings cross date boundaries; timestamps may be ±4 hours off. Negligible for monthly+ analysis.</span>
+        <div class="do-acc-panel">
+          <div class="do-acc-header">
+            What are the known issues I should be aware of?
+            <span class="do-acc-chevron">▾</span>
+          </div>
+          <div class="do-acc-body">
+            <div class="do-acc-body-inner">
+              <div class="limitation">
+                <span class="severity-badge severity-high">Critical</span>
+                <span><strong>Pre-2000 records are unreliable for trend analysis.</strong> Equipment quality varied significantly before 2000, especially water level readings at Laotian stations. Use these with caution for any long-term trend work.</span>
+              </div>
+              <div class="limitation">
+                <span class="severity-badge severity-medium">Important</span>
+                <span><strong>Some stations have multi-year gaps.</strong> Political instability or equipment failures caused 5–10 year blackouts at certain sites. Always check the heatmap first before committing to a station for your analysis.</span>
+              </div>
+              <div class="limitation">
+                <span class="severity-badge severity-low">Minor</span>
+                <span><strong>Discharge timestamps may be off by up to ±4 hours.</strong> This is negligible for monthly or annual analysis, but worth noting if you're doing daily-level work.</span>
+              </div>
             </div>
           </div>
         </div>
 
-        <div class="accordion-panel">
-          <div class="accordion-header">✓ Can I Use This Data For...?</div>
-          <div class="accordion-content">
-            <table class="suitability-table">
-              <tr>
-                <th>Analysis Type</th>
-                <th>Discharge</th>
-                <th>Water Level</th>
-                <th>Rainfall</th>
-                <th>Sediment</th>
-              </tr>
-              <tr>
-                <td>Trend over decades</td>
-                <td>🟢 Yes</td>
-                <td>🟢 Yes</td>
-                <td>🟡 With care</td>
-                <td>🔴 No</td>
-              </tr>
-              <tr>
-                <td>Correlate 2 variables</td>
-                <td colspan="4">🟢 Yes (if both measured at same station)</td>
-              </tr>
-              <tr>
-                <td>Forecast next month</td>
-                <td>🟡 Limited</td>
-                <td>🟢 Good</td>
-                <td>🟡 Limited</td>
-                <td>🔴 No</td>
-              </tr>
-              <tr>
-                <td>Compare upstream/downstream</td>
-                <td>🟢 Yes</td>
-                <td>🟢 Yes</td>
-                <td>🔴 No</td>
-                <td>🔴 No</td>
-              </tr>
-            </table>
+        <div class="do-acc-panel">
+          <div class="do-acc-header">
+            Can I use this data for my specific analysis?
+            <span class="do-acc-chevron">▾</span>
+          </div>
+          <div class="do-acc-body">
+            <div class="do-acc-body-inner">
+              <p style="margin-bottom:14px; color: var(--text-secondary); font-size:0.85rem;">🟢 Yes = reliable for this use &nbsp;·&nbsp; 🟡 With care = possible but check limitations &nbsp;·&nbsp; 🔴 No = data quality insufficient</p>
+              <table class="suitability-table">
+                <thead>
+                  <tr><th>What I want to do</th><th>Discharge</th><th>Water Level</th><th>Rainfall</th><th>Sediment</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>Analyze trends over decades</td><td>🟢 Yes</td><td>🟢 Yes</td><td>🟡 With care</td><td>🔴 No</td></tr>
+                  <tr><td>Correlate two variables</td><td colspan="4">🟢 Yes — as long as both are measured at the same station (check the matrix above)</td></tr>
+                  <tr><td>Forecast the next month</td><td>🟡 Limited</td><td>🟢 Good</td><td>🟡 Limited</td><td>🔴 No</td></tr>
+                  <tr><td>Compare upstream vs. downstream</td><td>🟢 Yes</td><td>🟢 Yes</td><td>🔴 No</td><td>🔴 No</td></tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
+
       </div>
     </div>
   `;
 
-  container.innerHTML = html;
-
-  document.querySelectorAll('.accordion-header').forEach(header => {
-    header.addEventListener('click', function() {
-      const panel = this.parentElement;
-      const content = panel.querySelector('.accordion-content');
-      const isOpen = content.style.display === 'block';
-
-      document.querySelectorAll('.accordion-content').forEach(c => c.style.display = 'none');
-      if (!isOpen) content.style.display = 'block';
+  // CSS-based accordion — toggle .open class only
+  container.querySelectorAll('.do-acc-header').forEach(header => {
+    header.addEventListener('click', function () {
+      const panel = this.closest('.do-acc-panel');
+      const isOpen = panel.classList.contains('open');
+      container.querySelectorAll('.do-acc-panel').forEach(p => p.classList.remove('open'));
+      if (!isOpen) panel.classList.add('open');
     });
   });
 }

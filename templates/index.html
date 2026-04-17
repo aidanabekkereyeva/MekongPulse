@@ -1169,21 +1169,43 @@
         </div>
 
         <div class="dataset-overview-content">
-          <section class="dataset-page-hero">
-            <div>
-              <p class="section-label">Metadata Intelligence</p>
-              <h3>Find the strongest stations, the thinnest gaps, and the safest starting points before you build anything.</h3>
+
+          <!-- Hero + Stats Bar -->
+          <section class="do-hero">
+            <div class="do-hero-copy">
+              <p class="section-label">Before You Start</p>
+              <h3>Which stations actually have the data you need?</h3>
+              <p>Not every station measures every variable, and gaps are common. Use this page to check completeness, spot missing records, and pick the right stations before you build a chart.</p>
+              <div class="do-workflow">
+                <div class="do-workflow-step"><span class="do-step-num">1</span><span>Check the <strong>Heatmap</strong> — does your station have data for your time period?</span></div>
+                <div class="do-workflow-step"><span class="do-step-num">2</span><span>Check the <strong>Matrix</strong> — are the variables you need measured at that station?</span></div>
+                <div class="do-workflow-step"><span class="do-step-num">3</span><span>Open the <strong>Explorer</strong> — expand any station and jump to the visualization builder.</span></div>
+              </div>
             </div>
-            <p class="dataset-page-hero-copy">This page turns metadata into action. Use the interactive coverage tools below to inspect completeness, compare variable support across stations, and understand how suitable each part of the archive is for different analytical workflows.</p>
+            <div class="do-stats-bar" id="doStatsBar">
+              <div class="do-stat-card"><div class="do-stat-num">—</div><div class="do-stat-label">Stations</div><div class="do-stat-sub">monitoring sites</div></div>
+              <div class="do-stat-card"><div class="do-stat-num">—</div><div class="do-stat-label">Countries</div><div class="do-stat-sub">in the basin</div></div>
+              <div class="do-stat-card"><div class="do-stat-num">—</div><div class="do-stat-label">Year Range</div><div class="do-stat-sub">earliest–latest record</div></div>
+              <div class="do-stat-card"><div class="do-stat-num">—</div><div class="do-stat-label">Variables</div><div class="do-stat-sub">e.g. discharge, level, rain</div></div>
+            </div>
           </section>
 
-          <section class="dataset-overview-block" id="dataset-coverage-section">
-            <div class="dataset-block-head">
+          <!-- Section nav tabs -->
+          <nav class="do-section-nav">
+            <button class="do-nav-btn active" data-target="dataset-coverage-section">1. Coverage Heatmap</button>
+            <button class="do-nav-btn" data-target="dataset-availability-section">2. Availability Matrix</button>
+            <button class="do-nav-btn" data-target="dataset-station-records-section">3. Station Explorer</button>
+            <button class="do-nav-btn" data-target="dataset-provenance-section">4. Data Reliability</button>
+          </nav>
+
+          <!-- Section 1: Data Coverage Heatmap -->
+          <section class="do-block" id="dataset-coverage-section">
+            <div class="do-block-head">
               <div>
-                <p class="section-label">Section 1</p>
-                <h3>Data Coverage Heatmap</h3>
+                <p class="section-label">Step 1</p>
+                <h3>Coverage Heatmap — Did this station record data when I need it?</h3>
               </div>
-              <p>Interactive decade by station grid coloured by completeness percentage, with filters and a click-to-expand side panel.</p>
+              <p>Each cell covers one decade at one station. Dark teal = lots of data. Light or empty = sparse or missing records. Use the filters to narrow down stations that meet your needs.</p>
             </div>
             <div id="datasetCoverageApp" class="dataset-app-shell">
               <div class="skel-wrap">
@@ -1197,13 +1219,14 @@
             </div>
           </section>
 
-          <section class="dataset-overview-block" id="dataset-availability-section">
-            <div class="dataset-block-head">
+          <!-- Section 2: Availability Matrix -->
+          <section class="do-block" id="dataset-availability-section">
+            <div class="do-block-head">
               <div>
-                <p class="section-label">Section 2</p>
-                <h3>Variable × Station Availability Matrix</h3>
+                <p class="section-label">Step 2</p>
+                <h3>Availability Matrix — Are the variables I need measured at this station?</h3>
               </div>
-              <p>Sortable station-by-variable matrix coloured by data density, with minimum-years filtering and station-variable popups.</p>
+              <p>Each row is a station. Each column is a variable type (discharge, water level, etc.). A colored cell means data exists — the number shows how many years. Gray means that variable was never measured there.</p>
             </div>
             <div id="datasetAvailabilityApp" class="dataset-app-shell">
               <div class="skel-wrap">
@@ -1216,13 +1239,14 @@
             </div>
           </section>
 
-          <section class="dataset-overview-block" id="dataset-station-records-section">
-            <div class="dataset-block-head">
+          <!-- Section 3: Station Record Explorer -->
+          <section class="do-block" id="dataset-station-records-section">
+            <div class="do-block-head">
               <div>
-                <p class="section-label">Section 3</p>
-                <h3>Station Record Explorer</h3>
+                <p class="section-label">Step 3</p>
+                <h3>Station Explorer — Browse, pick a station, and start building.</h3>
               </div>
-              <p>Searchable, sortable station inventory with expandable rows, miniature sparklines, completeness badges, and analysis shortcuts.</p>
+              <p>Sort by record length or variable count to find the strongest stations. Click any row to see exactly which variables were measured and how complete the records are — then open it directly in the visualization builder.</p>
             </div>
             <div id="datasetStationExplorerApp" class="dataset-app-shell">
               <div class="skel-wrap">
@@ -1237,13 +1261,14 @@
             </div>
           </section>
 
-          <section class="dataset-overview-block" id="dataset-provenance-section">
-            <div class="dataset-block-head">
+          <!-- Section 4: Provenance & Preprocessing -->
+          <section class="do-block" id="dataset-provenance-section">
+            <div class="do-block-head">
               <div>
-                <p class="section-label">Section 4</p>
-                <h3>Provenance &amp; Preprocessing Disclosure</h3>
+                <p class="section-label">Data Reliability</p>
+                <h3>Where does this data come from — and what are the known issues?</h3>
               </div>
-              <p>Source disclosure, preprocessing timeline, known limitations, and analytical suitability guidance in one place.</p>
+              <p>Read this before drawing conclusions. It covers the original data sources, how the data was cleaned, known gaps and inconsistencies, and a guide to which analyses are reliable with this dataset.</p>
             </div>
             <div id="datasetProvenanceApp" class="dataset-app-shell">
               <div class="skel-wrap">
@@ -1256,6 +1281,7 @@
               </div>
             </div>
           </section>
+
         </div>
       </section>
 
