@@ -18,7 +18,10 @@
       "Bash(python -c ' *)",
       "Bash(python scripts/seed_news.py)",
       "Bash(python -c \"import ast; ast.parse\\(open\\('services/news_service.py'\\).read\\(\\)\\); print\\('OK'\\)\")",
-      "WebSearch"
+      "WebSearch",
+      "Bash(python -c \"import services.ml_prediction_service; print\\('OK'\\)\")",
+      "Bash(python -)",
+      "Bash(python generate_stacking_ensemble.py)"
     ]
   }
 }

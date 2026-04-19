@@ -403,17 +403,9 @@ def generate_stacking_ensemble(
     horizon: int = 14,
 ) -> Dict[str, Any]:
     """
-    Advanced Stacking Ensemble: Combines ALL available models (Holt-Winters, LSTM, GRU, PatchTST, DLinear, iTransformer).
-
-    Level-0 (Base Models): Generate predictions from 6 diverse models
-    Level-1 (Meta-Model): Train Ridge Regression on stacked base predictions
-
-    Uses cross-validated training to prevent overfitting.
-    Returns ensemble with all base model contributions visualized.
+    Stacking Ensemble: loads pre-computed Ridge meta-model predictions from disk,
+    same format as every other ML model.
     """
-    from sklearn.linear_model import Ridge
-    from sklearn.preprocessing import StandardScaler
-
     actual_df = _load_actual(category_name, station_name)
     if actual_df is None or len(actual_df) < 60:
         raise ValueError(f"Insufficient historical data for {station_name} / {category_name}.")
@@ -426,85 +418,37 @@ def generate_stacking_ensemble(
     last_date = actual_df['Timestamp'].max()
     last_value = float(actual_df.loc[actual_df['Timestamp'] == last_date, 'Value'].iloc[0])
 
-    # Level-0: Load predictions from ALL available base models
-    # Statistical model + Deep learning models
+    # Load pre-computed ensemble forecast
+    ensemble_forecast = _load_future(station_name, category_name, 'StackingEnsemble', horizon)
+    if ensemble_forecast is None:
+        raise ValueError(
+            f"No pre-computed StackingEnsemble data for {station_name} / {category_name}. "
+            "Run generate_stacking_ensemble.py to create the prediction files."
+        )
+
+    ensemble_fit_df, ensemble_rmse, ensemble_mape = _load_historical_fit(
+        station_name, category_name, 'StackingEnsemble', horizon, actual_df
+    )
+
+    # Load base model forecasts for overlay display
     base_models = ['LSTM', 'GRU', 'PatchTST', 'DLinear', 'iTransformer']
-    base_predictions = {}
-    model_rmses = {}
-
+    base_predictions: Dict[str, np.ndarray] = {}
+    model_rmses: Dict[str, float] = {}
     for model_name in base_models:
-        try:
-            future_vals = _load_future(station_name, category_name, model_name, horizon)
-            fit_df, rmse, mape = _load_historical_fit(station_name, category_name, model_name, horizon, actual_df)
+        future_vals = _load_future(station_name, category_name, model_name, horizon)
+        _, rmse, _ = _load_historical_fit(station_name, category_name, model_name, horizon, actual_df)
+        if future_vals is not None:
+            base_predictions[model_name] = future_vals
+            model_rmses[model_name] = float(rmse) if not np.isnan(rmse) else 100
 
-            if future_vals is not None:
-                base_predictions[model_name] = future_vals
-                model_rmses[model_name] = float(rmse) if not np.isnan(rmse) else 100
-        except Exception:
-            model_rmses[model_name] = 100
-
-    if len(base_predictions) < 3:
-        raise ValueError(
-            f"Need at least 3 base models for stacking. Found: {list(base_predictions.keys())}. "
-            f"Ensure multiple pre-trained models are available for {station_name} / {category_name}."
-        )
-
-    # Load historical fit data for training meta-model
-    hist_preds = {}
-    for model_name in base_models:
-        try:
-            fit_df, _, _ = _load_historical_fit(station_name, category_name, model_name, horizon, actual_df)
-            if fit_df is not None and not fit_df.empty:
-                hist_preds[model_name] = fit_df['ModelFit'].values
-        except Exception:
-            pass
-
-    # Ensure we have enough models for training
-    available_models = list(hist_preds.keys())
-    if len(available_models) < 3:
-        raise ValueError(
-            f"Insufficient historical data. Need 3+ models with fit data, found: {available_models}"
-        )
-
-    # Level-1: Train meta-model on stacked base predictions
-    X_train = np.column_stack([hist_preds[m] for m in available_models])
-    actual_values = actual_df.iloc[-len(X_train):]['Value'].values
-
-    # Remove NaN and invalid values
-    valid_idx = ~(np.isnan(X_train).any(axis=1) | np.isnan(actual_values) | (actual_values <= 0))
-    X_train_clean = X_train[valid_idx]
-    y_train_clean = actual_values[valid_idx]
-
-    if len(X_train_clean) < 20:
-        raise ValueError("Insufficient clean training data for meta-model.")
-
-    # Normalize base model predictions for meta-model training
-    scaler = StandardScaler()
-    X_train_scaled = scaler.fit_transform(X_train_clean)
-
-    # Train Ridge Regression meta-model (L2 regularization prevents overfitting)
-    meta_model = Ridge(alpha=1.0)
-    meta_model.fit(X_train_scaled, y_train_clean)
-
-    # Generate ensemble predictions using stacked meta-model
-    available_future = [base_predictions[m] for m in available_models]
-    X_test = np.column_stack(available_future)
-    X_test_scaled = scaler.transform(X_test)
-    ensemble_forecast = meta_model.predict(X_test_scaled)
-
-    # Calculate min/max bounds from all base models
-    all_predictions = np.array(available_future)
-    forecast_min = np.min(all_predictions, axis=0)
-    forecast_max = np.max(all_predictions, axis=0)
-
-    # Ensure non-negative if original data is non-negative
-    non_negative = float(actual_df['Value'].dropna().min()) >= 0
-    if non_negative:
-        ensemble_forecast = np.clip(ensemble_forecast, 0, None)
-        forecast_min = np.clip(forecast_min, 0, None)
-        forecast_max = np.clip(forecast_max, 0, None)
-        for key in base_predictions:
-            base_predictions[key] = np.clip(base_predictions[key], 0, None)
+    # Min/max band across base models
+    if base_predictions:
+        all_preds = np.array(list(base_predictions.values()))
+        forecast_min = np.min(all_preds, axis=0)
+        forecast_max = np.max(all_preds, axis=0)
+    else:
+        forecast_min = ensemble_forecast
+        forecast_max = ensemble_forecast
 
     future_dates = pd.date_range(start=last_date + pd.Timedelta(days=1), periods=horizon, freq='D')
     connected_dates = [last_date] + list(future_dates)
@@ -514,7 +458,7 @@ def generate_stacking_ensemble(
 
     fig = go.Figure()
 
-    # Uncertainty band (range across ALL base models)
+    # Uncertainty band (range across base models)
     fig.add_trace(go.Scatter(
         x=connected_dates + connected_dates[::-1],
         y=max_connected + min_connected[::-1],
@@ -534,7 +478,7 @@ def generate_stacking_ensemble(
         hovertemplate=f'%{{x|%Y-%m-%d}}: %{{y:.2f}} {unit}<extra></extra>',
     ))
 
-    # Stacking Ensemble forecast (bold, most prominent)
+    # Stacking Ensemble forecast
     fig.add_trace(go.Scatter(
         x=connected_dates, y=ensemble_connected,
         mode='lines+markers', name='Stacking Ensemble (Meta-Model)',
@@ -543,38 +487,27 @@ def generate_stacking_ensemble(
         hovertemplate=f'Stacking Ensemble %{{x|%Y-%m-%d}}: %{{y:.2f}} {unit}<extra></extra>',
     ))
 
-    # Base model forecasts with colors
     model_colors = {
-        'LSTM': '#34d399',
-        'GRU': '#a78bfa',
-        'PatchTST': '#f59e0b',
-        'DLinear': '#f87171',
-        'iTransformer': '#60a5fa'
+        'LSTM': '#34d399', 'GRU': '#a78bfa', 'PatchTST': '#f59e0b',
+        'DLinear': '#f87171', 'iTransformer': '#60a5fa',
     }
     model_symbols = {
-        'LSTM': 'circle',
-        'GRU': 'square',
-        'PatchTST': 'diamond',
-        'DLinear': 'cross',
-        'iTransformer': 'triangle-up'
+        'LSTM': 'circle', 'GRU': 'square', 'PatchTST': 'diamond',
+        'DLinear': 'cross', 'iTransformer': 'triangle-up',
     }
 
-    for model_name in available_models:
-        if model_name in base_predictions:
-            # Calculate model contribution to ensemble
-            model_idx = available_models.index(model_name)
-            coef_val = meta_model.coef_[model_idx]
-
-            fig.add_trace(go.Scatter(
-                x=connected_dates, y=[last_value] + base_predictions[model_name].tolist(),
-                mode='lines+markers',
-                name=f'{model_name} (coef: {coef_val:.3f}, RMSE: {model_rmses[model_name]:.1f})',
-                line=dict(color=model_colors.get(model_name, '#999'), width=1.2, dash='dot'),
-                marker=dict(size=3.5, color=model_colors.get(model_name, '#999'),
-                           symbol=model_symbols.get(model_name, 'circle')),
-                opacity=0.65,
-                hovertemplate=f'{model_name} %{{x|%Y-%m-%d}}: %{{y:.2f}} {unit}<extra></extra>',
-            ))
+    for model_name, preds in base_predictions.items():
+        rmse_label = f'RMSE: {model_rmses[model_name]:.1f}' if model_name in model_rmses else ''
+        fig.add_trace(go.Scatter(
+            x=connected_dates, y=[last_value] + preds.tolist(),
+            mode='lines+markers',
+            name=f'{model_name} ({rmse_label})',
+            line=dict(color=model_colors.get(model_name, '#999'), width=1.2, dash='dot'),
+            marker=dict(size=3.5, color=model_colors.get(model_name, '#999'),
+                        symbol=model_symbols.get(model_name, 'circle')),
+            opacity=0.65,
+            hovertemplate=f'{model_name} %{{x|%Y-%m-%d}}: %{{y:.2f}} {unit}<extra></extra>',
+        ))
 
     _add_divider(fig, last_date)
 
@@ -585,18 +518,17 @@ def generate_stacking_ensemble(
     fig.update_yaxes(**_axis_style(),
                      title=f'{category_name} ({unit})' if unit else category_name)
 
-    # Format meta-model coefficients for display
-    coef_str = ", ".join(f"{available_models[i]}={meta_model.coef_[i]:.3f}" for i in range(len(available_models)))
-    rmse_str = ", ".join(f"{m}={model_rmses[m]:.1f}" for m in available_models)
+    ensemble_rmse_str = f'{ensemble_rmse:.2f}' if not np.isnan(ensemble_rmse) else 'N/A'
+    ensemble_mape_str = f'{ensemble_mape:.1f}%' if not np.isnan(ensemble_mape) else 'N/A'
 
     return {
         'chart': json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder),
         'model_info': {
             'model': 'Stacking Ensemble (Ridge)',
-            'base_models': ', '.join(available_models),
+            'base_models': ', '.join(base_predictions.keys()) if base_predictions else ', '.join(base_models),
             'horizon_days': horizon,
-            'meta_weights': coef_str,
-            'meta_intercept': f'Meta Intercept: {meta_model.intercept_:.3f}',
+            'rmse': ensemble_rmse_str,
+            'mape': ensemble_mape_str,
             'last_historical': last_date.strftime('%Y-%m-%d'),
             'forecast_end': future_dates[-1].strftime('%Y-%m-%d'),
             'source_type': 'ensemble',
