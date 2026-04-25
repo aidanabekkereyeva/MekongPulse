@@ -2428,11 +2428,17 @@ function renderCoverageGrid(data) {
   const varFilter = document.getElementById('heatmapVariableFilter')?.value || '';
   const countryFilter = document.getElementById('heatmapCountryFilter')?.value || '';
   const threshold = parseInt(document.getElementById('heatmapThreshold')?.value || 0);
+  const getDecadeLabel = (decade) => {
+    if (decade && typeof decade === 'object') {
+      return decade.label || `${decade.key}s`;
+    }
+    return `${decade}s`;
+  };
 
   const filtered = data.stations.filter(s => !countryFilter || s.country === countryFilter);
 
   let html = '<div class="do-heatmap-header"><span class="do-corner">Station</span>';
-  data.decades.forEach(d => html += `<div class="do-decade-col">${d}s</div>`);
+  data.decades.forEach(d => html += `<div class="do-decade-col">${escapeHtml(getDecadeLabel(d))}</div>`);
   html += '</div>';
 
   filtered.forEach(station => {
